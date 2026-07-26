@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\argument\argument.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
+    <ProjectReference Include="..\func-router\func-router.csproj" />
   </ItemGroup>
 
 </Project>

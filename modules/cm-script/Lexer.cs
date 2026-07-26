@@ -41,10 +41,11 @@ public class Lexer
             ret.Add(token);
             token = NextToken();
         }
+        ret.Add(new Token("\0", TokenType.EOF, 1, 0));
         return ret;
     }
 
-    public Token NextToken()
+    private Token NextToken()
     {
         SkipBlank();
         if (IsEnd())
@@ -61,7 +62,7 @@ public class Lexer
         return ReadIdentifier();
     }
 
-    private bool IsEnd() => _pos >= _length - 1;
+    private bool IsEnd() => _pos >= _length;
 
     private void Advance()
     {
@@ -82,20 +83,28 @@ public class Lexer
 
     private void SkipBlank()
     {
-        // skip comment 
+        // skip comment (including the trailing newline)
         if (_curr == '!')
         {
             while (_curr != '\0' && _curr != '\n' && _curr != '\r')
             {
                 Advance();
-                if (_pos >= _length - 1) break;
+                if (_pos >= _length) break;
+            }
+            // Consume the trailing newline after the comment
+            if (_curr == '\n' || _curr == '\r')
+            {
+                _line++;
+                Advance();
+                _col = 0;
+                if (_curr == '\n') Advance();
             }
         }
 
         while (_curr == '\0' || _curr == ' ' || _curr == '\t')
         {
             Advance();
-            if (_pos >= _length - 1) break;
+            if (_pos >= _length) break;
         }
     }
 
@@ -109,13 +118,31 @@ public class Lexer
             var tkType_ = Keywords.TryGetValue(tk_, out var tkt_) ? tkt_ : TokenType.Unknown;
             return new Token(tk_, tkType_, _line, startCol);
         }
-        var sb = new StringBuilder();
-        while (_curr != ' ' && _curr != '\0' && _curr != '\n')
+        // Handle quoted string literals - read everything between quotes as one token (quotes included)
+        if (_curr == '"')
         {
-            sb.Append(_curr);
+            var sb = new StringBuilder();
+            sb.Append(_curr); // opening quote
+            Advance();
+            while (_curr != '"' && _curr != '\0' && _curr != '\n' && _curr != '\r')
+            {
+                sb.Append(_curr);
+                Advance();
+            }
+            if (_curr == '"')
+            {
+                sb.Append(_curr); // closing quote
+                Advance();
+            }
+            return new Token(sb.ToString(), TokenType.String, _line, startCol);
+        }
+        var sbId = new StringBuilder();
+        while (_curr != ' ' && _curr != '\0' && _curr != '\n' && _curr != '\r')
+        {
+            sbId.Append(_curr);
             Advance();
         }
-        var tk = sb.ToString();
+        var tk = sbId.ToString();
         var tkType = Keywords.TryGetValue(tk, out var tkt) ? tkt : TokenType.Identifier;
         return new Token(tk, tkType, _line, startCol);
     }

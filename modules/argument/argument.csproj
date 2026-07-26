@@ -2,13 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>cm_script</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\func-router\func-router.csproj" />
+    <ProjectReference Include="..\error\error.csproj" />
   </ItemGroup>
 
 </Project>

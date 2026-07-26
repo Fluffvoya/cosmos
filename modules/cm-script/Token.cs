@@ -11,6 +11,8 @@ public enum TokenType
     ST_Python,
     // identifier
     Identifier,
+    // string literal (quoted)
+    String,
     // new line
     NewLine,
     // end of file
