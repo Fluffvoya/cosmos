@@ -10,7 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\argument\argument.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
-    <ProjectReference Include="..\controller\controller.csproj" />
+    <ProjectReference Include="..\bridge\bridge.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
   </ItemGroup>
 

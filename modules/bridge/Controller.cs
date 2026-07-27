@@ -1,4 +1,4 @@
-﻿namespace controller;
+﻿namespace bridge;
 
 public class Controller
 {
