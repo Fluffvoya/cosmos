@@ -98,4 +98,38 @@ public class ErrorTests
         Assert.IsAssignableFrom<CosmosException>(ex);
         Assert.Equal(ErrorCode.FunctionNotFound, ex.ErrorCode);
     }
+
+    // ── ControllerException (new) ──────────────────────────────────
+
+    [Fact]
+    public void ErrorCode_JsonDeserializeFailed_HasExpectedValue()
+    {
+        Assert.Equal(3001, (int)ErrorCode.JsonDeserializeFailed);
+    }
+
+    [Fact]
+    public void ControllerException_InheritsCosmosException()
+    {
+        var ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "json error");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
+        Assert.Equal("json error", ex.Message);
+    }
+
+    [Fact]
+    public void ControllerException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "bad json");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void ControllerException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "parse fail");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("parse fail", ex.Message);
+    }
 }

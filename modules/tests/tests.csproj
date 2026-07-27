@@ -23,6 +23,7 @@
     <ProjectReference Include="..\argument\argument.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
+    <ProjectReference Include="..\controller\controller.csproj" />
   </ItemGroup>
 
 </Project>
