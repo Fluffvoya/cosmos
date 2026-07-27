@@ -11,4 +11,7 @@ public enum ErrorCode
     FunctionNotFound = 2001,
     ArgumentCountMismatch = 2002,
     ArgumentTypeCheckFailed = 2003,
+
+    // Controller 模块 (3xxx)
+    JsonDeserializeFailed = 3001,
 }
