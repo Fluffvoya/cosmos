@@ -12,6 +12,6 @@ public enum ErrorCode
     ArgumentCountMismatch = 2002,
     ArgumentTypeCheckFailed = 2003,
 
-    // Bridge 模块 (3xxx)
+    // Client 模块 (3xxx)
     JsonDeserializeFailed = 3001,
 }

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace bridge;
+namespace client;
 
 public class Requests
 {

@@ -1,4 +1,4 @@
-﻿using bridge;
+﻿using client;
 
 Controller.Emit(
     Controller.ShowWindow("a window", "hello world!"),

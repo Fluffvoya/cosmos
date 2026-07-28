@@ -1,4 +1,4 @@
-namespace bridge;
+namespace client;
 
 public enum RequestType
 {

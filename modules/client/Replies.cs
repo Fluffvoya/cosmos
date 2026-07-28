@@ -1,7 +1,7 @@
 using System.Text.Json;
 using cosmos_error;
 
-namespace bridge;
+namespace client;
 
 public class Replies
 {
