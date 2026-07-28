@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "error", "modules\error\erro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tests", "modules\tests\tests.csproj", "{A5F4479C-BF90-4559-85D0-5A1067C25167}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bridge", "modules\bridge\bridge.csproj", "{B2E52BD7-71A6-402D-8798-EBA303321EBA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "client", "modules\client\client.csproj", "{B2E52BD7-71A6-402D-8798-EBA303321EBA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

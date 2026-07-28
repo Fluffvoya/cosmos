@@ -1,5 +1,5 @@
 using System.Text.Json;
-using bridge;
+using client;
 using cosmos_error;
 
 namespace tests;
