@@ -10,6 +10,24 @@ public class Client
         return requestsText.Serialize();
     }
 
+    public static List<Reply> GetReplies(string reply)
+    {
+        var replies = Replies.Deserialize(reply);
+        if (replies is null)
+            return new List<Reply>();
+        return replies.replies;
+    }
+
+    public static List<string> GetRepliesMessage(string reply)
+    {
+        List<string> rns = new List<string>();
+        var replies = GetReplies(reply);
+        foreach (var item in replies)
+            rns.Add(item.request);
+        return rns;
+    }
+
+
     // transmit json message by stdout
     public static Request ShowWindow(string name, string message)
         => new Request("ShowWindow", RequestType.Action, name, message);

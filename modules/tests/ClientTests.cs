@@ -97,10 +97,11 @@ public class ClientTests
     }
 
     [Fact]
-    public void Requests_Constructor_NullList_ThrowsPublicModelException()
+    public void Requests_Constructor_NullList_StoresNull()
     {
-        var ex = Assert.Throws<PublicModelException>(() => new Requests(null!));
-        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
+        var requests = new Requests(null!);
+
+        Assert.Null(requests.requests);
     }
 
     [Fact]
@@ -161,7 +162,7 @@ public class ClientTests
     {
         var reply = new Reply("GetUserName", "Alice");
 
-        Assert.Equal("GetUserName", reply.requestName);
+        Assert.Equal("GetUserName", reply.request);
         Assert.Equal("Alice", reply.message);
     }
 
@@ -184,7 +185,7 @@ public class ClientTests
     {
         var reply = new Reply("validName", "");
 
-        Assert.Equal("validName", reply.requestName);
+        Assert.Equal("validName", reply.request);
         Assert.Equal("", reply.message);
     }
 
@@ -211,23 +212,24 @@ public class ClientTests
     [Fact]
     public void Replies_Deserialize_ValidJson_ReturnsReplies()
     {
-        var json = """{"replies":[{"requestName":"GetUserName","message":"Alice"}]}""";
+        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
 
         var result = Replies.Deserialize(json);
 
         Assert.NotNull(result);
         Assert.Single(result.replies);
-        Assert.Equal("GetUserName", result.replies[0].requestName);
+        Assert.Equal("GetUserName", result.replies[0].request);
         Assert.Equal("Alice", result.replies[0].message);
     }
 
     [Fact]
     public void Replies_Deserialize_MultipleReplies_ReturnsAll()
     {
-        var json = """{"replies":[{"requestName":"A","message":"msg1"},{"requestName":"B","message":"msg2"}]}""";
+        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
 
         var result = Replies.Deserialize(json);
 
+        Assert.NotNull(result);
         Assert.Equal(2, result.replies.Count);
         Assert.Equal("msg1", result.replies[0].message);
         Assert.Equal("msg2", result.replies[1].message);
@@ -254,10 +256,11 @@ public class ClientTests
     }
 
     [Fact]
-    public void Replies_Deserialize_EmptyString_ThrowsPublicModelException()
+    public void Replies_Deserialize_EmptyString_ReturnsNull()
     {
-        var ex = Assert.Throws<PublicModelException>(() => Replies.Deserialize(""));
-        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
+        var result = Replies.Deserialize("");
+
+        Assert.Null(result);
     }
 
     // ── Client.ShowWindow ──────────────────────────────────────────
@@ -337,6 +340,105 @@ public class ClientTests
         Assert.Equal(0, requestsArray.GetArrayLength());
     }
 
+    // ── Client.GetReplies ──────────────────────────────────────────
+
+    [Fact]
+    public void Client_GetReplies_ValidJson_ReturnsReplyList()
+    {
+        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
+
+        var result = Client.GetReplies(json);
+
+        Assert.Single(result);
+        Assert.Equal("GetUserName", result[0].request);
+        Assert.Equal("Alice", result[0].message);
+    }
+
+    [Fact]
+    public void Client_GetReplies_MultipleReplies_ReturnsAll()
+    {
+        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
+
+        var result = Client.GetReplies(json);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("msg1", result[0].message);
+        Assert.Equal("msg2", result[1].message);
+    }
+
+    [Fact]
+    public void Client_GetReplies_EmptyRepliesArray_ReturnsEmptyList()
+    {
+        var json = """{"replies":[]}""";
+
+        var result = Client.GetReplies(json);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Client_GetReplies_InvalidJson_ThrowsPublicModelException()
+    {
+        Assert.Throws<PublicModelException>(() => Client.GetReplies("not valid json"));
+    }
+
+    [Fact]
+    public void Client_GetReplies_EmptyString_ReturnsEmptyList()
+    {
+        var result = Client.GetReplies("");
+
+        Assert.Empty(result);
+    }
+
+    // ── Client.GetRepliesMessage ───────────────────────────────────
+
+    [Fact]
+    public void Client_GetRepliesMessage_ValidJson_ReturnsRequestNames()
+    {
+        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
+
+        var result = Client.GetRepliesMessage(json);
+
+        Assert.Single(result);
+        Assert.Equal("GetUserName", result[0]);
+    }
+
+    [Fact]
+    public void Client_GetRepliesMessage_MultipleReplies_ReturnsAllRequestNames()
+    {
+        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
+
+        var result = Client.GetRepliesMessage(json);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("A", result[0]);
+        Assert.Equal("B", result[1]);
+    }
+
+    [Fact]
+    public void Client_GetRepliesMessage_EmptyRepliesArray_ReturnsEmptyList()
+    {
+        var json = """{"replies":[]}""";
+
+        var result = Client.GetRepliesMessage(json);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Client_GetRepliesMessage_InvalidJson_ThrowsPublicModelException()
+    {
+        Assert.Throws<PublicModelException>(() => Client.GetRepliesMessage("not valid json"));
+    }
+
+    [Fact]
+    public void Client_GetRepliesMessage_EmptyString_ReturnsEmptyList()
+    {
+        var result = Client.GetRepliesMessage("");
+
+        Assert.Empty(result);
+    }
+
     // ── Serialization round-trip ───────────────────────────────────
 
     [Fact]
@@ -360,7 +462,7 @@ public class ClientTests
         var deserialized = JsonSerializer.Deserialize<Reply>(json);
 
         Assert.NotNull(deserialized);
-        Assert.Equal(original.requestName, deserialized.requestName);
+        Assert.Equal(original.request, deserialized.request);
         Assert.Equal(original.message, deserialized.message);
     }
 }

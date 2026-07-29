@@ -47,9 +47,7 @@ public class Requests
 {
     public Requests(params List<Request> requests_)
     {
-        requests = requests_ ?? throw new PublicModelException(
-            ErrorCode.NullInput,
-            "Requests list cannot be null.");
+        requests = requests_;
     }
 
     public List<Request> requests { get; set; }
