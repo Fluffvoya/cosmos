@@ -1,17 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\argument\argument.csproj" />
-    <ProjectReference Include="..\cm-script\cm-script.csproj" />
-    <ProjectReference Include="..\client\client.csproj" />
-    <ProjectReference Include="..\bridge\bridge.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
   </ItemGroup>
 

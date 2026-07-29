@@ -22,7 +22,7 @@ public class Replies
         }
         catch (Exception ex)
         {
-            throw new ControllerException(
+            throw new ClientException(
                 ErrorCode.JsonDeserializeFailed,
                 $"Failed to deserialize JSON to Replies: {ex.Message}");
         }

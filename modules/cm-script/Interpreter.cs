@@ -1,5 +1,7 @@
 using argument;
+using cosmos_error;
 using func_router;
+using process;
 
 namespace cm_script;
 
@@ -65,6 +67,11 @@ public class Interpreter
     private void Cosmos()
     {
         var args = new List<object>();
+
+        if (_curr.tokenType == TokenType.NewLine || _curr.tokenType == TokenType.EOF)
+            throw new InterpreterException(ErrorCode.MissingFunctionName,
+                $"Expected function name after COSMOS keyword at line {_curr.line}");
+
         var func = _curr.tk;
         Advance();
         while (true)
@@ -93,7 +100,8 @@ public class Interpreter
             }
             Advance();
         }
-        _router.Call(func, args);
+        IProcess process = new InternalProcess(_router, func, args);
+        process.Execute();
     }
 
     private void Executable()

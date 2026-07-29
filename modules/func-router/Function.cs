@@ -1,22 +1,23 @@
 using argument;
+using bridge;
 using cosmos_error;
 
 namespace func_router;
 
 public class Function
 {
-    public Action<List<object>> func;
+    public Action<IServer, List<object>> func;
     public List<ArgumentType> argsType;
 
-    public Function(Action<List<object>> func_, params List<ArgumentType> argsType_)
+    public Function(Action<IServer, List<object>> func_, params List<ArgumentType> argsType_)
     {
         func = func_;
         argsType = argsType_;
     }
-    public void Call(List<object> args)
+    public void Call(IServer server, List<object> args)
     {
         Check(args);
-        func.Invoke(args);
+        func.Invoke(server, args);
     }
 
     // throw when fatal
