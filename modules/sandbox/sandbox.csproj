@@ -13,6 +13,7 @@
     <ProjectReference Include="..\client\client.csproj" />
     <ProjectReference Include="..\bridge\bridge.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
+    <ProjectReference Include="..\public-model\public-model.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,6 @@
-﻿namespace client;
+﻿using public_model;
+
+namespace client;
 
 public class Client
 {
