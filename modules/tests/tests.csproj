@@ -24,6 +24,7 @@
     <ProjectReference Include="..\func-router\func-router.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
     <ProjectReference Include="..\client\client.csproj" />
+    <ProjectReference Include="..\public-model\public-model.csproj" />
   </ItemGroup>
 
 </Project>

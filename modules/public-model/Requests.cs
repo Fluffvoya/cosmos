@@ -1,7 +1,7 @@
 using System.Text.Json;
 using cosmos_error;
 
-namespace client;
+namespace public_model;
 
 public enum RequestType
 {
@@ -24,12 +24,19 @@ public class Request
 
     public Request(string request_, RequestType requestType_, params List<string> args_)
     {
+        if (string.IsNullOrEmpty(request_))
+            throw new PublicModelException(
+                ErrorCode.EmptyRequestName,
+                "Request name cannot be null or empty.");
+
         request = request_;
         var requestTypeStr = requestType_ switch
         {
             RequestType.Action => "action",
             RequestType.Inquiry => "inquiry",
-            _ => ""
+            _ => throw new PublicModelException(
+                ErrorCode.InvalidRequestType,
+                $"Invalid request type: {requestType_}")
         };
         requestType = requestTypeStr;
         args = args_;
@@ -40,7 +47,9 @@ public class Requests
 {
     public Requests(params List<Request> requests_)
     {
-        requests = requests_;
+        requests = requests_ ?? throw new PublicModelException(
+            ErrorCode.NullInput,
+            "Requests list cannot be null.");
     }
 
     public List<Request> requests { get; set; }
@@ -52,7 +61,7 @@ public class Requests
         }
         catch (Exception ex)
         {
-            throw new ClientException(
+            throw new PublicModelException(
                 ErrorCode.JsonSerializeFailed,
                 $"Failed to serialize Requests to JSON: {ex.Message}");
         }

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using cosmos_error;
 
-namespace client;
+namespace public_model;
 
 public class Replies
 {
@@ -9,12 +9,18 @@ public class Replies
 
     public Replies(params List<Reply> replies)
     {
-        this.replies = replies;
+        this.replies = replies ?? throw new PublicModelException(
+            ErrorCode.NullInput,
+            "Replies list cannot be null.");
     }
 
     public static Replies Deserialize(string text)
     {
-        var rns = new Replies();
+        if (string.IsNullOrEmpty(text))
+            throw new PublicModelException(
+                ErrorCode.NullInput,
+                "Input text cannot be null or empty.");
+
         Replies? jsonStruct = null;
         try
         {
@@ -22,13 +28,11 @@ public class Replies
         }
         catch (Exception ex)
         {
-            throw new ClientException(
+            throw new PublicModelException(
                 ErrorCode.JsonDeserializeFailed,
                 $"Failed to deserialize JSON to Replies: {ex.Message}");
         }
 
-        if (jsonStruct is not null)
-            rns = jsonStruct;
-        return rns;
+        return jsonStruct ?? new Replies();
     }
 }

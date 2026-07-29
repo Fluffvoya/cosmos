@@ -1,6 +1,7 @@
 using System.Text.Json;
 using client;
 using cosmos_error;
+using public_model;
 
 namespace tests;
 
@@ -64,6 +65,20 @@ public class ClientTests
         Assert.Equal("onlyArg", req.args[0]);
     }
 
+    [Fact]
+    public void Request_EmptyRequestName_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Request("", RequestType.Action));
+        Assert.Equal(ErrorCode.EmptyRequestName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Request_NullRequestName_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Request(null!, RequestType.Action));
+        Assert.Equal(ErrorCode.EmptyRequestName, ex.ErrorCode);
+    }
+
     // ── Requests ───────────────────────────────────────────────────
 
     [Fact]
@@ -79,6 +94,13 @@ public class ClientTests
         Assert.Equal(2, requests.requests.Count);
         Assert.Equal("A", requests.requests[0].request);
         Assert.Equal("B", requests.requests[1].request);
+    }
+
+    [Fact]
+    public void Requests_Constructor_NullList_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Requests(null!));
+        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
     }
 
     [Fact]
@@ -144,11 +166,25 @@ public class ClientTests
     }
 
     [Fact]
-    public void Reply_Constructor_WithEmptyStrings()
+    public void Reply_Constructor_EmptyRequestName_ThrowsPublicModelException()
     {
-        var reply = new Reply("", "");
+        var ex = Assert.Throws<PublicModelException>(() => new Reply("", "msg"));
+        Assert.Equal(ErrorCode.EmptyReplyRequestName, ex.ErrorCode);
+    }
 
-        Assert.Equal("", reply.requestName);
+    [Fact]
+    public void Reply_Constructor_NullRequestName_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Reply(null!, "msg"));
+        Assert.Equal(ErrorCode.EmptyReplyRequestName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Reply_Constructor_EmptyMessage_IsAllowed()
+    {
+        var reply = new Reply("validName", "");
+
+        Assert.Equal("validName", reply.requestName);
         Assert.Equal("", reply.message);
     }
 
@@ -163,6 +199,13 @@ public class ClientTests
         Assert.Equal(2, replies.replies.Count);
         Assert.Equal("msg1", replies.replies[0].message);
         Assert.Equal("msg2", replies.replies[1].message);
+    }
+
+    [Fact]
+    public void Replies_Constructor_NullList_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Replies(null!));
+        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
     }
 
     [Fact]
@@ -202,19 +245,19 @@ public class ClientTests
     }
 
     [Fact]
-    public void Replies_Deserialize_InvalidJson_ThrowsClientException()
+    public void Replies_Deserialize_InvalidJson_ThrowsPublicModelException()
     {
         var invalidJson = "this is not json";
 
-        var ex = Assert.Throws<ClientException>(() => Replies.Deserialize(invalidJson));
+        var ex = Assert.Throws<PublicModelException>(() => Replies.Deserialize(invalidJson));
         Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
     }
 
     [Fact]
-    public void Replies_Deserialize_EmptyString_ThrowsClientException()
+    public void Replies_Deserialize_EmptyString_ThrowsPublicModelException()
     {
-        var ex = Assert.Throws<ClientException>(() => Replies.Deserialize(""));
-        Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
+        var ex = Assert.Throws<PublicModelException>(() => Replies.Deserialize(""));
+        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
     }
 
     // ── Client.ShowWindow ──────────────────────────────────────────

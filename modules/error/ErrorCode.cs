@@ -15,9 +15,13 @@ public enum ErrorCode
     // Argument 模块 - overflow (1xxx)
     ArgumentOverflow = 1004,
 
-    // Client 模块 (3xxx)
+    // Public Model 模块 (3xxx)
     JsonDeserializeFailed = 3001,
     JsonSerializeFailed = 3002,
+    EmptyRequestName = 3003,
+    InvalidRequestType = 3004,
+    EmptyReplyRequestName = 3005,
+    NullInput = 3006,
 
     // cm-script 模块 (4xxx)
     SyntaxError = 4001,
