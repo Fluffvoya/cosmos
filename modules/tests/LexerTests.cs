@@ -1,4 +1,5 @@
 using cm_script;
+using cosmos_error;
 
 namespace tests;
 
@@ -236,5 +237,34 @@ public class LexerTests
         Assert.Equal(TokenType.ST_Cosmos, tokens[0].tokenType);
         Assert.Equal(TokenType.NewLine, tokens[2].tokenType);
         Assert.Equal(TokenType.ST_Exe, tokens[3].tokenType);
+    }
+
+    // ── Syntax errors ─────────────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_UnterminatedString_ThrowsSyntaxError()
+    {
+        var lexer = new Lexer("\"hello");
+
+        var ex = Assert.Throws<InterpreterException>(() => lexer.Tokenize());
+        Assert.Equal(ErrorCode.SyntaxError, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Tokenize_UnterminatedStringWithNewline_ThrowsSyntaxError()
+    {
+        var lexer = new Lexer("\"hello\nworld");
+
+        var ex = Assert.Throws<InterpreterException>(() => lexer.Tokenize());
+        Assert.Equal(ErrorCode.SyntaxError, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Tokenize_UnterminatedStringAtEOF_ThrowsSyntaxError()
+    {
+        var lexer = new Lexer("\"");
+
+        var ex = Assert.Throws<InterpreterException>(() => lexer.Tokenize());
+        Assert.Equal(ErrorCode.SyntaxError, ex.ErrorCode);
     }
 }

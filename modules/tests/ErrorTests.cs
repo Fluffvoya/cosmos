@@ -4,10 +4,12 @@ namespace tests;
 
 /// <summary>
 /// Unit tests for the error module: ErrorCode enum, CosmosException,
-/// CosmosArgumentException, and RouterException.
+/// CosmosArgumentException, RouterException, ClientException, and InterpreterException.
 /// </summary>
 public class ErrorTests
 {
+    // ── ErrorCode values ───────────────────────────────────────────
+
     [Fact]
     public void ErrorCode_ArgumentNull_HasExpectedValue()
     {
@@ -24,6 +26,12 @@ public class ErrorTests
     public void ErrorCode_ArgumentTypeMismatch_HasExpectedValue()
     {
         Assert.Equal(1003, (int)ErrorCode.ArgumentTypeMismatch);
+    }
+
+    [Fact]
+    public void ErrorCode_ArgumentOverflow_HasExpectedValue()
+    {
+        Assert.Equal(1004, (int)ErrorCode.ArgumentOverflow);
     }
 
     [Fact]
@@ -45,6 +53,32 @@ public class ErrorTests
     }
 
     [Fact]
+    public void ErrorCode_JsonDeserializeFailed_HasExpectedValue()
+    {
+        Assert.Equal(3001, (int)ErrorCode.JsonDeserializeFailed);
+    }
+
+    [Fact]
+    public void ErrorCode_JsonSerializeFailed_HasExpectedValue()
+    {
+        Assert.Equal(3002, (int)ErrorCode.JsonSerializeFailed);
+    }
+
+    [Fact]
+    public void ErrorCode_SyntaxError_HasExpectedValue()
+    {
+        Assert.Equal(4001, (int)ErrorCode.SyntaxError);
+    }
+
+    [Fact]
+    public void ErrorCode_MissingFunctionName_HasExpectedValue()
+    {
+        Assert.Equal(4002, (int)ErrorCode.MissingFunctionName);
+    }
+
+    // ── CosmosException ────────────────────────────────────────────
+
+    [Fact]
     public void CosmosException_StoresErrorCodeAndMessage()
     {
         var ex = new CosmosException(ErrorCode.ArgumentNull, "test message");
@@ -61,6 +95,8 @@ public class ErrorTests
         Assert.IsAssignableFrom<Exception>(ex);
     }
 
+    // ── CosmosArgumentException ─────────────────────────────────────
+
     [Fact]
     public void CosmosArgumentException_InheritsCosmosException()
     {
@@ -70,6 +106,16 @@ public class ErrorTests
         Assert.Equal(ErrorCode.ArgumentFormatInvalid, ex.ErrorCode);
         Assert.Equal("bad format", ex.Message);
     }
+
+    [Fact]
+    public void CosmosArgumentException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new CosmosArgumentException(ErrorCode.ArgumentNull, "null arg");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.ArgumentNull, ex.ErrorCode);
+    }
+
+    // ── RouterException ────────────────────────────────────────────
 
     [Fact]
     public void RouterException_InheritsCosmosException()
@@ -82,35 +128,19 @@ public class ErrorTests
     }
 
     [Fact]
-    public void CosmosException_CanBeCaughtAsBaseException()
-    {
-        // CosmosArgumentException is a subclass of CosmosException
-        CosmosException ex = new CosmosArgumentException(ErrorCode.ArgumentNull, "null arg");
-        Assert.IsAssignableFrom<CosmosException>(ex);
-        Assert.Equal(ErrorCode.ArgumentNull, ex.ErrorCode);
-    }
-
-    [Fact]
     public void RouterException_CanBeCaughtAsCosmosException()
     {
-        // RouterException is a subclass of CosmosException
         CosmosException ex = new RouterException(ErrorCode.FunctionNotFound, "not found");
         Assert.IsAssignableFrom<CosmosException>(ex);
         Assert.Equal(ErrorCode.FunctionNotFound, ex.ErrorCode);
     }
 
-    // ── ControllerException (new) ──────────────────────────────────
+    // ── ClientException ────────────────────────────────────────────
 
     [Fact]
-    public void ErrorCode_JsonDeserializeFailed_HasExpectedValue()
+    public void ClientException_InheritsCosmosException()
     {
-        Assert.Equal(3001, (int)ErrorCode.JsonDeserializeFailed);
-    }
-
-    [Fact]
-    public void ControllerException_InheritsCosmosException()
-    {
-        var ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "json error");
+        var ex = new ClientException(ErrorCode.JsonDeserializeFailed, "json error");
 
         Assert.IsAssignableFrom<CosmosException>(ex);
         Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
@@ -118,18 +148,46 @@ public class ErrorTests
     }
 
     [Fact]
-    public void ControllerException_CanBeCaughtAsCosmosException()
+    public void ClientException_CanBeCaughtAsCosmosException()
     {
-        CosmosException ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "bad json");
+        CosmosException ex = new ClientException(ErrorCode.JsonDeserializeFailed, "bad json");
         Assert.IsAssignableFrom<CosmosException>(ex);
         Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
     }
 
     [Fact]
-    public void ControllerException_CanBeCaughtAsBaseException()
+    public void ClientException_CanBeCaughtAsBaseException()
     {
-        Exception ex = new ControllerException(ErrorCode.JsonDeserializeFailed, "parse fail");
+        Exception ex = new ClientException(ErrorCode.JsonDeserializeFailed, "parse fail");
         Assert.IsAssignableFrom<Exception>(ex);
         Assert.Equal("parse fail", ex.Message);
+    }
+
+    // ── InterpreterException ───────────────────────────────────────
+
+    [Fact]
+    public void InterpreterException_InheritsCosmosException()
+    {
+        var ex = new InterpreterException(ErrorCode.SyntaxError, "syntax error");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.SyntaxError, ex.ErrorCode);
+        Assert.Equal("syntax error", ex.Message);
+    }
+
+    [Fact]
+    public void InterpreterException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new InterpreterException(ErrorCode.MissingFunctionName, "missing name");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.MissingFunctionName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void InterpreterException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new InterpreterException(ErrorCode.SyntaxError, "bad syntax");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("bad syntax", ex.Message);
     }
 }

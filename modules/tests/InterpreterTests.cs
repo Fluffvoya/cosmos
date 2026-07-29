@@ -1,4 +1,5 @@
 using argument;
+using bridge;
 using cm_script;
 using cosmos_error;
 using func_router;
@@ -10,10 +11,16 @@ namespace tests;
 /// </summary>
 public class InterpreterTests
 {
-    private static Router CreateRouter(string funcName, List<ArgumentType> argTypes,
-        Action<List<object>> action)
+    // Mock IServer for testing
+    private class MockServer : IServer
     {
-        var router = new Router();
+        public string Execute(string requests) => "mock-reply";
+    }
+
+    private static Router CreateRouter(string funcName, List<ArgumentType> argTypes,
+        Action<IServer, List<object>> action)
+    {
+        var router = new Router(new MockServer());
         router.Add(funcName, new Function(action, argTypes));
         return router;
     }
@@ -26,7 +33,7 @@ public class InterpreterTests
         long capturedA = 0, capturedB = 0;
         var router = CreateRouter("add",
             new List<ArgumentType> { ArgumentType.Number, ArgumentType.Number },
-            args => { capturedA = (long)args[0]; capturedB = (long)args[1]; });
+            (IServer s, List<object> args) => { capturedA = (long)args[0]; capturedB = (long)args[1]; });
 
         var lexer = new Lexer("COSMOS add 3 4");
         var tokens = lexer.Tokenize();
@@ -43,7 +50,7 @@ public class InterpreterTests
         string? captured = null;
         var router = CreateRouter("greet",
             new List<ArgumentType> { ArgumentType.String },
-            args => captured = (string)args[0]);
+            (IServer s, List<object> args) => captured = (string)args[0]);
 
         var lexer = new Lexer("COSMOS greet \"Hello\"");
         var tokens = lexer.Tokenize();
@@ -59,7 +66,7 @@ public class InterpreterTests
         var results = new List<object>();
         var router = CreateRouter("mixed",
             new List<ArgumentType> { ArgumentType.Number, ArgumentType.Float, ArgumentType.String },
-            args => results.AddRange(args));
+            (IServer s, List<object> args) => results.AddRange(args));
 
         var lexer = new Lexer("COSMOS mixed 1 2.5 \"test\"");
         var tokens = lexer.Tokenize();
@@ -77,7 +84,7 @@ public class InterpreterTests
     {
         var called = false;
         var router = CreateRouter("noop", new List<ArgumentType>(),
-            _ => called = true);
+            (IServer s, List<object> a) => called = true);
 
         var lexer = new Lexer("COSMOS noop");
         var tokens = lexer.Tokenize();
@@ -90,7 +97,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_COSMOS_FunctionNotFound_Throws()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("COSMOS missing 1");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -106,7 +113,7 @@ public class InterpreterTests
         // to the router, which then throws RouterException on type check.
         var router = CreateRouter("fn",
             new List<ArgumentType> { ArgumentType.Number },
-            _ => { });
+            (IServer s, List<object> a) => { });
 
         var lexer = new Lexer("COSMOS fn \"not_a_number\"");
         var tokens = lexer.Tokenize();
@@ -123,7 +130,7 @@ public class InterpreterTests
         long captured = 0;
         var router = CreateRouter("f",
             new List<ArgumentType> { ArgumentType.Number },
-            args => captured = (long)args[0]);
+            (IServer s, List<object> args) => captured = (long)args[0]);
 
         var lexer = new Lexer("$ f 99");
         var tokens = lexer.Tokenize();
@@ -138,7 +145,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_EmptySource_DoesNotThrow()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -150,7 +157,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_IdentifierOnly_IsNoOp()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("someIdentifier");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -164,7 +171,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_EXE_DoesNotThrow()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("EXE something");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -176,7 +183,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_LIB_DoesNotThrow()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("LIB something");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -187,7 +194,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_SCRIPT_DoesNotThrow()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("SCRIPT something");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -198,7 +205,7 @@ public class InterpreterTests
     [Fact]
     public void Interpret_PYTHON_DoesNotThrow()
     {
-        var router = new Router();
+        var router = new Router(new MockServer());
         var lexer = new Lexer("PYTHON something");
         var tokens = lexer.Tokenize();
         var interpreter = new Interpreter(tokens, router);
@@ -214,7 +221,7 @@ public class InterpreterTests
         long result = 0;
         var router = CreateRouter("add",
             new List<ArgumentType> { ArgumentType.Number, ArgumentType.Number },
-            args => result = (long)args[0] + (long)args[1]);
+            (IServer s, List<object> args) => result = (long)args[0] + (long)args[1]);
 
         var source = "! comment line\nCOSMOS add 10 20";
         var lexer = new Lexer(source);
@@ -223,5 +230,62 @@ public class InterpreterTests
         interpreter.Interpret();
 
         Assert.Equal(30L, result);
+    }
+
+    // ── Server interaction ─────────────────────────────────────────
+
+    [Fact]
+    public void Interpret_COSMOS_ServerIsAvailableInFunction()
+    {
+        IServer? capturedServer = null;
+        var router = CreateRouter("check",
+            new List<ArgumentType>(),
+            (IServer s, List<object> a) => capturedServer = s);
+
+        var lexer = new Lexer("COSMOS check");
+        var tokens = lexer.Tokenize();
+        var interpreter = new Interpreter(tokens, router);
+        interpreter.Interpret();
+
+        Assert.NotNull(capturedServer);
+        Assert.IsType<MockServer>(capturedServer);
+    }
+
+    // ── Missing function name ──────────────────────────────────────
+
+    [Fact]
+    public void Interpret_COSMOS_NoFunctionName_ThrowsMissingFunctionName()
+    {
+        var router = new Router(new MockServer());
+        var lexer = new Lexer("COSMOS\n");
+        var tokens = lexer.Tokenize();
+        var interpreter = new Interpreter(tokens, router);
+
+        var ex = Assert.Throws<InterpreterException>(() => interpreter.Interpret());
+        Assert.Equal(ErrorCode.MissingFunctionName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Interpret_COSMOS_AtEOF_ThrowsMissingFunctionName()
+    {
+        var router = new Router(new MockServer());
+        var lexer = new Lexer("COSMOS");
+        var tokens = lexer.Tokenize();
+        var interpreter = new Interpreter(tokens, router);
+
+        var ex = Assert.Throws<InterpreterException>(() => interpreter.Interpret());
+        Assert.Equal(ErrorCode.MissingFunctionName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Interpret_COSMOS_OnlyNewlines_ThrowsMissingFunctionName()
+    {
+        var router = new Router(new MockServer());
+        var lexer = new Lexer("COSMOS\n\n");
+        var tokens = lexer.Tokenize();
+        var interpreter = new Interpreter(tokens, router);
+
+        var ex = Assert.Throws<InterpreterException>(() => interpreter.Interpret());
+        Assert.Equal(ErrorCode.MissingFunctionName, ex.ErrorCode);
     }
 }

@@ -10,7 +10,15 @@ public class ArgumentConvert
         if (type != ArgumentType.Number)
             throw new CosmosArgumentException(ErrorCode.ArgumentTypeMismatch,
                 $"Type mismatch: expected Number, got {type}");
-        return long.Parse(tk, System.Globalization.CultureInfo.InvariantCulture);
+        try
+        {
+            return long.Parse(tk, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (OverflowException)
+        {
+            throw new CosmosArgumentException(ErrorCode.ArgumentOverflow,
+                $"Number out of range: '{tk}' exceeds Int64 bounds");
+        }
     }
 
     public static double ToFloat(string tk)
@@ -19,8 +27,20 @@ public class ArgumentConvert
         if (type != ArgumentType.Float)
             throw new CosmosArgumentException(ErrorCode.ArgumentTypeMismatch,
                 $"Type mismatch: expected Float, got {type}");
-        return double.Parse(tk, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture);
+        try
+        {
+            var result = double.Parse(tk, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture);
+            if (double.IsInfinity(result))
+                throw new CosmosArgumentException(ErrorCode.ArgumentOverflow,
+                    $"Float out of range: '{tk}' exceeds Double bounds");
+            return result;
+        }
+        catch (OverflowException)
+        {
+            throw new CosmosArgumentException(ErrorCode.ArgumentOverflow,
+                $"Float out of range: '{tk}' exceeds Double bounds");
+        }
     }
 
     public static string ToString_(string tk)

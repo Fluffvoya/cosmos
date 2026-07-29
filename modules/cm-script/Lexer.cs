@@ -1,4 +1,5 @@
 using System.Text;
+using cosmos_error;
 
 namespace cm_script;
 
@@ -133,6 +134,11 @@ public class Lexer
             {
                 sb.Append(_curr); // closing quote
                 Advance();
+            }
+            else
+            {
+                throw new InterpreterException(ErrorCode.SyntaxError,
+                    $"Unterminated string literal at line {_line}, col {startCol}");
             }
             return new Token(sb.ToString(), TokenType.String, _line, startCol);
         }

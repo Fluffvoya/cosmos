@@ -132,4 +132,15 @@ public class ArgumentTests
         var ex = Assert.Throws<CosmosArgumentException>(() => ArgumentConvert.ToString_("3.14"));
         Assert.Equal(ErrorCode.ArgumentTypeMismatch, ex.ErrorCode);
     }
+
+    // ── Overflow scenarios ─────────────────────────────────────────
+
+    [Fact]
+    public void ToFloat_Overflow_ThrowsArgumentOverflow()
+    {
+        // Exceeds Double.MaxValue, parsed as PositiveInfinity
+        var ex = Assert.Throws<CosmosArgumentException>(() =>
+            ArgumentConvert.ToFloat("1.0e999999"));
+        Assert.Equal(ErrorCode.ArgumentOverflow, ex.ErrorCode);
+    }
 }
