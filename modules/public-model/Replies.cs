@@ -31,6 +31,21 @@ public class Replies
             "Replies list cannot be null.");
     }
 
+    public string Serialize()
+    {
+        try
+        {
+            return JsonSerializer.Serialize(this);
+        }
+        catch (Exception ex)
+        {
+            throw new PublicModelException(
+                ErrorCode.JsonSerializeFailed,
+                $"Failed to serialize Requests to JSON: {ex.Message}");
+        }
+
+    }
+
     public static Replies? Deserialize(string text)
     {
         if (string.IsNullOrEmpty(text))
