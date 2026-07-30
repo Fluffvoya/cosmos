@@ -23,6 +23,9 @@ public enum ErrorCode
     EmptyReplyRequestName = 3005,
     NullInput = 3006,
 
+    // Server 模块 (5xxx)
+    UnknownRequestType = 5001,
+
     // cm-script 模块 (4xxx)
     SyntaxError = 4001,
     MissingFunctionName = 4002,

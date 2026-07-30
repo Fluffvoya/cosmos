@@ -7,6 +7,7 @@ public enum RequestType
 {
     Action,
     Inquiry,// expect a reply
+    Unknown,
 }
 
 public class Request
@@ -63,5 +64,25 @@ public class Requests
                 ErrorCode.JsonSerializeFailed,
                 $"Failed to serialize Requests to JSON: {ex.Message}");
         }
+    }
+
+    public static Requests? Deserialize(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return null;
+
+        Requests? jsonStruct = null;
+        try
+        {
+            jsonStruct = JsonSerializer.Deserialize<Requests>(text);
+        }
+        catch (Exception ex)
+        {
+            throw new PublicModelException(
+                ErrorCode.JsonDeserializeFailed,
+                $"Failed to deserialize JSON to Replies: {ex.Message}");
+        }
+
+        return jsonStruct;
     }
 }
