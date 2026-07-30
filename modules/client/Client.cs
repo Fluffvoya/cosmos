@@ -28,7 +28,6 @@ public class Client
     }
 
 
-    // transmit json message by stdout
     public static Request ShowWindow(string name, string message)
         => new Request("ShowWindow", RequestType.Action, name, message);
 
