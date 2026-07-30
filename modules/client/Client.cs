@@ -31,6 +31,9 @@ public class Client
     public static Request ShowWindow(string name, string message)
         => new Request("ShowWindow", RequestType.Action, name, message);
 
+    public static Request Log(string content)
+        => new Request("Log", RequestType.Action, content);
+
     public static Request GetUserName()
         => new Request("GetUserName", RequestType.Inquiry);
 }
