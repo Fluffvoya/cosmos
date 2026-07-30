@@ -190,4 +190,92 @@ public class ErrorTests
         Assert.IsAssignableFrom<Exception>(ex);
         Assert.Equal("bad syntax", ex.Message);
     }
+
+    // ── ServerException ────────────────────────────────────────────
+
+    [Fact]
+    public void ServerException_InheritsCosmosException()
+    {
+        var ex = new ServerException(ErrorCode.UnknownRequestType, "unknown type");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.UnknownRequestType, ex.ErrorCode);
+        Assert.Equal("unknown type", ex.Message);
+    }
+
+    [Fact]
+    public void ServerException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new ServerException(ErrorCode.UnknownRequestType, "bad type");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.UnknownRequestType, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void ServerException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new ServerException(ErrorCode.UnknownRequestType, "server error");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("server error", ex.Message);
+    }
+
+    // ── PublicModelException ───────────────────────────────────────
+
+    [Fact]
+    public void PublicModelException_InheritsCosmosException()
+    {
+        var ex = new PublicModelException(ErrorCode.JsonDeserializeFailed, "json error");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
+        Assert.Equal("json error", ex.Message);
+    }
+
+    [Fact]
+    public void PublicModelException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new PublicModelException(ErrorCode.EmptyRequestName, "empty name");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.EmptyRequestName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void PublicModelException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new PublicModelException(ErrorCode.NullInput, "null input");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("null input", ex.Message);
+    }
+
+    // ── ErrorCode - Server and Public Model values ──────────────────
+
+    [Fact]
+    public void ErrorCode_UnknownRequestType_HasExpectedValue()
+    {
+        Assert.Equal(5001, (int)ErrorCode.UnknownRequestType);
+    }
+
+    [Fact]
+    public void ErrorCode_EmptyRequestName_HasExpectedValue()
+    {
+        Assert.Equal(3003, (int)ErrorCode.EmptyRequestName);
+    }
+
+    [Fact]
+    public void ErrorCode_InvalidRequestType_HasExpectedValue()
+    {
+        Assert.Equal(3004, (int)ErrorCode.InvalidRequestType);
+    }
+
+    [Fact]
+    public void ErrorCode_EmptyReplyRequestName_HasExpectedValue()
+    {
+        Assert.Equal(3005, (int)ErrorCode.EmptyReplyRequestName);
+    }
+
+    [Fact]
+    public void ErrorCode_NullInput_HasExpectedValue()
+    {
+        Assert.Equal(3006, (int)ErrorCode.NullInput);
+    }
 }
