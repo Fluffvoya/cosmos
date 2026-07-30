@@ -25,6 +25,7 @@
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
     <ProjectReference Include="..\client\client.csproj" />
     <ProjectReference Include="..\public-model\public-model.csproj" />
+    <ProjectReference Include="..\server\server.csproj" />
   </ItemGroup>
 
 </Project>

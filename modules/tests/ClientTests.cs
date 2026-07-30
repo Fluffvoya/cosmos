@@ -299,6 +299,52 @@ public class ClientTests
         Assert.Empty(req.args);
     }
 
+    // ── Client.Log ─────────────────────────────────────────────────
+
+    [Fact]
+    public void Client_Log_ReturnsCorrectRequest()
+    {
+        var req = Client.Log("Hello, World!");
+
+        Assert.Equal("Log", req.request);
+        Assert.Equal("action", req.requestType);
+        Assert.Single(req.args);
+        Assert.Equal("Hello, World!", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Log_EmptyContent_ReturnsEmptyString()
+    {
+        var req = Client.Log("");
+
+        Assert.Equal("Log", req.request);
+        Assert.Equal("action", req.requestType);
+        Assert.Single(req.args);
+        Assert.Equal("", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Log_WithSpecialCharacters_StoresCorrectly()
+    {
+        var content = "Line1\nLine2\tTabbed";
+        var req = Client.Log(content);
+
+        Assert.Equal("Log", req.request);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Log_WithLongContent_StoresCorrectly()
+    {
+        var content = new string('A', 10000);
+        var req = Client.Log(content);
+
+        Assert.Equal("Log", req.request);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
+    }
+
     // ── Client.CreateRequests ──────────────────────────────────────
 
     [Fact]
