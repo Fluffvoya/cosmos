@@ -29,4 +29,11 @@ public enum ErrorCode
     // cm-script 模块 (4xxx)
     SyntaxError = 4001,
     MissingFunctionName = 4002,
+
+    // Process module (6xxx)
+    PythonNotFound = 6001,
+    ScriptNotFound = 6002,
+    PythonProcessCrashed = 6003,
+    PythonRuntimeError = 6004,
+    ProcessCommunicationError = 6005,
 }

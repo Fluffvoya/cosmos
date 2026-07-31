@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\bridge\bridge.csproj" />
+    <ProjectReference Include="..\error\error.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
   </ItemGroup>
 

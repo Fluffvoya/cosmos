@@ -1,4 +1,5 @@
 using argument;
+using bridge;
 using cosmos_error;
 using func_router;
 using process;
@@ -19,15 +20,19 @@ public class Interpreter
     }
 
     private Router _router;
+    private IServer _server;
+    private string _python;
 
-    public Interpreter(List<Token> tokens, Router router)
+    public Interpreter(List<Token> tokens, Router router, IServer server, string python)
     {
         _tokens = tokens;
         _length = _tokens.Count;
         _router = router;
+        _server = server;
+        _python = python;
     }
 
-    public void Interpret()
+    public async Task Interpret()
     {
         if (IsEnd()) return;
 
@@ -53,7 +58,7 @@ public class Interpreter
                 break;
             case TokenType.ST_Python:
                 Advance();
-                Python();
+                await Python();
                 break;
 
             case TokenType.Identifier:
@@ -100,7 +105,7 @@ public class Interpreter
             }
             Advance();
         }
-        IProcess process = new InternalProcess(_router, func, args);
+        var process = new InternalProcess(_router, func, args);
         process.Execute();
     }
 
@@ -119,9 +124,24 @@ public class Interpreter
 
     }
 
-    private void Python()
+    private async Task Python()
     {
+        if (_curr.tokenType == TokenType.NewLine || _curr.tokenType == TokenType.EOF)
+            throw new Exception();
 
+        string script = _curr.tk;
+        List<string> args = new List<string>();
+        Advance();
+
+        while (true)
+        {
+            if (_curr.tokenType == TokenType.NewLine || _curr.tokenType == TokenType.EOF)
+                break;
+            args.Add(_curr.tk);
+            Advance();
+        }
+        var process = new PythonProcess(_python, script, args, _server);
+        await process.Execute();
     }
 
     private void Advance()

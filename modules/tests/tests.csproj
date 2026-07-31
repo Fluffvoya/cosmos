@@ -19,6 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="scripts\**\*.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\error\error.csproj" />
     <ProjectReference Include="..\argument\argument.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
@@ -26,6 +32,7 @@
     <ProjectReference Include="..\client\client.csproj" />
     <ProjectReference Include="..\public-model\public-model.csproj" />
     <ProjectReference Include="..\server\server.csproj" />
+    <ProjectReference Include="..\process\process.csproj" />
   </ItemGroup>
 
 </Project>

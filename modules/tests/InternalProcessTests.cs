@@ -149,15 +149,15 @@ public class InternalProcessTests
     }
 
     [Fact]
-    public void Execute_ImplementsIProcess()
+    public void Execute_IsInstanceOfInternalProcess()
     {
         var router = new Router(new MockServer());
         router.Add("fn", new Function(
             (IServer s, List<object> a) => { },
             new List<ArgumentType>()));
 
-        IProcess process = new InternalProcess(router, "fn", new List<object>());
+        var process = new InternalProcess(router, "fn", new List<object>());
 
-        Assert.IsAssignableFrom<IProcess>(process);
+        Assert.IsType<InternalProcess>(process);
     }
 }

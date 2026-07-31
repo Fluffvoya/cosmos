@@ -15,7 +15,7 @@ public class SandboxServer : IServer
 
 public class Sandbox
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         IServer server = new SandboxServer();
         Router router = new Router(server);
@@ -28,10 +28,11 @@ public class Sandbox
         router.Add("func", func);
 
         var source = "COSMOS func";
+        var source2 = "PYTHON D:\\program\\a.py";
 
-        Lexer lexer = new Lexer(source);
+        Lexer lexer = new Lexer(source2);
         var tokens = lexer.Tokenize();
-        Interpreter interpreter = new Interpreter(tokens, router);
-        interpreter.Interpret();
+        Interpreter interpreter = new Interpreter(tokens, router, server, "python");
+        await interpreter.Interpret();
     }
 }
