@@ -2,7 +2,7 @@ namespace process;
 
 using func_router;
 
-public class InternalProcess : IProcess
+public class InternalProcess
 {
 
     private Router _router;
