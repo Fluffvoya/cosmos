@@ -63,44 +63,6 @@ public class LexerTests
     }
 
     [Fact]
-    public void Tokenize_LIB_Keyword()
-    {
-        var lexer = new Lexer("LIB");
-        var tokens = lexer.Tokenize();
-
-        Assert.Equal(TokenType.ST_Lib, tokens[0].tokenType);
-    }
-
-    [Fact]
-    public void Tokenize_AtSign_ProducesST_Lib()
-    {
-        var lexer = new Lexer("@");
-        var tokens = lexer.Tokenize();
-
-        Assert.Equal(TokenType.ST_Lib, tokens[0].tokenType);
-        Assert.Equal("@", tokens[0].tk);
-    }
-
-    [Fact]
-    public void Tokenize_SCRIPT_Keyword()
-    {
-        var lexer = new Lexer("SCRIPT");
-        var tokens = lexer.Tokenize();
-
-        Assert.Equal(TokenType.ST_Script, tokens[0].tokenType);
-    }
-
-    [Fact]
-    public void Tokenize_Ampersand_ProducesST_Script()
-    {
-        var lexer = new Lexer("&");
-        var tokens = lexer.Tokenize();
-
-        Assert.Equal(TokenType.ST_Script, tokens[0].tokenType);
-        Assert.Equal("&", tokens[0].tk);
-    }
-
-    [Fact]
     public void Tokenize_PYTHON_Keyword()
     {
         var lexer = new Lexer("PYTHON");

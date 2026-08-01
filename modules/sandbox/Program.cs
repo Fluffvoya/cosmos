@@ -8,7 +8,7 @@ public class SandboxServer : IServer
 {
     public string Execute(string requests)
     {
-        Console.WriteLine("client:" + requests);
+        Console.WriteLine(requests);
         return "reply";
     }
 }
@@ -32,7 +32,7 @@ public class Sandbox
 
         Lexer lexer = new Lexer(source2);
         var tokens = lexer.Tokenize();
-        Interpreter interpreter = new Interpreter(tokens, router, server, "python");
+        Interpreter interpreter = new Interpreter(tokens, router, server, "C:\\Users\\Fluffvoya\\AppData\\Local\\Python\\bin\\python.exe");
         await interpreter.Interpret();
     }
 }
