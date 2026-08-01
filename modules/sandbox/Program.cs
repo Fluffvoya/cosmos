@@ -17,22 +17,21 @@ public class Sandbox
 {
     public static async Task Main(string[] args)
     {
-        IServer server = new SandboxServer();
-        Router router = new Router(server);
         Function func = new Function((IServer server, List<object> args) =>
         {
             Console.WriteLine("func invoke");
             var requests = Client.CreateRequests(Client.ShowWindow("a", "b"));
             Console.WriteLine("server:" + server.Execute(requests));
         });
-        router.Add("func", func);
 
         var source = "COSMOS func";
         var source2 = "PYTHON D:\\program\\a.py";
 
-        Lexer lexer = new Lexer(source2);
-        var tokens = lexer.Tokenize();
-        Interpreter interpreter = new Interpreter(tokens, router, server, "C:\\Users\\Fluffvoya\\AppData\\Local\\Python\\bin\\python.exe");
-        await interpreter.Interpret();
+        var script = new Script(new SandboxServer(), "C:\\Users\\Fluffvoya\\AppData\\Local\\Python\\bin\\python.exe");
+        script.AddFunction("func", func);
+
+        await script.RunScript(source);
+        Console.WriteLine("==============");
+        await script.RunScript(source2);
     }
 }
