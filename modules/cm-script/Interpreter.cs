@@ -48,10 +48,6 @@ public class Interpreter
                 Advance();
                 await Executable();
                 break;
-            case TokenType.ST_Script:
-                Advance();
-                Script();
-                break;
             case TokenType.ST_Python:
                 Advance();
                 await Python();
@@ -124,11 +120,6 @@ public class Interpreter
         }
         var process = new ExecuteProcess(program, args, _server);
         await process.Execute();
-    }
-
-    private void Script()
-    {
-
     }
 
     private async Task Python()

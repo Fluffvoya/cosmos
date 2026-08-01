@@ -6,7 +6,6 @@ public enum TokenType
     // keywords
     ST_Cosmos,
     ST_Exe,
-    ST_Script,
     ST_Python,
     // identifier
     Identifier,

@@ -16,12 +16,10 @@ public class Lexer
     {
         ["COSMOS"] = TokenType.ST_Cosmos,
         ["EXE"] = TokenType.ST_Exe,
-        ["SCRIPT"] = TokenType.ST_Script,
         ["PYTHON"] = TokenType.ST_Python,
 
         ["$"] = TokenType.ST_Cosmos,
         ["#"] = TokenType.ST_Exe,
-        ["&"] = TokenType.ST_Script,
     };
     public Lexer(string source)
     {
