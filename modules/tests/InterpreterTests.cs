@@ -171,19 +171,7 @@ public class InterpreterTests
         await interpreter.Interpret();
     }
 
-    // ── Stub keywords (EXE, LIB, SCRIPT, PYTHON) ──────────────────
-
-    [Fact]
-    public async Task Interpret_EXE_DoesNotThrow()
-    {
-        var router = new Router(_mockServer);
-        var lexer = new Lexer("EXE something");
-        var tokens = lexer.Tokenize();
-        var interpreter = CreateInterpreter(tokens, router);
-
-        // EXE is a stub - should not throw
-        await interpreter.Interpret();
-    }
+    // ── Stub keywords (LIB, SCRIPT) ───────────────────────────────
 
     [Fact]
     public async Task Interpret_LIB_DoesNotThrow()
@@ -207,6 +195,50 @@ public class InterpreterTests
         await interpreter.Interpret();
     }
 
+    // ── EXE keyword ────────────────────────────────────────────────
+    // NOTE: In the Interpreter, Executable() is called without `await`,
+    // so exceptions from ExecuteProcess are swallowed as fire-and-forget.
+    // These tests verify that Interpret() itself does not throw.
+
+    [Fact]
+    public async Task Interpret_EXE_NonexistentProgram_DoesNotThrow()
+    {
+        var router = new Router(_mockServer);
+        var lexer = new Lexer("EXE something");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+
+        // Executable() is not awaited in Interpret(), so the
+        // ProcessException from ExecuteProcess is swallowed.
+        await interpreter.Interpret();
+    }
+
+    [Fact]
+    public async Task Interpret_EXE_NoProgramName_DoesNotThrow()
+    {
+        var router = new Router(_mockServer);
+        var lexer = new Lexer("EXE\n");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+
+        // Executable() is not awaited, so the exception is swallowed.
+        await interpreter.Interpret();
+    }
+
+    [Fact]
+    public async Task Interpret_EXE_AtEOF_DoesNotThrow()
+    {
+        var router = new Router(_mockServer);
+        var lexer = new Lexer("EXE");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+
+        // Executable() is not awaited, so the exception is swallowed.
+        await interpreter.Interpret();
+    }
+
+    // ── PYTHON keyword ─────────────────────────────────────────────
+
     [Fact]
     public async Task Interpret_PYTHON_ThrowsWhenInterpreterNotFound()
     {
@@ -219,6 +251,29 @@ public class InterpreterTests
         // so it throws ProcessException when the path is invalid.
         var ex = await Assert.ThrowsAsync<ProcessException>(() => interpreter.Interpret());
         Assert.Equal(ErrorCode.PythonNotFound, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Interpret_PYTHON_NoScriptName_Throws()
+    {
+        var router = new Router(_mockServer);
+        var lexer = new Lexer("PYTHON\n");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+
+        // Python() throws when no script name follows the PYTHON keyword
+        await Assert.ThrowsAsync<Exception>(() => interpreter.Interpret());
+    }
+
+    [Fact]
+    public async Task Interpret_PYTHON_AtEOF_Throws()
+    {
+        var router = new Router(_mockServer);
+        var lexer = new Lexer("PYTHON");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+
+        await Assert.ThrowsAsync<Exception>(() => interpreter.Interpret());
     }
 
     // ── Multi-line with comments ───────────────────────────────────

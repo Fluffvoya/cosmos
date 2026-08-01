@@ -46,7 +46,7 @@ public class Interpreter
                 break;
             case TokenType.ST_Exe:
                 Advance();
-                Executable();
+                await Executable();
                 break;
             case TokenType.ST_Lib:
                 Advance();
@@ -109,9 +109,25 @@ public class Interpreter
         process.Execute();
     }
 
-    private void Executable()
+    private async Task Executable()
     {
 
+        if (_curr.tokenType == TokenType.NewLine || _curr.tokenType == TokenType.EOF)
+            throw new Exception();
+
+        string program = _curr.tk;
+        List<string> args = new List<string>();
+        Advance();
+
+        while (true)
+        {
+            if (_curr.tokenType == TokenType.NewLine || _curr.tokenType == TokenType.EOF)
+                break;
+            args.Add(_curr.tk);
+            Advance();
+        }
+        var process = new ExecuteProcess(program, args, _server);
+        await process.Execute();
     }
 
     private void Library()
