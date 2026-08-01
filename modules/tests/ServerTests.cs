@@ -1,6 +1,5 @@
 using System.Text.Json;
 using client;
-using cosmos_error;
 using public_model;
 using server;
 

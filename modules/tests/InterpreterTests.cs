@@ -196,45 +196,38 @@ public class InterpreterTests
     }
 
     // ── EXE keyword ────────────────────────────────────────────────
-    // NOTE: In the Interpreter, Executable() is called without `await`,
-    // so exceptions from ExecuteProcess are swallowed as fire-and-forget.
-    // These tests verify that Interpret() itself does not throw.
 
     [Fact]
-    public async Task Interpret_EXE_NonexistentProgram_DoesNotThrow()
+    public async Task Interpret_EXE_NonexistentProgram_ThrowsProcessException()
     {
         var router = new Router(_mockServer);
         var lexer = new Lexer("EXE something");
         var tokens = lexer.Tokenize();
         var interpreter = CreateInterpreter(tokens, router);
 
-        // Executable() is not awaited in Interpret(), so the
-        // ProcessException from ExecuteProcess is swallowed.
-        await interpreter.Interpret();
+        await Assert.ThrowsAsync<ProcessException>(() => interpreter.Interpret());
     }
 
     [Fact]
-    public async Task Interpret_EXE_NoProgramName_DoesNotThrow()
+    public async Task Interpret_EXE_NoProgramName_ThrowsException()
     {
         var router = new Router(_mockServer);
         var lexer = new Lexer("EXE\n");
         var tokens = lexer.Tokenize();
         var interpreter = CreateInterpreter(tokens, router);
 
-        // Executable() is not awaited, so the exception is swallowed.
-        await interpreter.Interpret();
+        await Assert.ThrowsAsync<Exception>(() => interpreter.Interpret());
     }
 
     [Fact]
-    public async Task Interpret_EXE_AtEOF_DoesNotThrow()
+    public async Task Interpret_EXE_AtEOF_ThrowsException()
     {
         var router = new Router(_mockServer);
         var lexer = new Lexer("EXE");
         var tokens = lexer.Tokenize();
         var interpreter = CreateInterpreter(tokens, router);
 
-        // Executable() is not awaited, so the exception is swallowed.
-        await interpreter.Interpret();
+        await Assert.ThrowsAsync<Exception>(() => interpreter.Interpret());
     }
 
     // ── PYTHON keyword ─────────────────────────────────────────────
