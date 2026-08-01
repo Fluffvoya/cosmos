@@ -31,17 +31,6 @@ Add `#` or `EXE` before to call.
 EXE [execute name] [arg] ...
 ```
 
-### Cosmos Script
-
-Other script (not include self).
-
-Add `&` or `SCRIPT` before to call.
-
-```
-&[script name] [function name] ...
-SCRIPT [script name] [function name] ...
-```
-
 ### Python
 
 The python script(.py file).
