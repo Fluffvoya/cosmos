@@ -48,10 +48,6 @@ public class Interpreter
                 Advance();
                 await Executable();
                 break;
-            case TokenType.ST_Lib:
-                Advance();
-                Library();
-                break;
             case TokenType.ST_Script:
                 Advance();
                 Script();
@@ -128,11 +124,6 @@ public class Interpreter
         }
         var process = new ExecuteProcess(program, args, _server);
         await process.Execute();
-    }
-
-    private void Library()
-    {
-
     }
 
     private void Script()
