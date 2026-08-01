@@ -31,17 +31,6 @@ Add `#` or `EXE` before to call.
 EXE [execute name] [arg] ...
 ```
 
-### Library
-
-The dynamic library in the computer.
-
-Add `@` or `LIB` before to call.
-
-```
-@[library name] [function name] ...
-LIB [library name] [function name] ...
-```
-
 ### Cosmos Script
 
 Other script (not include self).
