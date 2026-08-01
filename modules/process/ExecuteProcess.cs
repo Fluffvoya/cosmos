@@ -5,52 +5,42 @@ using cosmos_error;
 
 namespace process;
 
-public class PythonProcess
+public class ExecuteProcess
 {
-    private string _python;
-    private string _script;
+    private string _program;
     private List<string> _args;
     private IServer _server;
 
-    public PythonProcess(string python, string script, List<string> args, IServer server)
+    public ExecuteProcess(string program, List<string> args, IServer server)
     {
-        this._python = python;
-        this._script = script;
-        this._args = args;
-        this._server = server;
+        _program = program;
+        _args = args;
+        _server = server;
     }
 
     public async Task Execute()
     {
-        // Validate Python interpreter exists
-        if (!File.Exists(_python))
+        // Validate program exists
+        if (!File.Exists(_program))
         {
             throw new ProcessException(
-                ErrorCode.PythonNotFound,
-                $"Python interpreter not found: {_python}");
-        }
-
-        // Validate script file exists
-        if (!File.Exists(_script))
-        {
-            throw new ProcessException(
-                ErrorCode.ScriptNotFound,
-                $"Python script file not found: {_script}");
+                ErrorCode.ProcessCommunicationError,
+                $"Program not found: {_program}");
         }
 
         var process = new Process();
 
         StringBuilder arguments = new StringBuilder();
-        arguments.Append(_script);
         foreach (var item in _args)
         {
-            arguments.Append(' ');
+            if (arguments.Length > 0)
+                arguments.Append(' ');
             arguments.Append(item);
         }
 
         process.StartInfo = new ProcessStartInfo()
         {
-            FileName = _python,
+            FileName = _program,
             Arguments = arguments.ToString(),
 
             RedirectStandardInput = true,
@@ -70,7 +60,7 @@ public class PythonProcess
         {
             throw new ProcessException(
                 ErrorCode.ProcessCommunicationError,
-                $"Failed to start Python process: {ex.Message}");
+                $"Failed to start process: {ex.Message}");
         }
 
         try
@@ -86,7 +76,7 @@ public class PythonProcess
                 {
                     throw new ProcessException(
                         ErrorCode.ProcessCommunicationError,
-                        $"Failed to read from Python process: {ex.Message}");
+                        $"Failed to read from process: {ex.Message}");
                 }
 
                 if (request is null)
@@ -113,7 +103,7 @@ public class PythonProcess
                 {
                     throw new ProcessException(
                         ErrorCode.ProcessCommunicationError,
-                        $"Failed to write to Python process: {ex.Message}");
+                        $"Failed to write to process: {ex.Message}");
                 }
             }
         }
@@ -125,14 +115,13 @@ public class PythonProcess
             }
         }
 
-        // Python internal error: process exited with non-zero code
+        // Process exited with non-zero code
         if (process.ExitCode != 0)
         {
             string stderr = await process.StandardError.ReadToEndAsync();
-            throw new PythonRuntimeException(
-                ErrorCode.PythonRuntimeError,
-                $"Python process exited abnormally (exit code: {process.ExitCode}): {stderr}",
-                process.ExitCode);
+            throw new ProcessException(
+                ErrorCode.ProcessCommunicationError,
+                $"Process exited abnormally (exit code: {process.ExitCode}): {stderr}");
         }
     }
 }
