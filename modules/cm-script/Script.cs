@@ -7,13 +7,14 @@ public class Script
 {
     private Router _router;
     private IServer _server;
-    private string _python;
+
+    public string python { get; set; }
 
     public Script(IServer server, string python)
     {
         _server = server;
         _router = new Router(_server);
-        _python = python;
+        this.python = python;
     }
 
     public void AddFunction(string name, Function func)
@@ -23,7 +24,7 @@ public class Script
     {
         var lexer = new Lexer(source);
         var tokens = lexer.Tokenize();
-        var interpreter = new Interpreter(tokens, _router, _server, _python);
+        var interpreter = new Interpreter(tokens, _router, _server, python);
         await interpreter.Interpret();
     }
 
