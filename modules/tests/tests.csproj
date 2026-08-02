@@ -33,6 +33,7 @@
     <ProjectReference Include="..\public-model\public-model.csproj" />
     <ProjectReference Include="..\server\server.csproj" />
     <ProjectReference Include="..\process\process.csproj" />
+    <ProjectReference Include="..\script-func\script-func.csproj" />
   </ItemGroup>
 
 </Project>

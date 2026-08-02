@@ -26,6 +26,9 @@ public enum ErrorCode
     SyntaxError = 4001,
     MissingFunctionName = 4002,
 
+    // Script-func module (5xxx)
+    EmptyArgumentValue = 5001,
+
     // Process module (6xxx)
     PythonNotFound = 6001,
     ScriptNotFound = 6002,
