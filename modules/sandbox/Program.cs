@@ -20,7 +20,7 @@ public class Sandbox
         Function func = new Function((IServer server, List<object> args) =>
         {
             Console.WriteLine("func invoke");
-            var requests = Client.CreateRequests(Client.ShowWindow("a", "b"));
+            var requests = Client.CreateRequest(Client.ShowWindow("a", "b"));
             Console.WriteLine("server:" + server.Execute(requests));
         });
 
@@ -30,8 +30,8 @@ public class Sandbox
         var script = new Script(new SandboxServer(), "C:\\Users\\Fluffvoya\\AppData\\Local\\Python\\bin\\python.exe");
         script.AddFunction("func", func);
 
-        await script.RunScript(source);
+        await script.Run(source);
         Console.WriteLine("==============");
-        await script.RunScript(source2);
+        await script.Run(source2);
     }
 }

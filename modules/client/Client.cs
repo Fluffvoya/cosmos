@@ -1,39 +1,31 @@
-﻿using public_model;
+using public_model;
 
 namespace client;
 
 public class Client
 {
-    public static string CreateRequests(params List<Request> requests)
+    public static string CreateRequest(Request request)
     {
-        var requestsText = new Requests(requests);
-        return requestsText.Serialize();
+        return request.Serialize();
     }
 
-    public static List<Reply> GetReplies(string reply)
+    public static Response? GetResponse(string text)
     {
-        var replies = Replies.Deserialize(reply);
-        if (replies is null)
-            return new List<Reply>();
-        return replies.replies;
+        return Response.Deserialize(text);
     }
 
-    public static List<string> GetRepliesMessage(string reply)
+    public static string? GetResponseMessage(string text)
     {
-        List<string> rns = new List<string>();
-        var replies = GetReplies(reply);
-        foreach (var item in replies)
-            rns.Add(item.request);
-        return rns;
+        var response = GetResponse(text);
+        return response?.message;
     }
-
 
     public static Request ShowWindow(string name, string message)
-        => new Request("ShowWindow", RequestType.Action, name, message);
+        => new Request("ShowWindow", name, message);
 
     public static Request Log(string content)
-        => new Request("Log", RequestType.Action, content);
+        => new Request("Log", content);
 
     public static Request GetUserName()
-        => new Request("GetUserName", RequestType.Inquiry);
+        => new Request("GetUserName");
 }

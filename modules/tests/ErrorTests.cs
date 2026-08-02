@@ -196,25 +196,25 @@ public class ErrorTests
     [Fact]
     public void ServerException_InheritsCosmosException()
     {
-        var ex = new ServerException(ErrorCode.UnknownRequestType, "unknown type");
+        var ex = new ServerException(ErrorCode.ProcessCommunicationError, "comm error");
 
         Assert.IsAssignableFrom<CosmosException>(ex);
-        Assert.Equal(ErrorCode.UnknownRequestType, ex.ErrorCode);
-        Assert.Equal("unknown type", ex.Message);
+        Assert.Equal(ErrorCode.ProcessCommunicationError, ex.ErrorCode);
+        Assert.Equal("comm error", ex.Message);
     }
 
     [Fact]
     public void ServerException_CanBeCaughtAsCosmosException()
     {
-        CosmosException ex = new ServerException(ErrorCode.UnknownRequestType, "bad type");
+        CosmosException ex = new ServerException(ErrorCode.ProcessCommunicationError, "bad comm");
         Assert.IsAssignableFrom<CosmosException>(ex);
-        Assert.Equal(ErrorCode.UnknownRequestType, ex.ErrorCode);
+        Assert.Equal(ErrorCode.ProcessCommunicationError, ex.ErrorCode);
     }
 
     [Fact]
     public void ServerException_CanBeCaughtAsBaseException()
     {
-        Exception ex = new ServerException(ErrorCode.UnknownRequestType, "server error");
+        Exception ex = new ServerException(ErrorCode.ProcessCommunicationError, "server error");
         Assert.IsAssignableFrom<Exception>(ex);
         Assert.Equal("server error", ex.Message);
     }
@@ -247,13 +247,7 @@ public class ErrorTests
         Assert.Equal("null input", ex.Message);
     }
 
-    // ── ErrorCode - Server and Public Model values ──────────────────
-
-    [Fact]
-    public void ErrorCode_UnknownRequestType_HasExpectedValue()
-    {
-        Assert.Equal(5001, (int)ErrorCode.UnknownRequestType);
-    }
+    // ── ErrorCode - Public Model values ────────────────────────────
 
     [Fact]
     public void ErrorCode_EmptyRequestName_HasExpectedValue()
@@ -262,15 +256,9 @@ public class ErrorTests
     }
 
     [Fact]
-    public void ErrorCode_InvalidRequestType_HasExpectedValue()
+    public void ErrorCode_EmptyResponseRequestName_HasExpectedValue()
     {
-        Assert.Equal(3004, (int)ErrorCode.InvalidRequestType);
-    }
-
-    [Fact]
-    public void ErrorCode_EmptyReplyRequestName_HasExpectedValue()
-    {
-        Assert.Equal(3005, (int)ErrorCode.EmptyReplyRequestName);
+        Assert.Equal(3005, (int)ErrorCode.EmptyResponseRequestName);
     }
 
     [Fact]

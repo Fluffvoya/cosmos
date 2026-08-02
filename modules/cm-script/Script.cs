@@ -20,7 +20,7 @@ public class Script
     public void AddFunction(string name, Function func)
         => _router.Add(name, func);
 
-    public async Task RunScript(string source)
+    public async Task Run(string source)
     {
         var lexer = new Lexer(source);
         var tokens = lexer.Tokenize();

@@ -6,7 +6,7 @@ using public_model;
 namespace tests;
 
 /// <summary>
-/// Unit tests for the client module: Request, Requests, Reply, Replies, and Client.
+/// Unit tests for the client module: Request, Response, and Client.
 /// </summary>
 public class ClientTests
 {
@@ -18,39 +18,17 @@ public class ClientTests
         var req = new Request();
 
         Assert.Equal("", req.request);
-        Assert.Equal("", req.requestType);
         Assert.Empty(req.args);
     }
 
     // ── Request (parameterized constructor) ────────────────────────
 
     [Fact]
-    public void Request_ActionType_SetsRequestTypeToAction()
+    public void Request_Constructor_SetsRequestAndArgs()
     {
-        var req = new Request("DoSomething", RequestType.Action);
-
-        Assert.Equal("DoSomething", req.request);
-        Assert.Equal("action", req.requestType);
-        Assert.Empty(req.args);
-    }
-
-    [Fact]
-    public void Request_InquiryType_SetsRequestTypeToInquiry()
-    {
-        var req = new Request("AskSomething", RequestType.Inquiry);
-
-        Assert.Equal("AskSomething", req.request);
-        Assert.Equal("inquiry", req.requestType);
-        Assert.Empty(req.args);
-    }
-
-    [Fact]
-    public void Request_WithArgs_StoresArgsCorrectly()
-    {
-        var req = new Request("ShowWindow", RequestType.Action, "myWindow", "hello");
+        var req = new Request("ShowWindow", "myWindow", "hello");
 
         Assert.Equal("ShowWindow", req.request);
-        Assert.Equal("action", req.requestType);
         Assert.Equal(2, req.args.Count);
         Assert.Equal("myWindow", req.args[0]);
         Assert.Equal("hello", req.args[1]);
@@ -59,208 +37,166 @@ public class ClientTests
     [Fact]
     public void Request_WithSingleArg_StoresSingleArg()
     {
-        var req = new Request("Single", RequestType.Inquiry, "onlyArg");
+        var req = new Request("Single", "onlyArg");
 
         Assert.Single(req.args);
         Assert.Equal("onlyArg", req.args[0]);
     }
 
     [Fact]
+    public void Request_WithNoArgs_HasEmptyArgs()
+    {
+        var req = new Request("NoArgs");
+
+        Assert.Empty(req.args);
+    }
+
+    [Fact]
     public void Request_EmptyRequestName_ThrowsPublicModelException()
     {
-        var ex = Assert.Throws<PublicModelException>(() => new Request("", RequestType.Action));
+        var ex = Assert.Throws<PublicModelException>(() => new Request(""));
         Assert.Equal(ErrorCode.EmptyRequestName, ex.ErrorCode);
     }
 
     [Fact]
     public void Request_NullRequestName_ThrowsPublicModelException()
     {
-        var ex = Assert.Throws<PublicModelException>(() => new Request(null!, RequestType.Action));
+        var ex = Assert.Throws<PublicModelException>(() => new Request(null!));
         Assert.Equal(ErrorCode.EmptyRequestName, ex.ErrorCode);
     }
 
-    // ── Requests ───────────────────────────────────────────────────
+    // ── Request serialization ──────────────────────────────────────
 
     [Fact]
-    public void Requests_Constructor_StoresRequestList()
+    public void Request_Serialize_ReturnsValidJson()
     {
-        var list = new List<Request>
-        {
-            new Request("A", RequestType.Action),
-            new Request("B", RequestType.Inquiry)
-        };
-        var requests = new Requests(list);
-
-        Assert.Equal(2, requests.requests.Count);
-        Assert.Equal("A", requests.requests[0].request);
-        Assert.Equal("B", requests.requests[1].request);
-    }
-
-    [Fact]
-    public void Requests_Constructor_NullList_StoresNull()
-    {
-        var requests = new Requests(null!);
-
-        Assert.Null(requests.requests);
-    }
-
-    [Fact]
-    public void Requests_Serialize_ReturnsValidJson()
-    {
-        var list = new List<Request> { new Request("Test", RequestType.Action, "arg1") };
-        var requests = new Requests(list);
-        var json = requests.Serialize();
+        var req = new Request("Test", "arg1");
+        var json = req.Serialize();
 
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        var requestsArray = root.GetProperty("requests");
-        Assert.Equal(1, requestsArray.GetArrayLength());
-
-        var first = requestsArray[0];
-        Assert.Equal("Test", first.GetProperty("request").GetString());
-        Assert.Equal("action", first.GetProperty("requestType").GetString());
-        Assert.Equal("arg1", first.GetProperty("args")[0].GetString());
+        Assert.Equal("Test", root.GetProperty("request").GetString());
+        Assert.Equal("arg1", root.GetProperty("args")[0].GetString());
     }
 
     [Fact]
-    public void Requests_Serialize_MultipleRequests_SerializesAll()
+    public void Request_Serialize_NoArgs_HasEmptyArgsArray()
     {
-        var list = new List<Request>
-        {
-            new Request("First", RequestType.Action, "a"),
-            new Request("Second", RequestType.Inquiry, "b", "c")
-        };
-        var requests = new Requests(list);
-        var json = requests.Serialize();
+        var req = new Request("Test");
+        var json = req.Serialize();
 
         using var doc = JsonDocument.Parse(json);
-        var requestsArray = doc.RootElement.GetProperty("requests");
+        var argsArray = doc.RootElement.GetProperty("args");
 
-        Assert.Equal(2, requestsArray.GetArrayLength());
-        Assert.Equal("First", requestsArray[0].GetProperty("request").GetString());
-        Assert.Equal("Second", requestsArray[1].GetProperty("request").GetString());
-        Assert.Equal(2, requestsArray[1].GetProperty("args").GetArrayLength());
+        Assert.Equal(0, argsArray.GetArrayLength());
     }
 
-    [Fact]
-    public void Requests_Serialize_EmptyRequests_ReturnsEmptyArray()
-    {
-        var requests = new Requests(new List<Request>());
-        var json = requests.Serialize();
-
-        using var doc = JsonDocument.Parse(json);
-        var requestsArray = doc.RootElement.GetProperty("requests");
-
-        Assert.Equal(0, requestsArray.GetArrayLength());
-    }
-
-    // ── Reply ──────────────────────────────────────────────────────
+    // ── Request deserialization ────────────────────────────────────
 
     [Fact]
-    public void Reply_Constructor_StoresFields()
+    public void Request_Deserialize_ValidJson_ReturnsRequest()
     {
-        var reply = new Reply("GetUserName", "Alice");
+        var json = """{"request":"ShowWindow","args":["win1","hello"]}""";
 
-        Assert.Equal("GetUserName", reply.request);
-        Assert.Equal("Alice", reply.message);
-    }
-
-    [Fact]
-    public void Reply_Constructor_EmptyRequestName_ThrowsPublicModelException()
-    {
-        var ex = Assert.Throws<PublicModelException>(() => new Reply("", "msg"));
-        Assert.Equal(ErrorCode.EmptyReplyRequestName, ex.ErrorCode);
-    }
-
-    [Fact]
-    public void Reply_Constructor_NullRequestName_ThrowsPublicModelException()
-    {
-        var ex = Assert.Throws<PublicModelException>(() => new Reply(null!, "msg"));
-        Assert.Equal(ErrorCode.EmptyReplyRequestName, ex.ErrorCode);
-    }
-
-    [Fact]
-    public void Reply_Constructor_EmptyMessage_IsAllowed()
-    {
-        var reply = new Reply("validName", "");
-
-        Assert.Equal("validName", reply.request);
-        Assert.Equal("", reply.message);
-    }
-
-    // ── Replies ────────────────────────────────────────────────────
-
-    [Fact]
-    public void Replies_Constructor_StoresReplyList()
-    {
-        var list = new List<Reply> { new Reply("A", "msg1"), new Reply("B", "msg2") };
-        var replies = new Replies(list);
-
-        Assert.Equal(2, replies.replies.Count);
-        Assert.Equal("msg1", replies.replies[0].message);
-        Assert.Equal("msg2", replies.replies[1].message);
-    }
-
-    [Fact]
-    public void Replies_Constructor_NullList_ThrowsPublicModelException()
-    {
-        var ex = Assert.Throws<PublicModelException>(() => new Replies(null!));
-        Assert.Equal(ErrorCode.NullInput, ex.ErrorCode);
-    }
-
-    [Fact]
-    public void Replies_Deserialize_ValidJson_ReturnsReplies()
-    {
-        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
-
-        var result = Replies.Deserialize(json);
+        var result = Request.Deserialize(json);
 
         Assert.NotNull(result);
-        Assert.Single(result.replies);
-        Assert.Equal("GetUserName", result.replies[0].request);
-        Assert.Equal("Alice", result.replies[0].message);
+        Assert.Equal("ShowWindow", result.request);
+        Assert.Equal(2, result.args.Count);
+        Assert.Equal("win1", result.args[0]);
+        Assert.Equal("hello", result.args[1]);
     }
 
     [Fact]
-    public void Replies_Deserialize_MultipleReplies_ReturnsAll()
+    public void Request_Deserialize_EmptyString_ReturnsNull()
     {
-        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
-
-        var result = Replies.Deserialize(json);
-
-        Assert.NotNull(result);
-        Assert.Equal(2, result.replies.Count);
-        Assert.Equal("msg1", result.replies[0].message);
-        Assert.Equal("msg2", result.replies[1].message);
-    }
-
-    [Fact]
-    public void Replies_Deserialize_EmptyRepliesArray_ReturnsEmptyList()
-    {
-        var json = """{"replies":[]}""";
-
-        var result = Replies.Deserialize(json);
-
-        Assert.NotNull(result);
-        Assert.Empty(result.replies);
-    }
-
-    [Fact]
-    public void Replies_Deserialize_InvalidJson_ThrowsPublicModelException()
-    {
-        var invalidJson = "this is not json";
-
-        var ex = Assert.Throws<PublicModelException>(() => Replies.Deserialize(invalidJson));
-        Assert.Equal(ErrorCode.JsonDeserializeFailed, ex.ErrorCode);
-    }
-
-    [Fact]
-    public void Replies_Deserialize_EmptyString_ReturnsNull()
-    {
-        var result = Replies.Deserialize("");
+        var result = Request.Deserialize("");
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void Request_Deserialize_InvalidJson_ThrowsPublicModelException()
+    {
+        Assert.Throws<PublicModelException>(() => Request.Deserialize("not valid json"));
+    }
+
+    // ── Response ──────────────────────────────────────────────────
+
+    [Fact]
+    public void Response_Constructor_StoresFields()
+    {
+        var resp = new Response("GetUserName", "Alice");
+
+        Assert.Equal("GetUserName", resp.request);
+        Assert.Equal("Alice", resp.message);
+    }
+
+    [Fact]
+    public void Response_Constructor_EmptyRequestName_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Response("", "msg"));
+        Assert.Equal(ErrorCode.EmptyResponseRequestName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Response_Constructor_NullRequestName_ThrowsPublicModelException()
+    {
+        var ex = Assert.Throws<PublicModelException>(() => new Response(null!, "msg"));
+        Assert.Equal(ErrorCode.EmptyResponseRequestName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Response_Constructor_EmptyMessage_IsAllowed()
+    {
+        var resp = new Response("validName", "");
+
+        Assert.Equal("validName", resp.request);
+        Assert.Equal("", resp.message);
+    }
+
+    // ── Response serialization ─────────────────────────────────────
+
+    [Fact]
+    public void Response_Serialize_ReturnsValidJson()
+    {
+        var resp = new Response("GetUserName", "Alice");
+        var json = resp.Serialize();
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.Equal("GetUserName", root.GetProperty("request").GetString());
+        Assert.Equal("Alice", root.GetProperty("message").GetString());
+    }
+
+    // ── Response deserialization ───────────────────────────────────
+
+    [Fact]
+    public void Response_Deserialize_ValidJson_ReturnsResponse()
+    {
+        var json = """{"request":"GetUserName","message":"Alice"}""";
+
+        var result = Response.Deserialize(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("GetUserName", result.request);
+        Assert.Equal("Alice", result.message);
+    }
+
+    [Fact]
+    public void Response_Deserialize_EmptyString_ReturnsNull()
+    {
+        var result = Response.Deserialize("");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Response_Deserialize_InvalidJson_ThrowsPublicModelException()
+    {
+        Assert.Throws<PublicModelException>(() => Response.Deserialize("not valid json"));
     }
 
     // ── Client.ShowWindow ──────────────────────────────────────────
@@ -271,7 +207,6 @@ public class ClientTests
         var req = Client.ShowWindow("myWindow", "Hello, World!");
 
         Assert.Equal("ShowWindow", req.request);
-        Assert.Equal("action", req.requestType);
         Assert.Equal(2, req.args.Count);
         Assert.Equal("myWindow", req.args[0]);
         Assert.Equal("Hello, World!", req.args[1]);
@@ -295,7 +230,6 @@ public class ClientTests
         var req = Client.GetUserName();
 
         Assert.Equal("GetUserName", req.request);
-        Assert.Equal("inquiry", req.requestType);
         Assert.Empty(req.args);
     }
 
@@ -307,7 +241,6 @@ public class ClientTests
         var req = Client.Log("Hello, World!");
 
         Assert.Equal("Log", req.request);
-        Assert.Equal("action", req.requestType);
         Assert.Single(req.args);
         Assert.Equal("Hello, World!", req.args[0]);
     }
@@ -318,7 +251,6 @@ public class ClientTests
         var req = Client.Log("");
 
         Assert.Equal("Log", req.request);
-        Assert.Equal("action", req.requestType);
         Assert.Single(req.args);
         Assert.Equal("", req.args[0]);
     }
@@ -345,144 +277,72 @@ public class ClientTests
         Assert.Equal(content, req.args[0]);
     }
 
-    // ── Client.CreateRequests ──────────────────────────────────────
+    // ── Client.CreateRequest ───────────────────────────────────────
 
     [Fact]
-    public void Client_CreateRequests_SingleRequest_ReturnsValidJson()
+    public void Client_CreateRequest_ReturnsValidJson()
     {
-        var json = Client.CreateRequests(Client.ShowWindow("win1", "hello"));
+        var json = Client.CreateRequest(Client.ShowWindow("win1", "hello"));
 
         using var doc = JsonDocument.Parse(json);
-        var requestsArray = doc.RootElement.GetProperty("requests");
+        var root = doc.RootElement;
 
-        Assert.Equal(1, requestsArray.GetArrayLength());
-        Assert.Equal("ShowWindow", requestsArray[0].GetProperty("request").GetString());
-        Assert.Equal("action", requestsArray[0].GetProperty("requestType").GetString());
+        Assert.Equal("ShowWindow", root.GetProperty("request").GetString());
+        Assert.Equal("win1", root.GetProperty("args")[0].GetString());
+    }
+
+    // ── Client.GetResponse ─────────────────────────────────────────
+
+    [Fact]
+    public void Client_GetResponse_ValidJson_ReturnsResponse()
+    {
+        var json = """{"request":"GetUserName","message":"Alice"}""";
+
+        var result = Client.GetResponse(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("GetUserName", result.request);
+        Assert.Equal("Alice", result.message);
     }
 
     [Fact]
-    public void Client_CreateRequests_MultipleRequests_ReturnsAll()
+    public void Client_GetResponse_EmptyString_ReturnsNull()
     {
-        var json = Client.CreateRequests(
-            Client.ShowWindow("win1", "hello"),
-            Client.GetUserName());
+        var result = Client.GetResponse("");
 
-        using var doc = JsonDocument.Parse(json);
-        var requestsArray = doc.RootElement.GetProperty("requests");
-
-        Assert.Equal(2, requestsArray.GetArrayLength());
-        Assert.Equal("ShowWindow", requestsArray[0].GetProperty("request").GetString());
-        Assert.Equal("GetUserName", requestsArray[1].GetProperty("request").GetString());
+        Assert.Null(result);
     }
 
     [Fact]
-    public void Client_CreateRequests_EmptyList_ReturnsEmptyArray()
+    public void Client_GetResponse_InvalidJson_ThrowsPublicModelException()
     {
-        var json = Client.CreateRequests();
-
-        using var doc = JsonDocument.Parse(json);
-        var requestsArray = doc.RootElement.GetProperty("requests");
-
-        Assert.Equal(0, requestsArray.GetArrayLength());
+        Assert.Throws<PublicModelException>(() => Client.GetResponse("not valid json"));
     }
 
-    // ── Client.GetReplies ──────────────────────────────────────────
+    // ── Client.GetResponseMessage ──────────────────────────────────
 
     [Fact]
-    public void Client_GetReplies_ValidJson_ReturnsReplyList()
+    public void Client_GetResponseMessage_ValidJson_ReturnsMessage()
     {
-        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
+        var json = """{"request":"GetUserName","message":"Alice"}""";
 
-        var result = Client.GetReplies(json);
+        var result = Client.GetResponseMessage(json);
 
-        Assert.Single(result);
-        Assert.Equal("GetUserName", result[0].request);
-        Assert.Equal("Alice", result[0].message);
+        Assert.Equal("Alice", result);
     }
 
     [Fact]
-    public void Client_GetReplies_MultipleReplies_ReturnsAll()
+    public void Client_GetResponseMessage_EmptyString_ReturnsNull()
     {
-        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
+        var result = Client.GetResponseMessage("");
 
-        var result = Client.GetReplies(json);
-
-        Assert.Equal(2, result.Count);
-        Assert.Equal("msg1", result[0].message);
-        Assert.Equal("msg2", result[1].message);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void Client_GetReplies_EmptyRepliesArray_ReturnsEmptyList()
+    public void Client_GetResponseMessage_InvalidJson_ThrowsPublicModelException()
     {
-        var json = """{"replies":[]}""";
-
-        var result = Client.GetReplies(json);
-
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public void Client_GetReplies_InvalidJson_ThrowsPublicModelException()
-    {
-        Assert.Throws<PublicModelException>(() => Client.GetReplies("not valid json"));
-    }
-
-    [Fact]
-    public void Client_GetReplies_EmptyString_ReturnsEmptyList()
-    {
-        var result = Client.GetReplies("");
-
-        Assert.Empty(result);
-    }
-
-    // ── Client.GetRepliesMessage ───────────────────────────────────
-
-    [Fact]
-    public void Client_GetRepliesMessage_ValidJson_ReturnsRequestNames()
-    {
-        var json = """{"replies":[{"request":"GetUserName","message":"Alice"}]}""";
-
-        var result = Client.GetRepliesMessage(json);
-
-        Assert.Single(result);
-        Assert.Equal("GetUserName", result[0]);
-    }
-
-    [Fact]
-    public void Client_GetRepliesMessage_MultipleReplies_ReturnsAllRequestNames()
-    {
-        var json = """{"replies":[{"request":"A","message":"msg1"},{"request":"B","message":"msg2"}]}""";
-
-        var result = Client.GetRepliesMessage(json);
-
-        Assert.Equal(2, result.Count);
-        Assert.Equal("A", result[0]);
-        Assert.Equal("B", result[1]);
-    }
-
-    [Fact]
-    public void Client_GetRepliesMessage_EmptyRepliesArray_ReturnsEmptyList()
-    {
-        var json = """{"replies":[]}""";
-
-        var result = Client.GetRepliesMessage(json);
-
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public void Client_GetRepliesMessage_InvalidJson_ThrowsPublicModelException()
-    {
-        Assert.Throws<PublicModelException>(() => Client.GetRepliesMessage("not valid json"));
-    }
-
-    [Fact]
-    public void Client_GetRepliesMessage_EmptyString_ReturnsEmptyList()
-    {
-        var result = Client.GetRepliesMessage("");
-
-        Assert.Empty(result);
+        Assert.Throws<PublicModelException>(() => Client.GetResponseMessage("not valid json"));
     }
 
     // ── Serialization round-trip ───────────────────────────────────
@@ -490,22 +350,21 @@ public class ClientTests
     [Fact]
     public void Request_SerializeAndDeserialize_RoundTrips()
     {
-        var original = new Request("ShowWindow", RequestType.Action, "win1", "hello");
-        var json = JsonSerializer.Serialize(original);
-        var deserialized = JsonSerializer.Deserialize<Request>(json);
+        var original = new Request("ShowWindow", "win1", "hello");
+        var json = original.Serialize();
+        var deserialized = Request.Deserialize(json);
 
         Assert.NotNull(deserialized);
         Assert.Equal(original.request, deserialized.request);
-        Assert.Equal(original.requestType, deserialized.requestType);
         Assert.Equal(original.args, deserialized.args);
     }
 
     [Fact]
-    public void Reply_SerializeAndDeserialize_RoundTrips()
+    public void Response_SerializeAndDeserialize_RoundTrips()
     {
-        var original = new Reply("GetUserName", "Bob");
-        var json = JsonSerializer.Serialize(original);
-        var deserialized = JsonSerializer.Deserialize<Reply>(json);
+        var original = new Response("GetUserName", "Bob");
+        var json = original.Serialize();
+        var deserialized = Response.Deserialize(json);
 
         Assert.NotNull(deserialized);
         Assert.Equal(original.request, deserialized.request);
