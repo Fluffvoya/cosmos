@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using bridge;
+using script_func;
 
 namespace app;
 
@@ -195,8 +196,17 @@ public class MainWindow : Form, IServer
             "app.local", wwwrootPath,
             CoreWebView2HostResourceAccessKind.Allow);
 
-        _serverBridge = new ServerBridge(_webView, this);
+        _serverBridge = new ServerBridge(_webView, this, (level, msg) =>
+        {
+            // Forward internal logs from ServerBridge to the frontend Log panel.
+            _serverBridge.SendInternalLog(level, msg);
+        });
         _script = new cm_script.Script(this, string.Empty);
+
+        // Register script functions that wrap Client interfaces
+        _script.AddFunction("ShowWindow", ScriptFunctions.ShowWindow);
+        _script.AddFunction("Log", ScriptFunctions.Log);
+        _script.AddFunction("GetUserName", ScriptFunctions.GetUserName);
 
         _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 

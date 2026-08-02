@@ -23,6 +23,7 @@
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
     <ProjectReference Include="..\server\server.csproj" />
     <ProjectReference Include="..\client\client.csproj" />
+    <ProjectReference Include="..\script-func\script-func.csproj" />
   </ItemGroup>
 
   <ItemGroup>
