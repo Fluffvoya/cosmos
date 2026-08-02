@@ -19,12 +19,8 @@ public enum ErrorCode
     JsonDeserializeFailed = 3001,
     JsonSerializeFailed = 3002,
     EmptyRequestName = 3003,
-    InvalidRequestType = 3004,
-    EmptyReplyRequestName = 3005,
+    EmptyResponseRequestName = 3005,
     NullInput = 3006,
-
-    // Server 模块 (5xxx)
-    UnknownRequestType = 5001,
 
     // cm-script 模块 (4xxx)
     SyntaxError = 4001,

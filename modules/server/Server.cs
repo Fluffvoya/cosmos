@@ -1,56 +1,22 @@
-﻿using cosmos_error;
 using public_model;
 
 namespace server;
 
 public class Server
 {
-    public static string CreateReplies(params List<Reply> replies)
+    public static string CreateResponse(Response response)
     {
-        Replies model = new Replies(replies);
-        return model.Serialize();
+        return response.Serialize();
     }
 
-    public static List<Request> GetRequests(string text)
+    public static Request? GetRequest(string text)
     {
-        var requests = Requests.Deserialize(text);
-        if (requests is null)
-            return new List<Request>();
-
-        return requests.requests;
+        return Request.Deserialize(text);
     }
 
-    public static List<string> GetRequestsName(string text)
+    public static string? GetRequestName(string text)
     {
-        List<string> rns = new List<string>();
-        var requests = GetRequests(text);
-
-        foreach (var item in requests)
-            rns.Add(item.request);
-        return rns;
+        var request = GetRequest(text);
+        return request?.request;
     }
-
-    public static List<RequestType> GetRequestType(string text)
-        => GetRequestTypeFromRequests(GetRequests(text));
-
-    public static List<RequestType> GetRequestTypeFromRequests(List<Request> requests)
-    {
-        var rns = new List<RequestType>();
-
-        foreach (var item in requests)
-        {
-            var type = item.requestType switch
-            {
-                "action" => RequestType.Action,
-                "inquiry" => RequestType.Inquiry,
-                _ => RequestType.Unknown,
-            };
-            if (type == RequestType.Unknown)
-                throw new ServerException(ErrorCode.UnknownRequestType, $"Unknown request type: {item.requestType}");
-            rns.Add(type);
-        }
-        return rns;
-    }
-
-
 }
