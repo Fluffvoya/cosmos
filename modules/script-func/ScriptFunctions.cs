@@ -29,19 +29,17 @@ public static class ScriptFunctions
     );
 
     /// <summary>
-    /// Logs a message with the given level, sender, and content.
-    /// Args: [String level, String sender, String content]
+    /// Logs a message.
+    /// Args: [String content]
     /// </summary>
     public static Function Log => new(
         (IServer server, List<object> args) =>
         {
-            var level = (string)args[0];
-            var sender = (string)args[1];
-            var content = (string)args[2];
-            var request = Client.CreateRequest(Client.Log(level, sender, content));
+            var content = (string)args[0];
+            var request = Client.CreateRequest(Client.Log(content));
             server.Execute(request);
         },
-        ArgumentType.String, ArgumentType.String, ArgumentType.String
+        ArgumentType.String
     );
 
     /// <summary>

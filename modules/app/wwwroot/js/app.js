@@ -76,6 +76,9 @@ const App = {
             case 'request':
                 this.handleBackendRequest(data);
                 break;
+            case 'internalLog':
+                LogStore.addEntry(data.level || 'Error', 'program', data.message || '');
+                break;
             case 'settingsLoaded':
                 Settings.loadSettings(data.settings);
                 break;
@@ -138,21 +141,15 @@ const App = {
 
     /**
      * Handle Log request - parse and store a log entry.
-     * Expected args: [level, sender, content]
-     *   level   - 'Error', 'Warning', or 'Info'
-     *   sender  - the source that emitted the log (e.g. 'program', script name)
-     *   content - the log message text
+     * The client only sends content; level and sender are inferred here.
      * @param {string} requestId - The request correlation ID.
-     * @param {string[]} args - [level, sender, content]
+     * @param {string[]} args - [content]
      */
     handleLog(requestId, args) {
-        const level   = args && args.length > 0 ? args[0] : 'Info';
-        const sender  = args && args.length > 1 ? args[1] : 'unknown';
-        const content = args && args.length > 2 ? args[2] : '';
+        const content = args && args.length > 0 ? args[0] : '';
 
-        // Store in the log
-        LogStore.addEntry(level, sender, content);
-        console.log(`[Log] [${level}] [${sender}] ${content}`);
+        // Client messages arrive via IServer.Execute — mark as user info.
+        LogStore.addEntry('Info', 'user', content);
 
         // Respond immediately
         this.sendResponse(requestId, 'logged');

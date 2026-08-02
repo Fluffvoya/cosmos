@@ -20,6 +20,7 @@ public class ServerBridge
 {
     private readonly WebView2 _webView;
     private readonly MainWindow _mainWindow;
+    private readonly Action<string, string> _logToUI; // (level, message)
 
     // Pending requests waiting for frontend responses.
     // Key: request ID (correlation ID), Value: TaskCompletionSource for the response.
@@ -28,10 +29,40 @@ public class ServerBridge
     // Counter for generating unique request IDs.
     private long _requestIdCounter;
 
-    public ServerBridge(WebView2 webView, MainWindow mainWindow)
+    public ServerBridge(WebView2 webView, MainWindow mainWindow, Action<string, string> logToUI)
     {
         _webView = webView;
         _mainWindow = mainWindow;
+        _logToUI = logToUI;
+    }
+
+    /// <summary>
+    /// Sends an internal log message to the frontend for display in the Log panel.
+    /// </summary>
+    public void SendInternalLog(string level, string message)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(new
+            {
+                type = "internalLog",
+                level = level,
+                message = message
+            });
+
+            if (_webView.InvokeRequired)
+            {
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(json));
+            }
+            else
+            {
+                _webView.CoreWebView2.PostWebMessageAsJson(json);
+            }
+        }
+        catch
+        {
+            // WebView not ready yet — silently drop.
+        }
     }
 
     /// <summary>
@@ -81,7 +112,7 @@ public class ServerBridge
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to handle frontend message: {ex.Message}");
+            _logToUI("Error", $"Failed to handle frontend message: {ex.Message}");
         }
     }
 
@@ -316,13 +347,14 @@ public class ServerBridge
             else
             {
                 // Timeout — return empty response.
+                _logToUI("Warning", $"Request '{request.request}' timed out after 30s");
                 var response = new Response(request.request, "");
                 return Server.CreateResponse(response);
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Execute failed: {ex.Message}");
+            _logToUI("Error", $"Execute failed: {ex.Message}");
             var response = new Response(request.request, "");
             return Server.CreateResponse(response);
         }
