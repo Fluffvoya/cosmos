@@ -238,43 +238,51 @@ public class ClientTests
     [Fact]
     public void Client_Log_ReturnsCorrectRequest()
     {
-        var req = Client.Log("Hello, World!");
+        var req = Client.Log("Error", "script", "Hello, World!");
 
         Assert.Equal("Log", req.request);
-        Assert.Single(req.args);
-        Assert.Equal("Hello, World!", req.args[0]);
+        Assert.Equal(3, req.args.Count);
+        Assert.Equal("Error", req.args[0]);
+        Assert.Equal("script", req.args[1]);
+        Assert.Equal("Hello, World!", req.args[2]);
     }
 
     [Fact]
-    public void Client_Log_EmptyContent_ReturnsEmptyString()
+    public void Client_Log_EmptyContent_ReturnsEmptyStrings()
     {
-        var req = Client.Log("");
+        var req = Client.Log("", "", "");
 
         Assert.Equal("Log", req.request);
-        Assert.Single(req.args);
+        Assert.Equal(3, req.args.Count);
         Assert.Equal("", req.args[0]);
+        Assert.Equal("", req.args[1]);
+        Assert.Equal("", req.args[2]);
     }
 
     [Fact]
     public void Client_Log_WithSpecialCharacters_StoresCorrectly()
     {
         var content = "Line1\nLine2\tTabbed";
-        var req = Client.Log(content);
+        var req = Client.Log("Warning", "program", content);
 
         Assert.Equal("Log", req.request);
-        Assert.Single(req.args);
-        Assert.Equal(content, req.args[0]);
+        Assert.Equal(3, req.args.Count);
+        Assert.Equal("Warning", req.args[0]);
+        Assert.Equal("program", req.args[1]);
+        Assert.Equal(content, req.args[2]);
     }
 
     [Fact]
     public void Client_Log_WithLongContent_StoresCorrectly()
     {
         var content = new string('A', 10000);
-        var req = Client.Log(content);
+        var req = Client.Log("Info", "test", content);
 
         Assert.Equal("Log", req.request);
-        Assert.Single(req.args);
-        Assert.Equal(content, req.args[0]);
+        Assert.Equal(3, req.args.Count);
+        Assert.Equal("Info", req.args[0]);
+        Assert.Equal("test", req.args[1]);
+        Assert.Equal(content, req.args[2]);
     }
 
     // ── Client.CreateRequest ───────────────────────────────────────
