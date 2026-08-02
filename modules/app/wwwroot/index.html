@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmos</title>
+    <link rel="stylesheet" href="https://app.local/css/styles.css">
+</head>
+<body>
+    <!-- Menu Bar (also serves as the title bar for the frameless window) -->
+    <div class="menu-bar">
+        <div class="menu-item" data-menu="tabs">
+            <span>Tabs</span>
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item" data-action="newWelcome">Welcome</div>
+                <div class="menu-dropdown-item" data-action="newLog">Log</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="settings">
+            <span>Settings</span>
+        </div>
+        <div class="menu-item" data-menu="help">
+            <span>Help</span>
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item" data-action="about">About</div>
+            </div>
+        </div>
+        <div class="menu-drag-spacer"></div>
+        <div class="window-controls">
+            <button class="window-control-btn" id="btnMinimize" title="Minimize">
+                <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+            </button>
+            <button class="window-control-btn" id="btnMaximize" title="Maximize">
+                <svg class="icon-maximize" width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+                <svg class="icon-restore" width="10" height="10" viewBox="0 0 10 10" style="display:none"><rect x="2" y="0" width="7.5" height="7.5" stroke="currentColor" fill="none" stroke-width="1"/><rect x="0" y="2.5" width="7.5" height="7.5" stroke="currentColor" fill="var(--bg-secondary)" stroke-width="1"/></svg>
+            </button>
+            <button class="window-control-btn window-control-close" id="btnClose" title="Close">
+                <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Tab Strip -->
+        <div class="tab-strip">
+            <div class="tab-list-wrapper" id="tabListWrapper">
+                <div class="tab-list" id="tabList">
+                    <!-- Tabs are dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Splitter for left/right tab positions -->
+        <div class="splitter left-splitter" id="splitterLeft"></div>
+        <div class="splitter right-splitter" id="splitterRight"></div>
+
+        <!-- Tab Content Area -->
+        <div class="tab-content" id="tabContent">
+            <!-- Tab content panels are dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Modal Dialog (for ShowWindow requests) -->
+    <div class="modal-overlay" id="modalOverlay" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">Message</span>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="modalOk">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel (hidden by default) -->
+    <div class="settings-overlay" id="settingsOverlay" style="display: none;">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="settings-close" id="settingsClose">&times;</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-sidebar">
+                    <div class="settings-category active" data-category="general">General</div>
+                    <div class="settings-category" data-category="scripting">Scripting</div>
+                </div>
+                <div class="settings-content">
+                    <!-- General Settings -->
+                    <div class="settings-section" id="settingsGeneral">
+                        <h3>General</h3>
+                        <div class="setting-row">
+                            <label>Tab Position</label>
+                            <select id="settingTabPosition">
+                                <option value="top">Top</option>
+                                <option value="left">Left</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Scripting Settings -->
+                    <div class="settings-section" id="settingsScripting" style="display: none;">
+                        <h3>Scripting</h3>
+                        <div class="setting-row">
+                            <label>Python Path</label>
+                            <div class="setting-input-group">
+                                <input type="text" id="settingPythonPath" placeholder="Path to Python interpreter">
+                                <button class="btn btn-secondary" id="browsePythonPath">Browse...</button>
+                            </div>
+                            <div class="setting-error" id="pythonPathError" style="display: none;">
+                                File does not exist.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button class="btn btn-primary" id="settingsSave">Save</button>
+                <button class="btn btn-primary" id="settingsApply">Apply</button>
+                <button class="btn btn-secondary" id="settingsCancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://app.local/js/app.js"></script>
+    <script src="https://app.local/js/tabs.js"></script>
+    <script src="https://app.local/js/log.js"></script>
+    <script src="https://app.local/js/settings.js"></script>
+    <script src="https://app.local/js/splitter.js"></script>
+</body>
+</html>

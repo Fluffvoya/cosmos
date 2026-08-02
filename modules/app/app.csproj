@@ -4,14 +4,31 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>app</RootNamespace>
-    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Suppress MSB3277: WebView2 NuGet package forces both WinForms and WPF assemblies
+         for all .NET 5+ projects. The WPF DLL references WindowsBase 5.0.0.0 which conflicts
+         with .NET SDK's WindowsBase 4.0.0.0. This is harmless — only WinForms is used at runtime.
+         The package does not offer a way to exclude WPF assemblies. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\bridge\bridge.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
+    <ProjectReference Include="..\server\server.csproj" />
+    <ProjectReference Include="..\client\client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

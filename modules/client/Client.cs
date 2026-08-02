@@ -23,8 +23,8 @@ public class Client
     public static Request ShowWindow(string name, string message)
         => new Request("ShowWindow", name, message);
 
-    public static Request Log(string content)
-        => new Request("Log", content);
+    public static Request Log(string level, string sender, string content)
+        => new Request("Log", level, sender, content);
 
     public static Request GetUserName()
         => new Request("GetUserName");
