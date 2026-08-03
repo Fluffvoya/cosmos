@@ -26,6 +26,12 @@ public class Client
     public static Request Log(string content)
         => new Request("Log", content);
 
+    public static Request Warning(string content)
+        => new Request("Warning", content);
+
+    public static Request Error(string content)
+        => new Request("Error", content);
+
     public static Request GetUserName()
         => new Request("GetUserName");
 }

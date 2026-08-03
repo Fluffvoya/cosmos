@@ -4,10 +4,37 @@ using cosmos_error;
 namespace tests;
 
 /// <summary>
-/// Unit tests for the argument module: ArgumentTypeJudge and ArgumentConvert.
+/// Unit tests for the argument module: ArgumentType, ArgumentTypeJudge, and ArgumentConvert.
 /// </summary>
 public class ArgumentTests
 {
+    // ── ArgumentType enum ──────────────────────────────────────────
+
+    [Fact]
+    public void ArgumentType_Number_HasExpectedValue()
+    {
+        Assert.Equal(0, (int)ArgumentType.Number);
+    }
+
+    [Fact]
+    public void ArgumentType_Float_HasExpectedValue()
+    {
+        Assert.Equal(1, (int)ArgumentType.Float);
+    }
+
+    [Fact]
+    public void ArgumentType_String_HasExpectedValue()
+    {
+        Assert.Equal(2, (int)ArgumentType.String);
+    }
+
+    [Fact]
+    public void ArgumentType_HasThreeValues()
+    {
+        var values = Enum.GetValues<ArgumentType>();
+        Assert.Equal(3, values.Length);
+    }
+
     // ── ArgumentTypeJudge ──────────────────────────────────────────
 
     [Theory]
@@ -114,6 +141,9 @@ public class ArgumentTests
     [InlineData("\"hello\"", "hello")]
     [InlineData("'world'", "world")]
     [InlineData("\"\"", "")]
+    [InlineData("''", "")]
+    [InlineData("'a'", "a")]
+    [InlineData("\"test string\"", "test string")]
     public void ToString__ValidString_ReturnsStrippedContent(string tk, string expected)
     {
         Assert.Equal(expected, ArgumentConvert.ToString_(tk));

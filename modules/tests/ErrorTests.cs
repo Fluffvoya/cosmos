@@ -266,4 +266,143 @@ public class ErrorTests
     {
         Assert.Equal(3006, (int)ErrorCode.NullInput);
     }
+
+    // ── ErrorCode - Script-func values ─────────────────────────────
+
+    [Fact]
+    public void ErrorCode_EmptyArgumentValue_HasExpectedValue()
+    {
+        Assert.Equal(5001, (int)ErrorCode.EmptyArgumentValue);
+    }
+
+    // ── ErrorCode - Process values ─────────────────────────────────
+
+    [Fact]
+    public void ErrorCode_PythonNotFound_HasExpectedValue()
+    {
+        Assert.Equal(6001, (int)ErrorCode.PythonNotFound);
+    }
+
+    [Fact]
+    public void ErrorCode_ScriptNotFound_HasExpectedValue()
+    {
+        Assert.Equal(6002, (int)ErrorCode.ScriptNotFound);
+    }
+
+    [Fact]
+    public void ErrorCode_PythonProcessCrashed_HasExpectedValue()
+    {
+        Assert.Equal(6003, (int)ErrorCode.PythonProcessCrashed);
+    }
+
+    [Fact]
+    public void ErrorCode_PythonRuntimeError_HasExpectedValue()
+    {
+        Assert.Equal(6004, (int)ErrorCode.PythonRuntimeError);
+    }
+
+    [Fact]
+    public void ErrorCode_ProcessCommunicationError_HasExpectedValue()
+    {
+        Assert.Equal(6005, (int)ErrorCode.ProcessCommunicationError);
+    }
+
+    // ── ScriptFuncException ────────────────────────────────────────
+
+    [Fact]
+    public void ScriptFuncException_InheritsCosmosException()
+    {
+        var ex = new ScriptFuncException(ErrorCode.EmptyArgumentValue, "empty arg");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.EmptyArgumentValue, ex.ErrorCode);
+        Assert.Equal("empty arg", ex.Message);
+    }
+
+    [Fact]
+    public void ScriptFuncException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new ScriptFuncException(ErrorCode.EmptyArgumentValue, "null arg");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.EmptyArgumentValue, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void ScriptFuncException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new ScriptFuncException(ErrorCode.EmptyArgumentValue, "script func error");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("script func error", ex.Message);
+    }
+
+    // ── ProcessException ───────────────────────────────────────────
+
+    [Fact]
+    public void ProcessException_InheritsCosmosException()
+    {
+        var ex = new ProcessException(ErrorCode.ProcessCommunicationError, "comm error");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.ProcessCommunicationError, ex.ErrorCode);
+        Assert.Equal("comm error", ex.Message);
+    }
+
+    [Fact]
+    public void ProcessException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new ProcessException(ErrorCode.PythonNotFound, "not found");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.PythonNotFound, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void ProcessException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new ProcessException(ErrorCode.ScriptNotFound, "script missing");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("script missing", ex.Message);
+    }
+
+    // ── PythonRuntimeException ─────────────────────────────────────
+
+    [Fact]
+    public void PythonRuntimeException_InheritsCosmosException()
+    {
+        var ex = new PythonRuntimeException(ErrorCode.PythonRuntimeError, "runtime error", 1);
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.PythonRuntimeError, ex.ErrorCode);
+        Assert.Equal("runtime error", ex.Message);
+        Assert.Equal(1, ex.ExitCode);
+    }
+
+    [Fact]
+    public void PythonRuntimeException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new PythonRuntimeException(ErrorCode.PythonRuntimeError, "error", 2);
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.PythonRuntimeError, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void PythonRuntimeException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new PythonRuntimeException(ErrorCode.PythonProcessCrashed, "crashed");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("crashed", ex.Message);
+    }
+
+    [Fact]
+    public void PythonRuntimeException_DefaultExitCode_IsNegativeOne()
+    {
+        var ex = new PythonRuntimeException(ErrorCode.PythonRuntimeError, "error");
+        Assert.Equal(-1, ex.ExitCode);
+    }
+
+    [Fact]
+    public void PythonRuntimeException_StoresExitCode()
+    {
+        var ex = new PythonRuntimeException(ErrorCode.PythonRuntimeError, "error", 42);
+        Assert.Equal(42, ex.ExitCode);
+    }
 }

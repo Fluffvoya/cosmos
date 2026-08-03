@@ -179,4 +179,78 @@ public class FuncRouterTests
 
         Assert.Same(server, capturedServer);
     }
+
+    // ── Edge cases ─────────────────────────────────────────────────
+
+    [Fact]
+    public void Function_Call_EmptyArgsList_Succeeds()
+    {
+        var called = false;
+        var fn = new Function((IServer s, List<object> a) => called = true, new List<ArgumentType>());
+
+        fn.Call(new MockServer(), new List<object>());
+
+        Assert.True(called);
+    }
+
+    [Fact]
+    public void Function_Call_TooManyArgs_Throws()
+    {
+        var fn = new Function((IServer s, List<object> a) => { }, new List<ArgumentType>());
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(new MockServer(), new List<object> { "extra" }));
+        Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Router_Add_MultipleFunctions_EachCallable()
+    {
+        var router = new Router(new MockServer());
+        long result1 = 0, result2 = 0;
+
+        router.Add("f1", new Function((IServer s, List<object> args) => result1 = (long)args[0],
+            new List<ArgumentType> { ArgumentType.Number }));
+        router.Add("f2", new Function((IServer s, List<object> args) => result2 = (long)args[0],
+            new List<ArgumentType> { ArgumentType.Number }));
+
+        router.Call("f1", new List<object> { 10L });
+        router.Call("f2", new List<object> { 20L });
+
+        Assert.Equal(10L, result1);
+        Assert.Equal(20L, result2);
+    }
+
+    [Fact]
+    public void Router_Add_EmptyFunctionName_IsValid()
+    {
+        var called = false;
+        var router = new Router(new MockServer());
+
+        router.Add("", new Function((IServer s, List<object> a) => called = true,
+            new List<ArgumentType>()));
+        router.Call("", new List<object>());
+
+        Assert.True(called);
+    }
+
+    [Fact]
+    public void Function_Constructor_StoresArgsType()
+    {
+        var types = new List<ArgumentType> { ArgumentType.Number, ArgumentType.String };
+        var fn = new Function((IServer s, List<object> a) => { }, types);
+
+        Assert.Equal(2, fn.argsType.Count);
+        Assert.Equal(ArgumentType.Number, fn.argsType[0]);
+        Assert.Equal(ArgumentType.String, fn.argsType[1]);
+    }
+
+    [Fact]
+    public void Function_Constructor_StoresFunc()
+    {
+        Action<IServer, List<object>> action = (IServer s, List<object> a) => { };
+        var fn = new Function(action, new List<ArgumentType>());
+
+        Assert.NotNull(fn.func);
+    }
 }

@@ -229,4 +229,136 @@ public class LexerTests
         var ex = Assert.Throws<InterpreterException>(() => lexer.Tokenize());
         Assert.Equal(ErrorCode.SyntaxError, ex.ErrorCode);
     }
+
+    // ── Single-quoted strings ──────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_SingleQuotedString_TreatedAsIdentifier()
+    {
+        var lexer = new Lexer("'hello world'");
+        var tokens = lexer.Tokenize();
+
+        // Single quotes are not string delimiters in cm-script;
+        // the lexer reads until whitespace, so this becomes an identifier.
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+    }
+
+    [Fact]
+    public void Tokenize_SingleQuotedEmptyString_TreatedAsIdentifier()
+    {
+        var lexer = new Lexer("''");
+        var tokens = lexer.Tokenize();
+
+        // Single quotes are not string delimiters in cm-script.
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+    }
+
+    // ── Keywords ───────────────────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_LIB_Keyword()
+    {
+        var lexer = new Lexer("LIB");
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+        Assert.Equal("LIB", tokens[0].tk);
+    }
+
+    [Fact]
+    public void Tokenize_SCRIPT_Keyword()
+    {
+        var lexer = new Lexer("SCRIPT");
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+        Assert.Equal("SCRIPT", tokens[0].tk);
+    }
+
+    // ── Numbers and identifiers ────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_NumericIdentifier()
+    {
+        var lexer = new Lexer("42");
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+        Assert.Equal("42", tokens[0].tk);
+    }
+
+    [Fact]
+    public void Tokenize_FloatIdentifier()
+    {
+        var lexer = new Lexer("3.14");
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+        Assert.Equal("3.14", tokens[0].tk);
+    }
+
+    [Fact]
+    public void Tokenize_NegativeNumber()
+    {
+        var lexer = new Lexer("-42");
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(TokenType.Identifier, tokens[0].tokenType);
+        Assert.Equal("-42", tokens[0].tk);
+    }
+
+    // ── Multiple comments ──────────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_CommentFollowedByCOSMOS()
+    {
+        var lexer = new Lexer("! comment\nCOSMOS");
+        var tokens = lexer.Tokenize();
+
+        // Comment and its trailing newline are skipped, COSMOS is tokenized, then EOF
+        Assert.Equal(2, tokens.Count);
+        Assert.Equal(TokenType.ST_Cosmos, tokens[0].tokenType);
+    }
+
+    [Fact]
+    public void Tokenize_MultipleComments_SecondCommentNotSkipped()
+    {
+        // The lexer only skips one comment per SkipBlank call.
+        // A second comment on the next line is NOT automatically skipped.
+        var lexer = new Lexer("! comment1\n! comment2\nCOSMOS");
+        var tokens = lexer.Tokenize();
+
+        // First comment is skipped, but "!comment2" is read as an identifier
+        Assert.Contains(tokens, t => t.tokenType == TokenType.ST_Cosmos);
+        Assert.Contains(tokens, t => t.tk.Contains("comment2"));
+    }
+
+    // ── Empty lines ────────────────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_MultipleEmptyLines()
+    {
+        var lexer = new Lexer("\n\n\nCOSMOS");
+        var tokens = lexer.Tokenize();
+
+        // Verify COSMOS is present and preceded by newlines
+        Assert.Contains(tokens, t => t.tokenType == TokenType.ST_Cosmos);
+        Assert.Contains(tokens, t => t.tokenType == TokenType.NewLine);
+    }
+
+    // ── Mixed content ──────────────────────────────────────────────
+
+    [Fact]
+    public void Tokenize_ComplexScript()
+    {
+        var source = "! Header comment\nCOSMOS func1 1 \"hello\"\nEXE program arg1\n$ func2 2";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+
+        // Verify structure: COSMOS, func1, 1, "hello", NEWLINE, EXE, program, arg1, NEWLINE, $, func2, 2, EOF
+        Assert.Equal(13, tokens.Count);
+        Assert.Equal(TokenType.ST_Cosmos, tokens[0].tokenType);
+        Assert.Equal(TokenType.ST_Exe, tokens[5].tokenType);
+        Assert.Equal(TokenType.ST_Cosmos, tokens[9].tokenType); // $ is alias for COSMOS
+    }
 }

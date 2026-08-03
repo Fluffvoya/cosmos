@@ -344,4 +344,100 @@ public class InterpreterTests
         var ex = await Assert.ThrowsAsync<InterpreterException>(() => interpreter.Interpret());
         Assert.Equal(ErrorCode.MissingFunctionName, ex.ErrorCode);
     }
+
+    // ── Float arguments ────────────────────────────────────────────
+
+    [Fact]
+    public async Task Interpret_COSMOS_WithFloatArg()
+    {
+        double captured = 0;
+        var router = CreateRouter("setFloat",
+            new List<ArgumentType> { ArgumentType.Float },
+            (IServer s, List<object> args) => captured = (double)args[0]);
+
+        var lexer = new Lexer("COSMOS setFloat 3.14");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(3.14, captured, 1e-10);
+    }
+
+    [Fact]
+    public async Task Interpret_COSMOS_WithNegativeFloatArg()
+    {
+        double captured = 0;
+        var router = CreateRouter("setFloat",
+            new List<ArgumentType> { ArgumentType.Float },
+            (IServer s, List<object> args) => captured = (double)args[0]);
+
+        var lexer = new Lexer("COSMOS setFloat -2.5");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(-2.5, captured, 1e-10);
+    }
+
+    // ── Multiple arguments ─────────────────────────────────────────
+
+    [Fact]
+    public async Task Interpret_COSMOS_WithMultipleStringArgs()
+    {
+        var results = new List<string>();
+        var router = CreateRouter("concat",
+            new List<ArgumentType> { ArgumentType.String, ArgumentType.String, ArgumentType.String },
+            (IServer s, List<object> args) =>
+            {
+                results.Add((string)args[0]);
+                results.Add((string)args[1]);
+                results.Add((string)args[2]);
+            });
+
+        var lexer = new Lexer("COSMOS concat \"a\" \"b\" \"c\"");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(3, results.Count);
+        Assert.Equal("a", results[0]);
+        Assert.Equal("b", results[1]);
+        Assert.Equal("c", results[2]);
+    }
+
+    // ── Negative number arguments ──────────────────────────────────
+
+    [Fact]
+    public async Task Interpret_COSMOS_WithNegativeNumberArg()
+    {
+        long captured = 0;
+        var router = CreateRouter("setNum",
+            new List<ArgumentType> { ArgumentType.Number },
+            (IServer s, List<object> args) => captured = (long)args[0]);
+
+        var lexer = new Lexer("COSMOS setNum -42");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(-42L, captured);
+    }
+
+    // ── Zero arguments ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task Interpret_COSMOS_WithZeroArg()
+    {
+        long captured = 1;
+        var router = CreateRouter("setZero",
+            new List<ArgumentType> { ArgumentType.Number },
+            (IServer s, List<object> args) => captured = (long)args[0]);
+
+        var lexer = new Lexer("COSMOS setZero 0");
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(0L, captured);
+    }
 }

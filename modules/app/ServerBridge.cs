@@ -307,6 +307,17 @@ public class ServerBridge
         if (request == null)
             return string.Empty;
 
+        // Intercept Log/Warning/Error requests and forward as internal logs.
+        if (request.request is "Log" or "Warning" or "Error" && request.args.Count > 0)
+        {
+            var level = request.request;
+            var message = request.args[0];
+            _logToUI(level, message);
+
+            var logResponse = new Response(request.request, "");
+            return Server.CreateResponse(logResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 

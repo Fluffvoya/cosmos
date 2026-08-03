@@ -238,51 +238,109 @@ public class ClientTests
     [Fact]
     public void Client_Log_ReturnsCorrectRequest()
     {
-        var req = Client.Log("Error", "script", "Hello, World!");
+        var req = Client.Log("Hello, World!");
 
         Assert.Equal("Log", req.request);
-        Assert.Equal(3, req.args.Count);
-        Assert.Equal("Error", req.args[0]);
-        Assert.Equal("script", req.args[1]);
-        Assert.Equal("Hello, World!", req.args[2]);
+        Assert.Single(req.args);
+        Assert.Equal("Hello, World!", req.args[0]);
     }
 
     [Fact]
-    public void Client_Log_EmptyContent_ReturnsEmptyStrings()
+    public void Client_Log_EmptyContent_ReturnsEmptyString()
     {
-        var req = Client.Log("", "", "");
+        var req = Client.Log("");
 
         Assert.Equal("Log", req.request);
-        Assert.Equal(3, req.args.Count);
+        Assert.Single(req.args);
         Assert.Equal("", req.args[0]);
-        Assert.Equal("", req.args[1]);
-        Assert.Equal("", req.args[2]);
     }
 
     [Fact]
     public void Client_Log_WithSpecialCharacters_StoresCorrectly()
     {
         var content = "Line1\nLine2\tTabbed";
-        var req = Client.Log("Warning", "program", content);
+        var req = Client.Log(content);
 
         Assert.Equal("Log", req.request);
-        Assert.Equal(3, req.args.Count);
-        Assert.Equal("Warning", req.args[0]);
-        Assert.Equal("program", req.args[1]);
-        Assert.Equal(content, req.args[2]);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
     }
 
     [Fact]
     public void Client_Log_WithLongContent_StoresCorrectly()
     {
         var content = new string('A', 10000);
-        var req = Client.Log("Info", "test", content);
+        var req = Client.Log(content);
 
         Assert.Equal("Log", req.request);
-        Assert.Equal(3, req.args.Count);
-        Assert.Equal("Info", req.args[0]);
-        Assert.Equal("test", req.args[1]);
-        Assert.Equal(content, req.args[2]);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
+    }
+
+    // ── Client.Warning ──────────────────────────────────────────────
+
+    [Fact]
+    public void Client_Warning_ReturnsCorrectRequest()
+    {
+        var req = Client.Warning("Something looks off");
+
+        Assert.Equal("Warning", req.request);
+        Assert.Single(req.args);
+        Assert.Equal("Something looks off", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Warning_EmptyContent_ReturnsEmptyString()
+    {
+        var req = Client.Warning("");
+
+        Assert.Equal("Warning", req.request);
+        Assert.Single(req.args);
+        Assert.Equal("", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Warning_WithSpecialCharacters_StoresCorrectly()
+    {
+        var content = "Line1\nLine2\tTabbed";
+        var req = Client.Warning(content);
+
+        Assert.Equal("Warning", req.request);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
+    }
+
+    // ── Client.Error ────────────────────────────────────────────────
+
+    [Fact]
+    public void Client_Error_ReturnsCorrectRequest()
+    {
+        var req = Client.Error("Something went wrong");
+
+        Assert.Equal("Error", req.request);
+        Assert.Single(req.args);
+        Assert.Equal("Something went wrong", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Error_EmptyContent_ReturnsEmptyString()
+    {
+        var req = Client.Error("");
+
+        Assert.Equal("Error", req.request);
+        Assert.Single(req.args);
+        Assert.Equal("", req.args[0]);
+    }
+
+    [Fact]
+    public void Client_Error_WithSpecialCharacters_StoresCorrectly()
+    {
+        var content = "Line1\nLine2\tTabbed";
+        var req = Client.Error(content);
+
+        Assert.Equal("Error", req.request);
+        Assert.Single(req.args);
+        Assert.Equal(content, req.args[0]);
     }
 
     // ── Client.CreateRequest ───────────────────────────────────────

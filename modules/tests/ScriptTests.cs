@@ -363,4 +363,108 @@ public class ScriptTests
         Assert.True(func1Called);
         Assert.True(func2Called);
     }
+
+    // ── Float arguments ────────────────────────────────────────────
+
+    [Fact]
+    public async Task RunScript_WithFloatArg_FunctionReceivesArg()
+    {
+        double captured = 0;
+        var script = CreateScript();
+
+        script.AddFunction("setFloat", new Function(
+            (IServer s, List<object> args) => captured = (double)args[0],
+            new List<ArgumentType> { ArgumentType.Float }));
+
+        await script.Run("COSMOS setFloat 3.14");
+
+        Assert.Equal(3.14, captured, 1e-10);
+    }
+
+    [Fact]
+    public async Task RunScript_WithNegativeFloatArg_FunctionReceivesArg()
+    {
+        double captured = 0;
+        var script = CreateScript();
+
+        script.AddFunction("setFloat", new Function(
+            (IServer s, List<object> args) => captured = (double)args[0],
+            new List<ArgumentType> { ArgumentType.Float }));
+
+        await script.Run("COSMOS setFloat -2.5");
+
+        Assert.Equal(-2.5, captured, 1e-10);
+    }
+
+    // ── Negative number arguments ──────────────────────────────────
+
+    [Fact]
+    public async Task RunScript_WithNegativeNumberArg_FunctionReceivesArg()
+    {
+        long captured = 0;
+        var script = CreateScript();
+
+        script.AddFunction("setNum", new Function(
+            (IServer s, List<object> args) => captured = (long)args[0],
+            new List<ArgumentType> { ArgumentType.Number }));
+
+        await script.Run("COSMOS setNum -42");
+
+        Assert.Equal(-42L, captured);
+    }
+
+    // ── Multiple string arguments ──────────────────────────────────
+
+    [Fact]
+    public async Task RunScript_WithMultipleStringArgs_FunctionReceivesArgs()
+    {
+        var results = new List<string>();
+        var script = CreateScript();
+
+        script.AddFunction("concat", new Function(
+            (IServer s, List<object> args) =>
+            {
+                results.Add((string)args[0]);
+                results.Add((string)args[1]);
+            },
+            new List<ArgumentType> { ArgumentType.String, ArgumentType.String }));
+
+        await script.Run("COSMOS concat \"hello\" \"world\"");
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal("hello", results[0]);
+        Assert.Equal("world", results[1]);
+    }
+
+    // ── Whitespace handling ────────────────────────────────────────
+
+    [Fact]
+    public async Task RunScript_LeadingWhitespace_DoesNotThrow()
+    {
+        var called = false;
+        var script = CreateScript();
+
+        script.AddFunction("noop", new Function(
+            (IServer s, List<object> a) => called = true,
+            new List<ArgumentType>()));
+
+        await script.Run("   COSMOS noop");
+
+        Assert.True(called);
+    }
+
+    [Fact]
+    public async Task RunScript_TrailingNewlines_DoesNotThrow()
+    {
+        var called = false;
+        var script = CreateScript();
+
+        script.AddFunction("noop", new Function(
+            (IServer s, List<object> a) => called = true,
+            new List<ArgumentType>()));
+
+        await script.Run("COSMOS noop\n\n\n");
+
+        Assert.True(called);
+    }
 }
