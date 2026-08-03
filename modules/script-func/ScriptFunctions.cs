@@ -43,6 +43,34 @@ public static class ScriptFunctions
     );
 
     /// <summary>
+    /// Logs a warning message.
+    /// Args: [String content]
+    /// </summary>
+    public static Function Warning => new(
+        (IServer server, List<object> args) =>
+        {
+            var content = (string)args[0];
+            var request = Client.CreateRequest(Client.Warning(content));
+            server.Execute(request);
+        },
+        ArgumentType.String
+    );
+
+    /// <summary>
+    /// Logs an error message.
+    /// Args: [String content]
+    /// </summary>
+    public static Function Error => new(
+        (IServer server, List<object> args) =>
+        {
+            var content = (string)args[0];
+            var request = Client.CreateRequest(Client.Error(content));
+            server.Execute(request);
+        },
+        ArgumentType.String
+    );
+
+    /// <summary>
     /// Gets the current user name from the main program.
     /// Args: none
     /// </summary>

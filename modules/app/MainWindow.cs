@@ -206,6 +206,8 @@ public class MainWindow : Form, IServer
         // Register script functions that wrap Client interfaces
         _script.AddFunction("ShowWindow", ScriptFunctions.ShowWindow);
         _script.AddFunction("Log", ScriptFunctions.Log);
+        _script.AddFunction("Warning", ScriptFunctions.Warning);
+        _script.AddFunction("Error", ScriptFunctions.Error);
         _script.AddFunction("GetUserName", ScriptFunctions.GetUserName);
 
         _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;

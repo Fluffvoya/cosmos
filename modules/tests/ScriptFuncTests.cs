@@ -75,16 +75,14 @@ public class ScriptFuncTests
         var server = new CapturingServer();
         var fn = ScriptFunctions.Log;
 
-        fn.Call(server, new List<object> { "Error", "script", "Something went wrong" });
+        fn.Call(server, new List<object> { "Something happened" });
 
         Assert.NotNull(server.LastRequestJson);
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
         Assert.Equal("Log", request.request);
-        Assert.Equal(3, request.args.Count);
-        Assert.Equal("Error", request.args[0]);
-        Assert.Equal("script", request.args[1]);
-        Assert.Equal("Something went wrong", request.args[2]);
+        Assert.Single(request.args);
+        Assert.Equal("Something happened", request.args[0]);
     }
 
     [Fact]
@@ -94,7 +92,7 @@ public class ScriptFuncTests
         var fn = ScriptFunctions.Log;
 
         var ex = Assert.Throws<RouterException>(() =>
-            fn.Call(server, new List<object> { "Error", "script" }));
+            fn.Call(server, new List<object>()));
         Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
     }
 
@@ -105,7 +103,87 @@ public class ScriptFuncTests
         var fn = ScriptFunctions.Log;
 
         var ex = Assert.Throws<RouterException>(() =>
-            fn.Call(server, new List<object> { 42L, "script", "content" }));
+            fn.Call(server, new List<object> { 42L }));
+        Assert.Equal(ErrorCode.ArgumentTypeCheckFailed, ex.ErrorCode);
+    }
+
+    // ── Warning ────────────────────────────────────────────────────
+
+    [Fact]
+    public void Warning_Function_Call_SendsCorrectRequest()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Warning;
+
+        fn.Call(server, new List<object> { "Something looks off" });
+
+        Assert.NotNull(server.LastRequestJson);
+        var request = Request.Deserialize(server.LastRequestJson);
+        Assert.NotNull(request);
+        Assert.Equal("Warning", request.request);
+        Assert.Single(request.args);
+        Assert.Equal("Something looks off", request.args[0]);
+    }
+
+    [Fact]
+    public void Warning_Function_WrongArgCount_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Warning;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object>()));
+        Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Warning_Function_WrongArgType_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Warning;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object> { 42L }));
+        Assert.Equal(ErrorCode.ArgumentTypeCheckFailed, ex.ErrorCode);
+    }
+
+    // ── Error ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void Error_Function_Call_SendsCorrectRequest()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Error;
+
+        fn.Call(server, new List<object> { "Something went wrong" });
+
+        Assert.NotNull(server.LastRequestJson);
+        var request = Request.Deserialize(server.LastRequestJson);
+        Assert.NotNull(request);
+        Assert.Equal("Error", request.request);
+        Assert.Single(request.args);
+        Assert.Equal("Something went wrong", request.args[0]);
+    }
+
+    [Fact]
+    public void Error_Function_WrongArgCount_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Error;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object>()));
+        Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Error_Function_WrongArgType_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.Error;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object> { 42L }));
         Assert.Equal(ErrorCode.ArgumentTypeCheckFailed, ex.ErrorCode);
     }
 
@@ -147,6 +225,8 @@ public class ScriptFuncTests
 
         router.Add("ShowWindow", ScriptFunctions.ShowWindow);
         router.Add("Log", ScriptFunctions.Log);
+        router.Add("Warning", ScriptFunctions.Warning);
+        router.Add("Error", ScriptFunctions.Error);
         router.Add("GetUserName", ScriptFunctions.GetUserName);
 
         router.Call("ShowWindow", new List<object> { "win1", "msg1" });
@@ -155,5 +235,37 @@ public class ScriptFuncTests
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
         Assert.Equal("ShowWindow", request.request);
+    }
+
+    [Fact]
+    public void Warning_Function_CanBeAddedToRouter_AndCalled()
+    {
+        var server = new CapturingServer();
+        var router = new Router(server);
+
+        router.Add("Warning", ScriptFunctions.Warning);
+        router.Call("Warning", new List<object> { "test warning" });
+
+        Assert.NotNull(server.LastRequestJson);
+        var request = Request.Deserialize(server.LastRequestJson);
+        Assert.NotNull(request);
+        Assert.Equal("Warning", request.request);
+        Assert.Equal("test warning", request.args[0]);
+    }
+
+    [Fact]
+    public void Error_Function_CanBeAddedToRouter_AndCalled()
+    {
+        var server = new CapturingServer();
+        var router = new Router(server);
+
+        router.Add("Error", ScriptFunctions.Error);
+        router.Call("Error", new List<object> { "test error" });
+
+        Assert.NotNull(server.LastRequestJson);
+        var request = Request.Deserialize(server.LastRequestJson);
+        Assert.NotNull(request);
+        Assert.Equal("Error", request.request);
+        Assert.Equal("test error", request.args[0]);
     }
 }
