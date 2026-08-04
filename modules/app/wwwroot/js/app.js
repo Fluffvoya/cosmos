@@ -88,6 +88,12 @@ const App = {
             case 'browseResult':
                 Settings.handleBrowseResult(data);
                 break;
+            case 'cosmosPathValidation':
+                Settings.handleCosmosBasePathValidationResponse(data);
+                break;
+            case 'cosmosPathBrowseResult':
+                Settings.handleCosmosBasePathBrowseResult(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }

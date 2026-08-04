@@ -94,6 +94,15 @@
                     <div class="settings-section" id="settingsGeneral">
                         <h3>General</h3>
                         <div class="setting-row">
+                            <label>Cosmos Base Path</label>
+                            <div class="setting-input-group">
+                                <input type="text" id="settingCosmosBasePath" placeholder="Absolute path for cosmos:// resolution">
+                                <button class="btn btn-secondary" id="browseCosmosBasePath">Browse...</button>
+                            </div>
+                            <div class="setting-error" id="cosmosBasePathError" style="display: none;">
+                            </div>
+                        </div>
+                        <div class="setting-row">
                             <label>Tab Position</label>
                             <select id="settingTabPosition">
                                 <option value="top">Top</option>
