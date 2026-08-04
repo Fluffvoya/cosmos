@@ -34,6 +34,7 @@
     <ProjectReference Include="..\server\server.csproj" />
     <ProjectReference Include="..\process\process.csproj" />
     <ProjectReference Include="..\script-func\script-func.csproj" />
+    <ProjectReference Include="..\path\path.csproj" />
   </ItemGroup>
 
 </Project>

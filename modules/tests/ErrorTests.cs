@@ -363,6 +363,42 @@ public class ErrorTests
         Assert.Equal("script missing", ex.Message);
     }
 
+    // ── PathException ────────────────────────────────────────────────
+
+    [Fact]
+    public void PathException_InheritsCosmosException()
+    {
+        var ex = new PathException(ErrorCode.PathNullOrEmpty, "path error");
+
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.PathNullOrEmpty, ex.ErrorCode);
+        Assert.Equal("path error", ex.Message);
+    }
+
+    [Fact]
+    public void PathException_CanBeCaughtAsCosmosException()
+    {
+        CosmosException ex = new PathException(ErrorCode.PathNullOrEmpty, "null path");
+        Assert.IsAssignableFrom<CosmosException>(ex);
+        Assert.Equal(ErrorCode.PathNullOrEmpty, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void PathException_CanBeCaughtAsBaseException()
+    {
+        Exception ex = new PathException(ErrorCode.PathNullOrEmpty, "empty path");
+        Assert.IsAssignableFrom<Exception>(ex);
+        Assert.Equal("empty path", ex.Message);
+    }
+
+    // ── ErrorCode - Path values ──────────────────────────────────
+
+    [Fact]
+    public void ErrorCode_PathNullOrEmpty_HasExpectedValue()
+    {
+        Assert.Equal(7001, (int)ErrorCode.PathNullOrEmpty);
+    }
+
     // ── PythonRuntimeException ─────────────────────────────────────
 
     [Fact]

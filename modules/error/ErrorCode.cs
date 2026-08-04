@@ -35,4 +35,7 @@ public enum ErrorCode
     PythonProcessCrashed = 6003,
     PythonRuntimeError = 6004,
     ProcessCommunicationError = 6005,
+
+    // Path module (7xxx)
+    PathNullOrEmpty = 7001,
 }

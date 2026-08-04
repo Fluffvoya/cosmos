@@ -8,7 +8,8 @@ const Settings = {
     settings: {
         tabPosition: 'top',
         tabStripWidth: 140,
-        pythonPath: ''
+        pythonPath: '',
+        cosmosBasePath: ''
     },
 
     // Original settings (for change tracking)
@@ -21,6 +22,11 @@ const Settings = {
     pythonPathValid: true,
     pythonPathValidating: false,
     pythonPathError: '',
+
+    // Cosmos base path validation state
+    cosmosBasePathValid: true,
+    cosmosBasePathValidating: false,
+    cosmosBasePathError: '',
 
     /**
      * Initialize the settings module.
@@ -64,6 +70,24 @@ const Settings = {
                 this.settings.pythonPath = pythonPathInput.value;
                 this.validatePythonPath();
                 this.updateChangeTracking();
+            });
+        }
+
+        // Cosmos base path change
+        const cosmosBasePathInput = document.getElementById('settingCosmosBasePath');
+        if (cosmosBasePathInput) {
+            cosmosBasePathInput.addEventListener('input', () => {
+                this.settings.cosmosBasePath = cosmosBasePathInput.value;
+                this.validateCosmosBasePath();
+                this.updateChangeTracking();
+            });
+        }
+
+        // Browse button for Cosmos base path (opens native folder dialog via WebView2)
+        const browseCosmosBtn = document.getElementById('browseCosmosBasePath');
+        if (browseCosmosBtn) {
+            browseCosmosBtn.addEventListener('click', () => {
+                this.browseCosmosBasePath();
             });
         }
 
@@ -155,8 +179,17 @@ const Settings = {
             pythonPathInput.value = this.settings.pythonPath;
         }
 
+        // Cosmos base path
+        const cosmosBasePathInput = document.getElementById('settingCosmosBasePath');
+        if (cosmosBasePathInput) {
+            cosmosBasePathInput.value = this.settings.cosmosBasePath;
+        }
+
         // Validate python path
         this.validatePythonPath();
+
+        // Validate cosmos base path
+        this.validateCosmosBasePath();
     },
 
     /**
@@ -245,7 +278,8 @@ const Settings = {
     updateChangeTracking() {
         const hasChanges = this.originalSettings &&
             (this.settings.tabPosition !== this.originalSettings.tabPosition ||
-             this.settings.pythonPath !== this.originalSettings.pythonPath);
+             this.settings.pythonPath !== this.originalSettings.pythonPath ||
+             this.settings.cosmosBasePath !== this.originalSettings.cosmosBasePath);
 
         const applyBtn = document.getElementById('settingsApply');
         const saveBtn = document.getElementById('settingsSave');
@@ -262,6 +296,12 @@ const Settings = {
         // Check if Python path is valid before saving
         if (!this.pythonPathValid) {
             this.showValidationWarning();
+            return false;
+        }
+
+        // Check if Cosmos base path is valid before saving
+        if (!this.cosmosBasePathValid) {
+            this.showCosmosBasePathValidationWarning();
             return false;
         }
 
@@ -302,6 +342,12 @@ const Settings = {
         // Check if Python path is valid before saving
         if (!this.pythonPathValid) {
             this.showValidationWarning();
+            return;
+        }
+
+        // Check if Cosmos base path is valid before saving
+        if (!this.cosmosBasePathValid) {
+            this.showCosmosBasePathValidationWarning();
             return;
         }
 
@@ -381,6 +427,110 @@ const Settings = {
             }
 
             this.validatePythonPath();
+            this.updateChangeTracking();
+        }
+    },
+
+    /**
+     * Validate the Cosmos base path by sending a request to the C# backend.
+     * Shows an error message if the path is not empty and doesn't exist as a directory.
+     */
+    validateCosmosBasePath() {
+        const basePath = this.settings.cosmosBasePath;
+        const errorEl = document.getElementById('cosmosBasePathError');
+        const inputEl = document.getElementById('settingCosmosBasePath');
+
+        // If empty, consider valid (not required)
+        if (!basePath || basePath.trim() === '') {
+            this.cosmosBasePathValid = true;
+            this.cosmosBasePathError = '';
+            if (errorEl) errorEl.style.display = 'none';
+            if (inputEl) inputEl.style.borderColor = '';
+            this.updateChangeTracking();
+            return;
+        }
+
+        // Mark as validating
+        this.cosmosBasePathValidating = true;
+
+        // Send validation request to C# backend
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'validateCosmosPath',
+                path: basePath
+            }));
+        }
+    },
+
+    /**
+     * Handle Cosmos base path validation response from the C# backend.
+     * @param {object} data - The validation result with isValid and error properties.
+     */
+    handleCosmosBasePathValidationResponse(data) {
+        this.cosmosBasePathValidating = false;
+        this.cosmosBasePathValid = data.isValid;
+        this.cosmosBasePathError = data.error || '';
+
+        const errorEl = document.getElementById('cosmosBasePathError');
+        const inputEl = document.getElementById('settingCosmosBasePath');
+
+        if (!data.isValid) {
+            if (errorEl) {
+                errorEl.textContent = this.cosmosBasePathError;
+                errorEl.style.display = 'block';
+            }
+            if (inputEl) {
+                inputEl.style.borderColor = 'var(--danger-color)';
+            }
+        } else {
+            if (errorEl) errorEl.style.display = 'none';
+            if (inputEl) inputEl.style.borderColor = '';
+        }
+
+        this.updateChangeTracking();
+    },
+
+    /**
+     * Show a warning dialog when Cosmos base path validation fails on Apply/Save.
+     */
+    showCosmosBasePathValidationWarning() {
+        const overlay = document.getElementById('modalOverlay');
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalMessage');
+
+        title.textContent = 'Invalid Cosmos Base Path';
+        body.textContent = `The Cosmos base path "${this.settings.cosmosBasePath}" is not valid: ${this.cosmosBasePathError}\n\nPlease enter a valid directory path before saving.`;
+        overlay.style.display = 'flex';
+
+        overlay.dataset.requestId = '';
+    },
+
+    /**
+     * Browse for Cosmos base path directory.
+     * Sends a request to the C# backend to open a native folder dialog.
+     */
+    browseCosmosBasePath() {
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'browseCosmosPath'
+            }));
+        }
+    },
+
+    /**
+     * Handle Cosmos base path browse result from the C# backend.
+     * @param {object} data - The browse result with selectedPath property.
+     */
+    handleCosmosBasePathBrowseResult(data) {
+        if (data.selectedPath) {
+            this.settings.cosmosBasePath = data.selectedPath;
+
+            const cosmosBasePathInput = document.getElementById('settingCosmosBasePath');
+            if (cosmosBasePathInput) {
+                cosmosBasePathInput.value = data.selectedPath;
+            }
+
+            this.validateCosmosBasePath();
             this.updateChangeTracking();
         }
     }

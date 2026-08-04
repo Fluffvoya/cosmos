@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using bridge;
+using path;
 using script_func;
 
 namespace app;
@@ -72,6 +73,12 @@ public class MainWindow : Form, IServer
     /// Shared Script instance for running cm-script sources.
     /// </summary>
     public cm_script.Script? Script => _script;
+
+    /// <summary>
+    /// Gets the CosmosPath resolver, configured via Settings.
+    /// Returns null if the user has not set a base path yet.
+    /// </summary>
+    public CosmosPath? CosmosPath => _serverBridge?.CosmosPath;
 
     /// <summary>
     /// Singleton accessor for the MainWindow as IServer.
