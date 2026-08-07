@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Web.WebView2.WinForms;
 using bridge;
-using path;
 using public_model;
 using server;
 
@@ -29,18 +28,6 @@ public class ServerBridge
 
     // Counter for generating unique request IDs.
     private long _requestIdCounter;
-
-    // Cosmos path resolver â€” updated when settings change.
-    private CosmosPath? _cosmosPath;
-
-    /// <summary>
-    /// Gets or sets the CosmosPath instance used for path resolution.
-    /// </summary>
-    public CosmosPath? CosmosPath
-    {
-        get => _cosmosPath;
-        set => _cosmosPath = value;
-    }
 
     public ServerBridge(WebView2 webView, MainWindow mainWindow, Action<string, string> logToUI)
     {
@@ -74,7 +61,7 @@ public class ServerBridge
         }
         catch
         {
-            // WebView not ready yet â€” silently drop.
+            // WebView not ready yet â€?silently drop.
         }
     }
 
@@ -117,16 +104,8 @@ public class ServerBridge
                         HandleBrowsePythonPath();
                         break;
 
-                    case "validateCosmosPath":
-                        HandleValidateCosmosPath(root);
-                        break;
-
-                    case "browseCosmosPath":
-                        HandleBrowseCosmosPath();
-                        break;
-
                     default:
-                        // Unknown message type â€” ignore.
+                        // Unknown message type â€?ignore.
                         break;
                 }
             }
@@ -165,27 +144,6 @@ public class ServerBridge
         if (!root.TryGetProperty("settings", out var settingsProp))
             return;
 
-        // Update CosmosPath if cosmosBasePath setting changed
-        if (settingsProp.TryGetProperty("cosmosBasePath", out var basePathProp))
-        {
-            var basePath = basePathProp.GetString();
-            if (!string.IsNullOrWhiteSpace(basePath))
-            {
-                try
-                {
-                    _cosmosPath = new CosmosPath(basePath);
-                    _logToUI("Info", $"Cosmos base path set to: {basePath}");
-                }
-                catch (Exception ex)
-                {
-                    _logToUI("Error", $"Failed to set Cosmos base path: {ex.Message}");
-                }
-            }
-            else
-            {
-                _cosmosPath = null;
-            }
-        }
     }
 
     /// <summary>
@@ -334,119 +292,7 @@ public class ServerBridge
     }
 
     /// <summary>
-    /// Validate a Cosmos base path from the frontend.
-    /// Checks if the path is a valid directory and sends the result back.
-    /// </summary>
-    private void HandleValidateCosmosPath(JsonElement root)
-    {
-        if (!root.TryGetProperty("path", out var pathProp))
-            return;
-
-        var basePath = pathProp.GetString();
-        var isValid = false;
-        var errorMessage = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(basePath))
-        {
-            // Empty path is considered valid (user hasn't set one yet)
-            isValid = true;
-        }
-        else
-        {
-            try
-            {
-                var expandedPath = Environment.ExpandEnvironmentVariables(basePath);
-
-                if (Directory.Exists(expandedPath))
-                {
-                    isValid = true;
-                }
-                else
-                {
-                    errorMessage = "Directory does not exist.";
-                }
-            }
-            catch (Exception ex)
-            {
-                errorMessage = $"Invalid path: {ex.Message}";
-            }
-        }
-
-        var response = JsonSerializer.Serialize(new
-        {
-            type = "cosmosPathValidation",
-            path = basePath,
-            isValid = isValid,
-            error = errorMessage
-        });
-
-        if (_webView.InvokeRequired)
-        {
-            _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(response));
-        }
-        else
-        {
-            _webView.CoreWebView2.PostWebMessageAsJson(response);
-        }
-    }
-
-    /// <summary>
-    /// Open a native folder dialog for browsing Cosmos base path.
-    /// Sends the selected path back to the frontend.
-    /// </summary>
-    private void HandleBrowseCosmosPath()
-    {
-        string? selectedPath = null;
-
-        if (_webView.InvokeRequired)
-        {
-            _webView.Invoke(() =>
-            {
-                selectedPath = ShowFolderBrowserDialog();
-            });
-        }
-        else
-        {
-            selectedPath = ShowFolderBrowserDialog();
-        }
-
-        var response = JsonSerializer.Serialize(new
-        {
-            type = "cosmosPathBrowseResult",
-            selectedPath = selectedPath ?? string.Empty
-        });
-
-        if (_webView.InvokeRequired)
-        {
-            _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(response));
-        }
-        else
-        {
-            _webView.CoreWebView2.PostWebMessageAsJson(response);
-        }
-    }
-
-    /// <summary>
-    /// Show the native folder browser dialog for selecting a directory.
-    /// </summary>
-    private string? ShowFolderBrowserDialog()
-    {
-        using var dialog = new FolderBrowserDialog
-        {
-            Description = "Select Cosmos Base Path",
-            ShowNewFolderButton = true
-        };
-
-        if (dialog.ShowDialog() == DialogResult.OK)
-        {
-            return dialog.SelectedPath;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// IServer.Execute â€” receives a request JSON string from cm-script,
+    /// IServer.Execute â€?receives a request JSON string from cm-script,
     /// dispatches it to the frontend, and waits for the response.
     /// </summary>
     public string Execute(string requestJson)
@@ -508,7 +354,7 @@ public class ServerBridge
             }
             else
             {
-                // Timeout â€” return empty response.
+                // Timeout â€?return empty response.
                 _logToUI("Warning", $"Request '{request.request}' timed out after 30s");
                 var response = new Response(request.request, "");
                 return Server.CreateResponse(response);

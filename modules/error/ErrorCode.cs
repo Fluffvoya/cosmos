@@ -36,6 +36,4 @@ public enum ErrorCode
     PythonRuntimeError = 6004,
     ProcessCommunicationError = 6005,
 
-    // Path module (7xxx)
-    PathNullOrEmpty = 7001,
 }

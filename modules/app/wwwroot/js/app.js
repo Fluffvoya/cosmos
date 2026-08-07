@@ -88,12 +88,6 @@ const App = {
             case 'browseResult':
                 Settings.handleBrowseResult(data);
                 break;
-            case 'cosmosPathValidation':
-                Settings.handleCosmosBasePathValidationResponse(data);
-                break;
-            case 'cosmosPathBrowseResult':
-                Settings.handleCosmosBasePathBrowseResult(data);
-                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -154,7 +148,7 @@ const App = {
     handleLog(requestId, args) {
         const content = args && args.length > 0 ? args[0] : '';
 
-        // Client messages arrive via IServer.Execute — mark as user info.
+        // Client messages arrive via IServer.Execute �?mark as user info.
         LogStore.addEntry('Info', 'user', content);
 
         // Respond immediately
@@ -277,9 +271,9 @@ const App = {
     /**
      * Set up frameless window controls:
      * - Minimize / Maximize / Close buttons
-     * - Menu bar drag (mousedown → native ReleaseCapture+SendMessage)
-     * - Double-click on drag area → toggle maximize
-     * - Window state change listener → update maximize icon
+     * - Menu bar drag (mousedown �?native ReleaseCapture+SendMessage)
+     * - Double-click on drag area �?toggle maximize
+     * - Window state change listener �?update maximize icon
      */
     setupWindowControls() {
         const webview = window.chrome?.webview;
@@ -361,7 +355,7 @@ const App = {
             });
         }
 
-        // ── Window state change → update maximize icon ───────────
+        // ── Window state change �?update maximize icon ───────────
         if (webview) {
             webview.addEventListener('message', (event) => {
                 if (event.data?.type === 'windowStateChanged') {
