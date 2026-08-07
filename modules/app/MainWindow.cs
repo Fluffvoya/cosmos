@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -21,6 +22,7 @@ public class MainWindow : Form, IServer
     private WebView2 _webView = null!;
     private ServerBridge _serverBridge = null!;
     private cm_script.Script? _script;
+    private readonly SettingsManager _settingsManager = new();
 
     // ── Window styles ────────────────────────────────────────────
     private const int WS_THICKFRAME  = 0x00040000;
@@ -78,17 +80,23 @@ public class MainWindow : Form, IServer
     /// </summary>
     public static MainWindow? Instance { get; private set; }
 
+    /// <summary>
+    /// Gets the settings manager instance.
+    /// </summary>
+    public SettingsManager SettingsManager => _settingsManager;
+
     public MainWindow()
     {
         Instance = this;
         InitializeComponent();
+        _settingsManager.Load();
     }
 
     /// <summary>
     /// Set window styles during handle creation.
-    /// WS_THICKFRAME �?resize grips, DWM maximize/minimize animations.
-    /// WS_CAPTION    �?DWM animations, double-click-to-maximize.
-    /// WS_MAXIMIZEBOX �?enables maximize animation.
+    /// WS_THICKFRAME – resize grips, DWM maximize/minimize animations.
+    /// WS_CAPTION    – DWM animations, double-click-to-maximize.
+    /// WS_MAXIMIZEBOX – enables maximize animation.
     /// The visible border from WS_CAPTION is removed by handling WM_NCCALCSIZE
     /// to collapse the non-client area to zero.
     /// </summary>
@@ -137,26 +145,28 @@ public class MainWindow : Form, IServer
     }
 
     /// <summary>
-    /// Handle WM_NCCALCSIZE to collapse the non-client area (removes visible border)
-    /// and WM_NCHITTEST to provide resize grips at window edges.
+    /// Handle WM_NCCALCSIZE to remove the visible caption border
+    /// while keeping the DWM animations.
+    /// Also handle WM_NCHITTEST for resize borders.
     /// </summary>
     protected override void WndProc(ref Message m)
     {
-        // Collapse non-client area �?removes the visible border from WS_CAPTION
-        // while keeping WS_CAPTION in the style for DWM animations.
         if (m.Msg == WM_NCCALCSIZE && m.WParam != IntPtr.Zero)
         {
+            // Collapse the non-client area to zero
             m.Result = IntPtr.Zero;
             return;
         }
 
         if (m.Msg == WM_NCHITTEST)
         {
+            // Let the base handle it first
             base.WndProc(ref m);
-            if (m.Result.ToInt32() == HTCLIENT)
+
+            // If it's in the client area, check for resize borders
+            if (m.Result == (IntPtr)HTCLIENT)
             {
-                var screenPos = Cursor.Position;
-                var clientPos = PointToClient(screenPos);
+                var clientPos = PointToClient(new Point(m.LParam.ToInt32()));
                 int w = ClientSize.Width;
                 int h = ClientSize.Height;
                 int t = ResizeBorderThickness;
@@ -174,7 +184,7 @@ public class MainWindow : Form, IServer
                 else if (right) m.Result = (IntPtr)HTRIGHT;
                 else if (top) m.Result = (IntPtr)HTTOP;
                 else if (bottom) m.Result = (IntPtr)HTBOTTOM;
-                // Menu bar area stays HTCLIENT �?JS handles drag
+                // Menu bar area stays HTCLIENT – JS handles drag
             }
             return;
         }
@@ -216,6 +226,10 @@ public class MainWindow : Form, IServer
         _webView.CoreWebView2.NavigationCompleted += (_, _) =>
         {
             NotifyWindowState();
+            // Send loaded settings to frontend
+            SendSettingsToFrontend();
+            // Run startup script if configured
+            RunStartupScript();
         };
 
         // Notify frontend when window state changes (maximize/restore)
@@ -236,6 +250,167 @@ public class MainWindow : Form, IServer
             $"{{\"type\":\"windowStateChanged\",\"maximized\":{maximized.ToString().ToLower()}}}");
     }
 
+    /// <summary>
+    /// Send loaded settings to the frontend.
+    /// </summary>
+    private void SendSettingsToFrontend()
+    {
+        if (_webView?.CoreWebView2 == null) return;
+
+        var settings = _settingsManager.Current;
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            type = "settingsLoaded",
+            settings = new
+            {
+                tabPosition = settings.TabPosition,
+                tabStripWidth = settings.TabStripWidth,
+                pythonPath = settings.PythonPath,
+                startupScriptPath = settings.StartupScriptPath
+            }
+        });
+
+        _webView.CoreWebView2.PostWebMessageAsJson(json);
+    }
+
+    /// <summary>
+    /// Run the startup script if configured.
+    /// For .cms files, uses the cm-script interpreter.
+    /// For other script types, executes them as external processes.
+    /// </summary>
+    private void RunStartupScript()
+    {
+        var scriptPath = _settingsManager.Current.StartupScriptPath;
+        
+        // Skip if no startup script is configured
+        if (string.IsNullOrWhiteSpace(scriptPath))
+            return;
+
+        // Expand environment variables
+        scriptPath = Environment.ExpandEnvironmentVariables(scriptPath);
+
+        // Check if file exists
+        if (!File.Exists(scriptPath))
+        {
+            _serverBridge.SendInternalLog("Warning", $"Startup script not found: {scriptPath}");
+            return;
+        }
+
+        // Check file extension to determine how to run it
+        var extension = Path.GetExtension(scriptPath).ToLowerInvariant();
+
+        if (extension == ".cms")
+        {
+            // Run as cm-script
+            RunCmStartupScript(scriptPath);
+        }
+        else
+        {
+            // Run as external process
+            RunExternalStartupScript(scriptPath);
+        }
+    }
+
+    /// <summary>
+    /// Run a cm-script (.cms) file as startup script.
+    /// </summary>
+    private void RunCmStartupScript(string scriptPath)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                _serverBridge.SendInternalLog("Info", $"Running startup cm-script: {scriptPath}");
+
+                var source = await File.ReadAllTextAsync(scriptPath);
+                
+                if (_script != null)
+                {
+                    await _script.Run(source);
+                    _serverBridge.SendInternalLog("Info", "Startup cm-script completed successfully");
+                }
+                else
+                {
+                    _serverBridge.SendInternalLog("Error", "Script engine not initialized");
+                }
+            }
+            catch (Exception ex)
+            {
+                _serverBridge.SendInternalLog("Error", $"Failed to run startup cm-script: {ex.Message}");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Run an external script as startup script.
+    /// </summary>
+    private void RunExternalStartupScript(string scriptPath)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                _serverBridge.SendInternalLog("Info", $"Running startup script: {scriptPath}");
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = scriptPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                // If it's a Python script, use the configured Python path
+                if (scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase))
+                {
+                    var pythonPath = _settingsManager.Current.PythonPath;
+                    if (!string.IsNullOrWhiteSpace(pythonPath) && File.Exists(pythonPath))
+                    {
+                        startInfo.FileName = Environment.ExpandEnvironmentVariables(pythonPath);
+                        startInfo.Arguments = $"\"{scriptPath}\"";
+                    }
+                }
+
+                using var process = Process.Start(startInfo);
+                if (process != null)
+                {
+                    // Read output asynchronously
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
+
+                    await process.WaitForExitAsync();
+
+                    var output = await outputTask;
+                    var error = await errorTask;
+
+                    if (!string.IsNullOrWhiteSpace(output))
+                    {
+                        _serverBridge.SendInternalLog("Info", $"Startup script output: {output.Trim()}");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        _serverBridge.SendInternalLog("Warning", $"Startup script errors: {error.Trim()}");
+                    }
+
+                    if (process.ExitCode != 0)
+                    {
+                        _serverBridge.SendInternalLog("Warning", $"Startup script exited with code: {process.ExitCode}");
+                    }
+                    else
+                    {
+                        _serverBridge.SendInternalLog("Info", "Startup script completed successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _serverBridge.SendInternalLog("Error", $"Failed to run startup script: {ex.Message}");
+            }
+        });
+    }
+
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         // Plain string messages from window controls / drag handler
@@ -254,12 +429,12 @@ public class MainWindow : Form, IServer
                 Close();
                 return;
             case "window:drag":
-                // JS detected mousedown on the drag area �?start native drag
+                // JS detected mousedown on the drag area – start native drag
                 ReleaseCapture();
                 SendMessage(Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
                 return;
             case "window:dblclick-maximize":
-                // JS detected double-click on the drag area �?toggle maximize
+                // JS detected double-click on the drag area – toggle maximize
                 WindowState = WindowState == FormWindowState.Maximized
                     ? FormWindowState.Normal
                     : FormWindowState.Maximized;
@@ -277,7 +452,7 @@ public class MainWindow : Form, IServer
     }
 
     /// <summary>
-    /// IServer.Execute �?receives requests from cm-script and returns a response.
+    /// IServer.Execute – receives requests from cm-script and returns a response.
     /// </summary>
     public string Execute(string requests)
     {

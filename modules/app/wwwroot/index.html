@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -88,12 +88,13 @@
                 <div class="settings-sidebar">
                     <div class="settings-category active" data-category="general">General</div>
                     <div class="settings-category" data-category="scripting">Scripting</div>
+                    <div class="settings-category" data-category="startup">Startup</div>
                 </div>
                 <div class="settings-content">
                     <!-- General Settings -->
                     <div class="settings-section" id="settingsGeneral">
                         <h3>General</h3>
-<div class="setting-row">
+                        <div class="setting-row">
                             <label>Tab Position</label>
                             <select id="settingTabPosition">
                                 <option value="top">Top</option>
@@ -113,6 +114,22 @@
                                 <button class="btn btn-secondary" id="browsePythonPath">Browse...</button>
                             </div>
                             <div class="setting-error" id="pythonPathError" style="display: none;">
+                                File does not exist.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Startup Settings -->
+                    <div class="settings-section" id="settingsStartup" style="display: none;">
+                        <h3>Startup</h3>
+                        <div class="setting-row">
+                            <label>Startup Script Path</label>
+                            <div class="setting-input-group">
+                                <input type="text" id="settingStartupScriptPath" placeholder="Path to script to run on startup">
+                                <button class="btn btn-secondary" id="browseStartupScriptPath">Browse...</button>
+                            </div>
+                            <div class="setting-hint">Specify a cm-script (.cms) or other script file to run when the application starts.</div>
+                            <div class="setting-error" id="startupScriptPathError" style="display: none;">
                                 File does not exist.
                             </div>
                         </div>

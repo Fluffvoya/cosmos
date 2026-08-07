@@ -61,7 +61,7 @@ public class ServerBridge
         }
         catch
         {
-            // WebView not ready yet â€?silently drop.
+            // WebView not ready yet ??silently drop.
         }
     }
 
@@ -105,7 +105,7 @@ public class ServerBridge
                         break;
 
                     default:
-                        // Unknown message type â€?ignore.
+                        // Unknown message type ??ignore.
                         break;
                 }
             }
@@ -292,7 +292,7 @@ public class ServerBridge
     }
 
     /// <summary>
-    /// IServer.Execute â€?receives a request JSON string from cm-script,
+    /// IServer.Execute ??receives a request JSON string from cm-script,
     /// dispatches it to the frontend, and waits for the response.
     /// </summary>
     public string Execute(string requestJson)
@@ -307,7 +307,13 @@ public class ServerBridge
         // Intercept Log/Warning/Error requests and forward as internal logs.
         if (request.request is "Log" or "Warning" or "Error" && request.args.Count > 0)
         {
-            var level = request.request;
+            var level = request.request switch
+                {
+                    "Log" => "info",
+                    "Warning" => "warning",
+                    "Error" => "error",
+                    _ => request.request
+                };
             var message = request.args[0];
             _logToUI(level, message);
 
@@ -354,7 +360,7 @@ public class ServerBridge
             }
             else
             {
-                // Timeout â€?return empty response.
+                // Timeout ??return empty response.
                 _logToUI("Warning", $"Request '{request.request}' timed out after 30s");
                 var response = new Response(request.request, "");
                 return Server.CreateResponse(response);
