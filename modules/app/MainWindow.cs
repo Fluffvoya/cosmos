@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -24,12 +24,12 @@ public class MainWindow : Form, IServer
     private cm_script.Script? _script;
     private readonly SettingsManager _settingsManager = new();
 
-    // â”€â”€ Window styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ©¤©¤ Window styles ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
     private const int WS_THICKFRAME  = 0x00040000;
     private const int WS_CAPTION     = 0x00C00000;
     private const int WS_MAXIMIZEBOX = 0x00010000;
 
-    // â”€â”€ WndProc messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ©¤©¤ WndProc messages ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
     private const int WM_NCCALCSIZE = 0x0083;
     private const int WM_NCHITTEST  = 0x0084;
     private const int HTCLIENT = 1;
@@ -43,7 +43,7 @@ public class MainWindow : Form, IServer
     private const int HTBOTTOMLEFT = 16;
     private const int HTBOTTOMRIGHT = 17;
 
-    // â”€â”€ DWM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ©¤©¤ DWM ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
     [DllImport("dwmapi.dll")]
     private static extern int DwmExtendFrameIntoClientArea(
         IntPtr hwnd, ref MARGINS pMarInset);
@@ -57,7 +57,7 @@ public class MainWindow : Form, IServer
         public int cyBottomHeight;
     }
 
-    // â”€â”€ For JS-initiated drag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ©¤©¤ For JS-initiated drag ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
 
@@ -94,9 +94,9 @@ public class MainWindow : Form, IServer
 
     /// <summary>
     /// Set window styles during handle creation.
-    /// WS_THICKFRAME â€“ resize grips, DWM maximize/minimize animations.
-    /// WS_CAPTION    â€“ DWM animations, double-click-to-maximize.
-    /// WS_MAXIMIZEBOX â€“ enables maximize animation.
+    /// WS_THICKFRAME ¨C resize grips, DWM maximize/minimize animations.
+    /// WS_CAPTION    ¨C DWM animations, double-click-to-maximize.
+    /// WS_MAXIMIZEBOX ¨C enables maximize animation.
     /// The visible border from WS_CAPTION is removed by handling WM_NCCALCSIZE
     /// to collapse the non-client area to zero.
     /// </summary>
@@ -184,7 +184,7 @@ public class MainWindow : Form, IServer
                 else if (right) m.Result = (IntPtr)HTRIGHT;
                 else if (top) m.Result = (IntPtr)HTTOP;
                 else if (bottom) m.Result = (IntPtr)HTBOTTOM;
-                // Menu bar area stays HTCLIENT â€“ JS handles drag
+                // Menu bar area stays HTCLIENT ¨C JS handles drag
             }
             return;
         }
@@ -206,10 +206,10 @@ public class MainWindow : Form, IServer
             "app.local", wwwrootPath,
             CoreWebView2HostResourceAccessKind.Allow);
 
-        _serverBridge = new ServerBridge(_webView, this, (level, msg) =>
+        _serverBridge = new ServerBridge(_webView, this, (level, msg, sender) =>
         {
             // Forward internal logs from ServerBridge to the frontend Log panel.
-            _serverBridge.SendInternalLog(level, msg);
+            _serverBridge.SendInternalLog(level, msg, sender);
         });
         _script = new cm_script.Script(this, string.Empty);
 
@@ -292,7 +292,7 @@ public class MainWindow : Form, IServer
         // Check if file exists
         if (!File.Exists(scriptPath))
         {
-            _serverBridge.SendInternalLog("Warning", $"Startup script not found: {scriptPath}");
+            _serverBridge.SendInternalLog("Warning", $"Startup script not found: {scriptPath}", "program");
             return;
         }
 
@@ -320,23 +320,23 @@ public class MainWindow : Form, IServer
         {
             try
             {
-                _serverBridge.SendInternalLog("Info", $"Running startup cm-script: {scriptPath}");
+                _serverBridge.SendInternalLog("Info", $"Running startup cm-script: {scriptPath}", "program");
 
                 var source = await File.ReadAllTextAsync(scriptPath);
                 
                 if (_script != null)
                 {
                     await _script.Run(source);
-                    _serverBridge.SendInternalLog("Info", "Startup cm-script completed successfully");
+                    _serverBridge.SendInternalLog("Info", "Startup cm-script completed successfully", "program");
                 }
                 else
                 {
-                    _serverBridge.SendInternalLog("Error", "Script engine not initialized");
+                    _serverBridge.SendInternalLog("Error", "Script engine not initialized", "program");
                 }
             }
             catch (Exception ex)
             {
-                _serverBridge.SendInternalLog("Error", $"Failed to run startup cm-script: {ex.Message}");
+                _serverBridge.SendInternalLog("Error", $"Failed to run startup cm-script: {ex.Message}", "program");
             }
         });
     }
@@ -350,7 +350,7 @@ public class MainWindow : Form, IServer
         {
             try
             {
-                _serverBridge.SendInternalLog("Info", $"Running startup script: {scriptPath}");
+                _serverBridge.SendInternalLog("Info", $"Running startup script: {scriptPath}", "program");
 
                 var startInfo = new ProcessStartInfo
                 {
@@ -386,27 +386,27 @@ public class MainWindow : Form, IServer
 
                     if (!string.IsNullOrWhiteSpace(output))
                     {
-                        _serverBridge.SendInternalLog("Info", $"Startup script output: {output.Trim()}");
+                        _serverBridge.SendInternalLog("Info", $"Startup script output: {output.Trim()}", "program");
                     }
 
                     if (!string.IsNullOrWhiteSpace(error))
                     {
-                        _serverBridge.SendInternalLog("Warning", $"Startup script errors: {error.Trim()}");
+                        _serverBridge.SendInternalLog("Warning", $"Startup script errors: {error.Trim()}", "program");
                     }
 
                     if (process.ExitCode != 0)
                     {
-                        _serverBridge.SendInternalLog("Warning", $"Startup script exited with code: {process.ExitCode}");
+                        _serverBridge.SendInternalLog("Warning", $"Startup script exited with code: {process.ExitCode}", "program");
                     }
                     else
                     {
-                        _serverBridge.SendInternalLog("Info", "Startup script completed successfully");
+                        _serverBridge.SendInternalLog("Info", "Startup script completed successfully", "program");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _serverBridge.SendInternalLog("Error", $"Failed to run startup script: {ex.Message}");
+                _serverBridge.SendInternalLog("Error", $"Failed to run startup script: {ex.Message}", "program");
             }
         });
     }
@@ -429,12 +429,12 @@ public class MainWindow : Form, IServer
                 Close();
                 return;
             case "window:drag":
-                // JS detected mousedown on the drag area â€“ start native drag
+                // JS detected mousedown on the drag area ¨C start native drag
                 ReleaseCapture();
                 SendMessage(Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
                 return;
             case "window:dblclick-maximize":
-                // JS detected double-click on the drag area â€“ toggle maximize
+                // JS detected double-click on the drag area ¨C toggle maximize
                 WindowState = WindowState == FormWindowState.Maximized
                     ? FormWindowState.Normal
                     : FormWindowState.Maximized;
@@ -452,10 +452,12 @@ public class MainWindow : Form, IServer
     }
 
     /// <summary>
-    /// IServer.Execute â€“ receives requests from cm-script and returns a response.
+    /// IServer.Execute ¨C receives requests from cm-script and returns a response.
     /// </summary>
     public string Execute(string requests)
     {
         return _serverBridge.Execute(requests);
     }
 }
+
+

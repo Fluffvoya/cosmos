@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * app.js - Main application logic and WebView2 message bridge.
  * Handles communication between the frontend and C# backend.
  */
@@ -77,7 +77,7 @@ const App = {
                 this.handleBackendRequest(data);
                 break;
             case 'internalLog':
-                LogStore.addEntry(data.level || 'Error', 'program', data.message || '');
+                LogStore.addEntry(data.level || 'Error', data.sender || 'program', data.message || '');
                 break;
             case 'settingsLoaded':
                 Settings.loadSettings(data.settings);
@@ -154,7 +154,7 @@ const App = {
     handleLog(requestId, args) {
         const content = args && args.length > 0 ? args[0] : '';
 
-        // Client messages arrive via IServer.Execute â€“ mark as user info.
+        // Client messages arrive via IServer.Execute ¨C mark as user info.
         LogStore.addEntry('Info', 'user', content);
 
         // Respond immediately
@@ -326,7 +326,7 @@ const App = {
     setupWindowControls() {
         const webview = window.chrome?.webview;
 
-        // â”€â”€ Window control buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ©¤©¤ Window control buttons ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
         const btnMinimize = document.getElementById('btnMinimize');
         const btnMaximize = document.getElementById('btnMaximize');
         const btnClose = document.getElementById('btnClose');
@@ -349,7 +349,7 @@ const App = {
             });
         }
 
-        // â”€â”€ Drag area (menu bar spacer & menu bar background) â”€â”€â”€â”€
+        // ©¤©¤ Drag area (menu bar spacer & menu bar background) ©¤©¤©¤©¤
         // Delay native drag until mouse actually moves, so that
         // double-click (two rapid mousedowns without movement) fires
         // the native dblclick event and toggles maximize.
@@ -403,7 +403,7 @@ const App = {
             });
         }
 
-        // â”€â”€ Window state change â€“ update maximize icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ©¤©¤ Window state change ¨C update maximize icon ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
         if (webview) {
             webview.addEventListener('message', (event) => {
                 if (event.data?.type === 'windowStateChanged') {
