@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <!-- Suppress MSB3277: WebView2 NuGet package forces both WinForms and WPF assemblies
          for all .NET 5+ projects. The WPF DLL references WindowsBase 5.0.0.0 which conflicts
-         with .NET SDK's WindowsBase 4.0.0.0. This is harmless â€” only WinForms is used at runtime.
+         with .NET SDK's WindowsBase 4.0.0.0. This is harmless â€?only WinForms is used at runtime.
          The package does not offer a way to exclude WPF assemblies. -->
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
   </PropertyGroup>
@@ -24,7 +24,6 @@
     <ProjectReference Include="..\server\server.csproj" />
     <ProjectReference Include="..\client\client.csproj" />
     <ProjectReference Include="..\script-func\script-func.csproj" />
-    <ProjectReference Include="..\path\path.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,7 +7,6 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using bridge;
-using path;
 using script_func;
 
 namespace app;
@@ -75,12 +74,6 @@ public class MainWindow : Form, IServer
     public cm_script.Script? Script => _script;
 
     /// <summary>
-    /// Gets the CosmosPath resolver, configured via Settings.
-    /// Returns null if the user has not set a base path yet.
-    /// </summary>
-    public CosmosPath? CosmosPath => _serverBridge?.CosmosPath;
-
-    /// <summary>
     /// Singleton accessor for the MainWindow as IServer.
     /// </summary>
     public static MainWindow? Instance { get; private set; }
@@ -93,9 +86,9 @@ public class MainWindow : Form, IServer
 
     /// <summary>
     /// Set window styles during handle creation.
-    /// WS_THICKFRAME â€” resize grips, DWM maximize/minimize animations.
-    /// WS_CAPTION    â€” DWM animations, double-click-to-maximize.
-    /// WS_MAXIMIZEBOX â€” enables maximize animation.
+    /// WS_THICKFRAME â€?resize grips, DWM maximize/minimize animations.
+    /// WS_CAPTION    â€?DWM animations, double-click-to-maximize.
+    /// WS_MAXIMIZEBOX â€?enables maximize animation.
     /// The visible border from WS_CAPTION is removed by handling WM_NCCALCSIZE
     /// to collapse the non-client area to zero.
     /// </summary>
@@ -149,7 +142,7 @@ public class MainWindow : Form, IServer
     /// </summary>
     protected override void WndProc(ref Message m)
     {
-        // Collapse non-client area â€” removes the visible border from WS_CAPTION
+        // Collapse non-client area â€?removes the visible border from WS_CAPTION
         // while keeping WS_CAPTION in the style for DWM animations.
         if (m.Msg == WM_NCCALCSIZE && m.WParam != IntPtr.Zero)
         {
@@ -181,7 +174,7 @@ public class MainWindow : Form, IServer
                 else if (right) m.Result = (IntPtr)HTRIGHT;
                 else if (top) m.Result = (IntPtr)HTTOP;
                 else if (bottom) m.Result = (IntPtr)HTBOTTOM;
-                // Menu bar area stays HTCLIENT â€” JS handles drag
+                // Menu bar area stays HTCLIENT â€?JS handles drag
             }
             return;
         }
@@ -261,12 +254,12 @@ public class MainWindow : Form, IServer
                 Close();
                 return;
             case "window:drag":
-                // JS detected mousedown on the drag area â€” start native drag
+                // JS detected mousedown on the drag area â€?start native drag
                 ReleaseCapture();
                 SendMessage(Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
                 return;
             case "window:dblclick-maximize":
-                // JS detected double-click on the drag area â€” toggle maximize
+                // JS detected double-click on the drag area â€?toggle maximize
                 WindowState = WindowState == FormWindowState.Maximized
                     ? FormWindowState.Normal
                     : FormWindowState.Maximized;
@@ -284,7 +277,7 @@ public class MainWindow : Form, IServer
     }
 
     /// <summary>
-    /// IServer.Execute â€” receives requests from cm-script and returns a response.
+    /// IServer.Execute â€?receives requests from cm-script and returns a response.
     /// </summary>
     public string Execute(string requests)
     {
