@@ -1,4 +1,4 @@
-/**
+﻿/**
  * app.js - Main application logic and WebView2 message bridge.
  * Handles communication between the frontend and C# backend.
  */
@@ -88,6 +88,12 @@ const App = {
             case 'browseResult':
                 Settings.handleBrowseResult(data);
                 break;
+            case 'startupScriptPathValidation':
+                Settings.handleStartupScriptPathValidationResponse(data);
+                break;
+            case 'startupScriptBrowseResult':
+                Settings.handleStartupScriptBrowseResult(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -148,22 +154,20 @@ const App = {
     handleLog(requestId, args) {
         const content = args && args.length > 0 ? args[0] : '';
 
-        // Client messages arrive via IServer.Execute �?mark as user info.
+        // Client messages arrive via IServer.Execute – mark as user info.
         LogStore.addEntry('Info', 'user', content);
 
         // Respond immediately
-        this.sendResponse(requestId, 'logged');
+        this.sendResponse(requestId, '');
     },
 
     /**
-     * Handle GetUserName request - return the current Windows username.
+     * Handle GetUserName request.
      * @param {string} requestId - The request correlation ID.
      */
     handleGetUserName(requestId) {
-        // In WebView2, we can't directly get the Windows username from JS.
-        // The C# backend should handle this directly.
-        // For now, return a placeholder.
-        this.sendResponse(requestId, '');
+        // Return a placeholder username
+        this.sendResponse(requestId, 'User');
     },
 
     /**
@@ -182,7 +186,7 @@ const App = {
     },
 
     /**
-     * Send a settings change notification to the C# backend.
+     * Send settings changed notification to the backend.
      * @param {object} settings - The new settings.
      */
     sendSettingsChanged(settings) {
@@ -195,85 +199,129 @@ const App = {
     },
 
     /**
-     * Set up menu bar event handlers.
+     * Set up menu item handlers.
      */
     setupMenuHandlers() {
-        // Tabs > Welcome menu item
-        const newWelcomeItem = document.querySelector('[data-action="newWelcome"]');
-        if (newWelcomeItem) {
-            newWelcomeItem.addEventListener('click', (e) => {
+        // Menu items with dropdowns
+        const menuItems = document.querySelectorAll('.menu-item[data-menu]');
+        menuItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const menu = item.dataset.menu;
+                
+                // Handle Settings menu specially - open settings panel
+                if (menu === 'settings') {
+                    Settings.show();
+                    return;
+                }
+                
+                // Toggle dropdown for other items
+                const dropdown = item.querySelector('.menu-dropdown');
+                if (dropdown) {
+                    // Close other dropdowns
+                    document.querySelectorAll('.menu-dropdown').forEach(d => {
+                        if (d !== dropdown) d.style.display = 'none';
+                    });
+                    
+                    // Toggle this dropdown
+                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                }
+            });
+        });
+
+        // Menu dropdown items
+        const dropdownItems = document.querySelectorAll('.menu-dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', (e) => {
                 e.stopPropagation();
-                Tabs.addTab({
-                    title: 'Welcome',
-                    contentType: 'Document',
-                    icon: null
+                const action = item.dataset.action;
+                
+                // Close the dropdown
+                const dropdown = item.closest('.menu-dropdown');
+                if (dropdown) dropdown.style.display = 'none';
+                
+                // Handle the action
+                this.handleMenuAction(action);
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.menu-item')) {
+                document.querySelectorAll('.menu-dropdown').forEach(d => {
+                    d.style.display = 'none';
                 });
-            });
-        }
-
-        // Tabs > Log menu item
-        const newLogItem = document.querySelector('[data-action="newLog"]');
-        if (newLogItem) {
-            newLogItem.addEventListener('click', (e) => {
-                e.stopPropagation();
-                LogStore.openLogTab();
-            });
-        }
-
-        // Settings menu item
-        const settingsItem = document.querySelector('[data-menu="settings"]');
-        if (settingsItem) {
-            settingsItem.addEventListener('click', () => {
-                Settings.show();
-            });
-        }
-
-        // Help > About menu item
-        const aboutItem = document.querySelector('[data-action="about"]');
-        if (aboutItem) {
-            aboutItem.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.showAbout();
-            });
-        }
-    },
-
-    /**
-     * Set up modal dialog event handlers.
-     */
-    setupModalHandlers() {
-        const overlay = document.getElementById('modalOverlay');
-        const closeBtn = document.getElementById('modalClose');
-        const okBtn = document.getElementById('modalOk');
-
-        const closeModal = () => {
-            const requestId = overlay.dataset.requestId;
-            overlay.style.display = 'none';
-            delete overlay.dataset.requestId;
-
-            // Send response back to backend
-            if (requestId) {
-                this.sendResponse(requestId, 'closed');
-            }
-        };
-
-        closeBtn.addEventListener('click', closeModal);
-        okBtn.addEventListener('click', closeModal);
-
-        // Close on overlay click (outside the dialog)
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                closeModal();
             }
         });
     },
 
     /**
-     * Set up frameless window controls:
-     * - Minimize / Maximize / Close buttons
-     * - Menu bar drag (mousedown �?native ReleaseCapture+SendMessage)
-     * - Double-click on drag area �?toggle maximize
-     * - Window state change listener �?update maximize icon
+     * Handle a menu action.
+     * @param {string} action - The action to perform.
+     */
+    handleMenuAction(action) {
+        switch (action) {
+            case 'newWelcome':
+                Tabs.addTab({
+                    title: 'Welcome',
+                    contentType: 'Document',
+                    icon: null
+                });
+                break;
+            case 'newLog':
+                Tabs.addTab({
+                    title: 'Log',
+                    contentType: 'Log',
+                    icon: null
+                });
+                break;
+            case 'about':
+                this.showAbout();
+                break;
+        }
+    },
+
+    /**
+     * Set up modal dialog handlers.
+     */
+    setupModalHandlers() {
+        const modalClose = document.getElementById('modalClose');
+        const modalOk = document.getElementById('modalOk');
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        if (modalClose) {
+            modalClose.addEventListener('click', () => this.closeModal());
+        }
+
+        if (modalOk) {
+            modalOk.addEventListener('click', () => this.closeModal());
+        }
+
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    this.closeModal();
+                }
+            });
+        }
+    },
+
+    /**
+     * Close the modal dialog and send response if needed.
+     */
+    closeModal() {
+        const overlay = document.getElementById('modalOverlay');
+        overlay.style.display = 'none';
+
+        // Send response if this was a ShowWindow request
+        const requestId = overlay.dataset.requestId;
+        if (requestId) {
+            this.sendResponse(requestId, 'ok');
+            overlay.dataset.requestId = '';
+        }
+    },
+
+    /**
+     * Set up window control handlers.
      */
     setupWindowControls() {
         const webview = window.chrome?.webview;
@@ -355,7 +403,7 @@ const App = {
             });
         }
 
-        // ── Window state change �?update maximize icon ───────────
+        // ── Window state change – update maximize icon ───────────
         if (webview) {
             webview.addEventListener('message', (event) => {
                 if (event.data?.type === 'windowStateChanged') {

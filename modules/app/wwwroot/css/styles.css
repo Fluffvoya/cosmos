@@ -1,4 +1,4 @@
-/* ── Reset & Base ──────────────────────────────────────────────── */
+﻿/* ── Reset & Base ──────────────────────────────────────────────── */
 * {
     margin: 0;
     padding: 0;
@@ -875,4 +875,12 @@ body.tab-right .splitter.right-splitter {
 
 .log-row.log-level-info {
     border-left: 3px solid #0078d4;
+}
+
+/* Setting hint text */
+.setting-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-style: italic;
 }

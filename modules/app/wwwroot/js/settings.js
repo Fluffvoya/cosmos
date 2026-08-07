@@ -1,4 +1,4 @@
-/**
+﻿/**
  * settings.js - Settings panel logic.
  * Handles the settings overlay, category navigation, and settings persistence.
  */
@@ -9,6 +9,7 @@ const Settings = {
         tabPosition: 'top',
         tabStripWidth: 140,
         pythonPath: '',
+        startupScriptPath: '',
     },
 
     // Original settings (for change tracking)
@@ -22,6 +23,10 @@ const Settings = {
     pythonPathValidating: false,
     pythonPathError: '',
 
+    // Startup script path validation state
+    startupScriptPathValid: true,
+    startupScriptPathValidating: false,
+    startupScriptPathError: '',
 
     /**
      * Initialize the settings module.
@@ -68,11 +73,29 @@ const Settings = {
             });
         }
 
-        // Browse button (opens native file dialog via WebView2)
+        // Browse button for Python path (opens native file dialog via WebView2)
         const browseBtn = document.getElementById('browsePythonPath');
         if (browseBtn) {
             browseBtn.addEventListener('click', () => {
                 this.browsePythonPath();
+            });
+        }
+
+        // Startup script path change
+        const startupScriptPathInput = document.getElementById('settingStartupScriptPath');
+        if (startupScriptPathInput) {
+            startupScriptPathInput.addEventListener('input', () => {
+                this.settings.startupScriptPath = startupScriptPathInput.value;
+                this.validateStartupScriptPath();
+                this.updateChangeTracking();
+            });
+        }
+
+        // Browse button for startup script (opens native file dialog via WebView2)
+        const browseStartupScriptBtn = document.getElementById('browseStartupScriptPath');
+        if (browseStartupScriptBtn) {
+            browseStartupScriptBtn.addEventListener('click', () => {
+                this.browseStartupScriptPath();
             });
         }
 
@@ -150,6 +173,12 @@ const Settings = {
             tabPositionSelect.value = this.settings.tabPosition;
         }
 
+        // Startup script path
+        const startupScriptPathInput = document.getElementById("settingStartupScriptPath");
+        if (startupScriptPathInput) {
+            startupScriptPathInput.value = this.settings.startupScriptPath;
+        }
+
         // Python path
         const pythonPathInput = document.getElementById("settingPythonPath");
         if (pythonPathInput) {
@@ -159,7 +188,7 @@ const Settings = {
 
     /**
      * Select a settings category.
-     * @param {string} category - The category to select ('general' or 'scripting').
+     * @param {string} category - The category to select ('general', 'scripting', or 'startup').
      */
     selectCategory(category) {
         this.selectedCategory = category;
@@ -169,79 +198,215 @@ const Settings = {
             cat.classList.toggle('active', cat.dataset.category === category);
         });
 
-        // Show/hide sections
-        document.getElementById('settingsGeneral').style.display =
-            category === 'general' ? 'block' : 'none';
-        document.getElementById('settingsScripting').style.display =
-            category === 'scripting' ? 'block' : 'none';
+        // Show/hide sections based on category
+        const generalSection = document.getElementById('settingsGeneral');
+        const scriptingSection = document.getElementById('settingsScripting');
+        const startupSection = document.getElementById('settingsStartup');
+
+        if (generalSection) generalSection.style.display = category === 'general' ? '' : 'none';
+        if (scriptingSection) scriptingSection.style.display = category === 'scripting' ? '' : 'none';
+        if (startupSection) startupSection.style.display = category === 'startup' ? '' : 'none';
     },
 
     /**
-     * Validate the Python path by sending a request to the C# backend.
-     * Shows an error message if the path is not empty and doesn't exist.
+     * Validate the Python path.
+     * Sends the path to the backend for validation.
      */
     validatePythonPath() {
-        const pythonPath = this.settings.pythonPath;
-        const errorEl = document.getElementById('pythonPathError');
-        const inputEl = document.getElementById('settingPythonPath');
+        const path = this.settings.pythonPath;
 
-        // If empty, consider valid (not required)
-        if (!pythonPath || pythonPath.trim() === '') {
-            this.pythonPathValid = true;
-            this.pythonPathError = '';
-            if (errorEl) errorEl.style.display = 'none';
-            if (inputEl) inputEl.style.borderColor = '';
+        // Reset validation state
+        this.pythonPathValidating = true;
+        this.pythonPathValid = true;
+        this.pythonPathError = '';
+
+        // Update UI to show validating state
+        this.updatePythonPathValidationUI();
+
+        // Empty path is valid (user hasn't set one yet)
+        if (!path) {
+            this.pythonPathValidating = false;
+            this.updatePythonPathValidationUI();
             this.updateChangeTracking();
             return;
         }
 
-        // Mark as validating
-        this.pythonPathValidating = true;
-
-        // Send validation request to C# backend
+        // Send validation request to backend
         if (App.isWebViewReady) {
             window.chrome.webview.postMessage(JSON.stringify({
                 type: 'validatePythonPath',
-                path: pythonPath
+                path: path
             }));
+        } else {
+            // In standalone mode, just mark as valid
+            this.pythonPathValidating = false;
+            this.updatePythonPathValidationUI();
+            this.updateChangeTracking();
         }
     },
 
     /**
-     * Handle validation response from the C# backend.
-     * @param {object} data - The validation result with isValid and error properties.
+     * Update the UI based on Python path validation state.
      */
-    handleValidationResponse(data) {
-        this.pythonPathValidating = false;
-        this.pythonPathValid = data.isValid;
-        this.pythonPathError = data.error || '';
-
-        const errorEl = document.getElementById('pythonPathError');
+    updatePythonPathValidationUI() {
         const inputEl = document.getElementById('settingPythonPath');
+        const errorEl = document.getElementById('pythonPathError');
 
-        if (!data.isValid) {
-            // Show error with red text
+        if (this.pythonPathValidating) {
+            // Show loading state
+            if (inputEl) inputEl.style.borderColor = 'var(--accent-color)';
+            if (errorEl) {
+                errorEl.textContent = 'Validating...';
+                errorEl.style.display = 'block';
+            }
+        } else if (!this.pythonPathValid) {
+            // Show error state
+            if (inputEl) inputEl.style.borderColor = 'var(--error-color)';
             if (errorEl) {
                 errorEl.textContent = this.pythonPathError;
                 errorEl.style.display = 'block';
             }
-            if (inputEl) {
-                inputEl.style.borderColor = 'var(--danger-color)';
-            }
         } else {
-            // Clear error
-            if (errorEl) errorEl.style.display = 'none';
+            // Clear error state
             if (inputEl) inputEl.style.borderColor = '';
+            if (errorEl) errorEl.style.display = 'none';
         }
 
         this.updateChangeTracking();
     },
 
     /**
+     * Handle validation response from the backend.
+     * @param {object} data - Validation result with isValid and error properties.
+     */
+    handleValidationResponse(data) {
+        this.pythonPathValidating = false;
+        this.pythonPathValid = data.isValid;
+        this.pythonPathError = data.error || '';
+
+        this.updatePythonPathValidationUI();
+        this.updateChangeTracking();
+    },
+
+    /**
+     * Validate the startup script path.
+     * Sends the path to the backend for validation.
+     */
+    validateStartupScriptPath() {
+        const path = this.settings.startupScriptPath;
+
+        // Reset validation state
+        this.startupScriptPathValidating = true;
+        this.startupScriptPathValid = true;
+        this.startupScriptPathError = '';
+
+        // Update UI to show validating state
+        this.updateStartupScriptPathValidationUI();
+
+        // Empty path is valid (startup script is optional)
+        if (!path) {
+            this.startupScriptPathValidating = false;
+            this.updateStartupScriptPathValidationUI();
+            this.updateChangeTracking();
+            return;
+        }
+
+        // Send validation request to backend
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'validateStartupScriptPath',
+                path: path
+            }));
+        } else {
+            // In standalone mode, just mark as valid
+            this.startupScriptPathValidating = false;
+            this.updateStartupScriptPathValidationUI();
+            this.updateChangeTracking();
+        }
+    },
+
+    /**
+     * Update the UI based on startup script path validation state.
+     */
+    updateStartupScriptPathValidationUI() {
+        const inputEl = document.getElementById('settingStartupScriptPath');
+        const errorEl = document.getElementById('startupScriptPathError');
+
+        if (this.startupScriptPathValidating) {
+            // Show loading state
+            if (inputEl) inputEl.style.borderColor = 'var(--accent-color)';
+            if (errorEl) {
+                errorEl.textContent = 'Validating...';
+                errorEl.style.display = 'block';
+            }
+        } else if (!this.startupScriptPathValid) {
+            // Show error state
+            if (inputEl) inputEl.style.borderColor = 'var(--error-color)';
+            if (errorEl) {
+                errorEl.textContent = this.startupScriptPathError;
+                errorEl.style.display = 'block';
+            }
+        } else {
+            // Clear error state
+            if (inputEl) inputEl.style.borderColor = '';
+            if (errorEl) errorEl.style.display = 'none';
+        }
+
+        this.updateChangeTracking();
+    },
+
+    /**
+     * Handle validation response for startup script path from the backend.
+     * @param {object} data - Validation result with isValid and error properties.
+     */
+    handleStartupScriptPathValidationResponse(data) {
+        this.startupScriptPathValidating = false;
+        this.startupScriptPathValid = data.isValid;
+        this.startupScriptPathError = data.error || '';
+
+        this.updateStartupScriptPathValidationUI();
+        this.updateChangeTracking();
+    },
+
+    /**
+     * Browse for startup script path.
+     * Sends a request to the C# backend to open a native file dialog.
+     */
+    browseStartupScriptPath() {
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'browseStartupScriptPath'
+            }));
+        }
+    },
+
+    /**
+     * Handle browse result for startup script from the C# backend.
+     * @param {object} data - The browse result with selectedPath property.
+     */
+    handleStartupScriptBrowseResult(data) {
+        if (data.selectedPath) {
+            this.settings.startupScriptPath = data.selectedPath;
+
+            const startupScriptPathInput = document.getElementById('settingStartupScriptPath');
+            if (startupScriptPathInput) {
+                startupScriptPathInput.value = data.selectedPath;
+            }
+
+            this.validateStartupScriptPath();
+            this.updateChangeTracking();
+        }
+    },
+
+    /**
      * Update change tracking (enable/disable Apply/Save buttons).
      */
     updateChangeTracking() {
-        const hasChanges = this.originalSettings && (this.settings.tabPosition !== this.originalSettings.tabPosition || this.settings.pythonPath !== this.originalSettings.pythonPath);
+        const hasChanges = this.originalSettings && (
+            this.settings.tabPosition !== this.originalSettings.tabPosition || 
+            this.settings.pythonPath !== this.originalSettings.pythonPath ||
+            this.settings.startupScriptPath !== this.originalSettings.startupScriptPath
+        );
 
         const applyBtn = document.getElementById('settingsApply');
         const saveBtn = document.getElementById('settingsSave');
@@ -258,6 +423,12 @@ const Settings = {
         // Check if Python path is valid before saving
         if (!this.pythonPathValid) {
             this.showValidationWarning();
+            return false;
+        }
+
+        // Check if startup script path is valid before saving
+        if (!this.startupScriptPathValid) {
+            this.showStartupScriptValidationWarning();
             return false;
         }
 
@@ -291,6 +462,22 @@ const Settings = {
     },
 
     /**
+     * Show a warning dialog when startup script path validation fails on Apply/Save.
+     */
+    showStartupScriptValidationWarning() {
+        const overlay = document.getElementById('modalOverlay');
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalMessage');
+
+        title.textContent = 'Invalid Startup Script Path';
+        body.textContent = `The startup script path "${this.settings.startupScriptPath}" is not valid: ${this.startupScriptPathError}\n\nPlease enter a valid script path before saving.`;
+        overlay.style.display = 'flex';
+
+        // No requestId needed for this warning dialog
+        overlay.dataset.requestId = '';
+    },
+
+    /**
      * Save the current settings and close the panel.
      * Validates Python path before saving - blocks save if path is invalid.
      */
@@ -298,6 +485,12 @@ const Settings = {
         // Check if Python path is valid before saving
         if (!this.pythonPathValid) {
             this.showValidationWarning();
+            return;
+        }
+
+        // Check if startup script path is valid before saving
+        if (!this.startupScriptPathValid) {
+            this.showStartupScriptValidationWarning();
             return;
         }
 
@@ -381,8 +574,3 @@ const Settings = {
         }
     },
 };
-
-
-
-
-
