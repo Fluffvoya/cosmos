@@ -440,4 +440,117 @@ public class InterpreterTests
 
         Assert.Equal(0L, captured);
     }
+    // Multi-line execution
+
+    [Fact]
+    public async Task Interpret_MultipleCOSMOSStatements_AllExecuted()
+    {
+        var callOrder = new List<string>();
+        var router = new Router(_mockServer);
+        router.Add("log", new Function(
+            (IServer s, List<object> args) => callOrder.Add((string)args[0]),
+            new List<ArgumentType> { ArgumentType.String }));
+
+        var source = "COSMOS log \"first\"\nCOSMOS log \"second\"";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(2, callOrder.Count);
+        Assert.Equal("first", callOrder[0]);
+        Assert.Equal("second", callOrder[1]);
+    }
+
+    [Fact]
+    public async Task Interpret_ThreeCOSMOSStatements_AllExecuted()
+    {
+        long total = 0;
+        var router = new Router(_mockServer);
+        router.Add("add", new Function(
+            (IServer s, List<object> args) => total += (long)args[0],
+            new List<ArgumentType> { ArgumentType.Number }));
+
+        var source = "COSMOS add 10\nCOSMOS add 20\nCOSMOS add 30";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(60L, total);
+    }
+
+    [Fact]
+    public async Task Interpret_MultiLineWithBlankLines_AllExecuted()
+    {
+        var callCount = 0;
+        var router = new Router(_mockServer);
+        router.Add("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        var source = "COSMOS noop\n\n\nCOSMOS noop";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
+    public async Task Interpret_MultiLineWithCommentsBetween_AllExecuted()
+    {
+        var callOrder = new List<string>();
+        var router = new Router(_mockServer);
+        router.Add("log", new Function(
+            (IServer s, List<object> args) => callOrder.Add((string)args[0]),
+            new List<ArgumentType> { ArgumentType.String }));
+
+        var source = "COSMOS log \"a\"\n! comment\nCOSMOS log \"b\"";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(2, callOrder.Count);
+        Assert.Equal("a", callOrder[0]);
+        Assert.Equal("b", callOrder[1]);
+    }
+
+    [Fact]
+    public async Task Interpret_MultiLineWithDollarAlias_AllExecuted()
+    {
+        var callCount = 0;
+        var router = new Router(_mockServer);
+        router.Add("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        var source = "$ noop\n$ noop\n$ noop";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(3, callCount);
+    }
+
+    [Fact]
+    public async Task Interpret_MixedKeywordsAndAliases_AllExecuted()
+    {
+        var callCount = 0;
+        var router = new Router(_mockServer);
+        router.Add("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        var source = "COSMOS noop\n$ noop";
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        var interpreter = CreateInterpreter(tokens, router);
+        await interpreter.Interpret();
+
+        Assert.Equal(2, callCount);
+    }
 }

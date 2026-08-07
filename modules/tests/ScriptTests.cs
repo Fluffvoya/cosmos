@@ -467,4 +467,120 @@ public class ScriptTests
 
         Assert.True(called);
     }
+    // Multi-line execution in a single Run() call
+
+    [Fact]
+    public async Task RunScript_MultipleStatementsInOneRun_AllExecuted()
+    {
+        var callOrder = new List<string>();
+        var script = CreateScript();
+
+        script.AddFunction("log", new Function(
+            (IServer s, List<object> args) => callOrder.Add((string)args[0]),
+            new List<ArgumentType> { ArgumentType.String }));
+
+        await script.Run("COSMOS log \"first\"\nCOSMOS log \"second\"");
+
+        Assert.Equal(2, callOrder.Count);
+        Assert.Equal("first", callOrder[0]);
+        Assert.Equal("second", callOrder[1]);
+    }
+
+    [Fact]
+    public async Task RunScript_ThreeStatementsInOneRun_AllExecuted()
+    {
+        long total = 0;
+        var script = CreateScript();
+
+        script.AddFunction("add", new Function(
+            (IServer s, List<object> args) => total += (long)args[0],
+            new List<ArgumentType> { ArgumentType.Number }));
+
+        await script.Run("COSMOS add 10\nCOSMOS add 20\nCOSMOS add 30");
+
+        Assert.Equal(60L, total);
+    }
+
+    [Fact]
+    public async Task RunScript_MultiLineWithBlankLines_AllExecuted()
+    {
+        var callCount = 0;
+        var script = CreateScript();
+
+        script.AddFunction("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        await script.Run("COSMOS noop\n\n\nCOSMOS noop");
+
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
+    public async Task RunScript_MultiLineWithCommentsBetween_AllExecuted()
+    {
+        var callOrder = new List<string>();
+        var script = CreateScript();
+
+        script.AddFunction("log", new Function(
+            (IServer s, List<object> args) => callOrder.Add((string)args[0]),
+            new List<ArgumentType> { ArgumentType.String }));
+
+        await script.Run("COSMOS log \"a\"\n! comment\nCOSMOS log \"b\"");
+
+        Assert.Equal(2, callOrder.Count);
+        Assert.Equal("a", callOrder[0]);
+        Assert.Equal("b", callOrder[1]);
+    }
+
+    [Fact]
+    public async Task RunScript_MultiLineDollarAlias_AllExecuted()
+    {
+        var callCount = 0;
+        var script = CreateScript();
+
+        script.AddFunction("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        await script.Run("$ noop\n$ noop\n$ noop");
+
+        Assert.Equal(3, callCount);
+    }
+
+    [Fact]
+    public async Task RunScript_MultiLineMixedKeywordsAndAliases_AllExecuted()
+    {
+        var callCount = 0;
+        var script = CreateScript();
+
+        script.AddFunction("noop", new Function(
+            (IServer s, List<object> a) => callCount++,
+            new List<ArgumentType>()));
+
+        await script.Run("COSMOS noop\n$ noop");
+
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
+    public async Task RunScript_MultiLineStartupPattern_AllExecuted()
+    {
+        // Simulates the startup.cms pattern: COSMOS Warning "..." then COSMOS Error "..."
+        var callOrder = new List<string>();
+        var script = CreateScript();
+
+        script.AddFunction("Warning", new Function(
+            (IServer s, List<object> args) => callOrder.Add($"Warning:{(string)args[0]}"),
+            new List<ArgumentType> { ArgumentType.String }));
+        script.AddFunction("Error", new Function(
+            (IServer s, List<object> args) => callOrder.Add($"Error:{(string)args[0]}"),
+            new List<ArgumentType> { ArgumentType.String }));
+
+        await script.Run("COSMOS Warning \"Hello World!\"\nCOSMOS Error \"Hello World!\"");
+
+        Assert.Equal(2, callOrder.Count);
+        Assert.Equal("Warning:Hello World!", callOrder[0]);
+        Assert.Equal("Error:Hello World!", callOrder[1]);
+    }
 }

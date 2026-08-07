@@ -1,2 +1,5 @@
-COSMOS Warning "Hello World!"
-COSMOS Error "Hello World!"
+COSMOS Log "Hello World!"
+COSMOS Log "Hello World!"
+COSMOS Log "Hello World!"
+COSMOS Log "Hello World!"
+COSMOS Log "Hello World!"
