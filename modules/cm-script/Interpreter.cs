@@ -34,31 +34,48 @@ public class Interpreter
 
     public async Task Interpret()
     {
-        if (IsEnd()) return;
-
-        while (_curr.tokenType == TokenType.NewLine) Advance();
-
-        switch (_curr.tokenType)
+        while (!IsEnd())
         {
-            case TokenType.ST_Cosmos:
-                Advance();
-                Cosmos();
-                break;
-            case TokenType.ST_Exe:
-                Advance();
-                await Executable();
-                break;
-            case TokenType.ST_Python:
-                Advance();
-                await Python();
-                break;
+            // Skip blank lines between statements
+            while (_curr.tokenType == TokenType.NewLine) Advance();
 
-            case TokenType.Identifier:
+            if (IsEnd()) break;
 
-            case TokenType.EOF:
-            default: break;
+            switch (_curr.tokenType)
+            {
+                case TokenType.ST_Cosmos:
+                    Advance();
+                    Cosmos();
+                    break;
+                case TokenType.ST_Exe:
+                    Advance();
+                    await Executable();
+                    break;
+                case TokenType.ST_Python:
+                    Advance();
+                    await Python();
+                    break;
+
+                // Skip tokens until end of line for unrecognized input
+                case TokenType.Identifier:
+                default:
+                    SkipToNextLine();
+                    break;
+
+                case TokenType.EOF:
+                    break;
+            }
         }
+    }
 
+    /// <summary>
+    /// Advance past all tokens until a NewLine or EOF is reached.
+    /// Used to skip unrecognized tokens at the top level.
+    /// </summary>
+    private void SkipToNextLine()
+    {
+        while (_curr.tokenType != TokenType.NewLine && _curr.tokenType != TokenType.EOF)
+            Advance();
     }
 
     private void Cosmos()
