@@ -46,7 +46,6 @@ public class SettingsManager
         }
         catch (Exception ex)
         {
-            // Log error but continue with default settings
             Console.Error.WriteLine($"Failed to load settings: {ex.Message}");
         }
     }
@@ -75,7 +74,6 @@ public class SettingsManager
     /// <summary>
     /// Update settings and notify listeners.
     /// </summary>
-    /// <param name="newSettings">The new settings to apply.</param>
     public void Update(AppSettings newSettings)
     {
         Current = newSettings;
@@ -89,27 +87,52 @@ public class SettingsManager
 /// </summary>
 public class AppSettings
 {
-    /// <summary>
-    /// Position of the tab strip (top, left, right).
-    /// </summary>
     [JsonPropertyName("tabPosition")]
     public string TabPosition { get; set; } = "top";
 
-    /// <summary>
-    /// Width of the tab strip when positioned left or right.
-    /// </summary>
     [JsonPropertyName("tabStripWidth")]
     public int TabStripWidth { get; set; } = 140;
 
-    /// <summary>
-    /// Path to the Python interpreter.
-    /// </summary>
     [JsonPropertyName("pythonPath")]
     public string PythonPath { get; set; } = "";
 
-    /// <summary>
-    /// Path to a script to run on application startup.
-    /// </summary>
     [JsonPropertyName("startupScriptPath")]
     public string StartupScriptPath { get; set; } = "";
+
+    [JsonPropertyName("scheduledTasks")]
+    public List<ScheduledTask> ScheduledTasks { get; set; } = new();
+}
+
+/// <summary>
+/// Represents a scheduled task that runs a cm-script at a specified time.
+/// </summary>
+public class ScheduledTask
+{
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = true;
+
+    [JsonPropertyName("time")]
+    public string Time { get; set; } = "00:00";
+
+    [JsonPropertyName("scriptPath")]
+    public string ScriptPath { get; set; } = "";
+
+    /// <summary>
+    /// Recurrence type: "once", "daily", "weekly".
+    /// </summary>
+    [JsonPropertyName("recurrence")]
+    public string Recurrence { get; set; } = "daily";
+
+    /// <summary>
+    /// Days of week for weekly recurrence (0=Sun, 1=Mon, ..., 6=Sat).
+    /// Only used when Recurrence is "weekly".
+    /// </summary>
+    [JsonPropertyName("days")]
+    public List<int> Days { get; set; } = new();
+
+    /// <summary>
+    /// For "once" tasks, the date to run (yyyy-MM-dd). Empty means first matching time.
+    /// </summary>
+    [JsonPropertyName("onceDate")]
+    public string OnceDate { get; set; } = "";
 }

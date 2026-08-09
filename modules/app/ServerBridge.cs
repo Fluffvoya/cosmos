@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
 using bridge;
 using public_model;
@@ -21,6 +22,7 @@ public class ServerBridge
     private readonly WebView2 _webView;
     private readonly MainWindow _mainWindow;
     private readonly Action<string, string, string> _logToUI; // (level, message, sender)
+    private ScheduledTaskRunner? _taskRunner;
 
     // Pending requests waiting for frontend responses.
     // Key: request ID (correlation ID), Value: TaskCompletionSource for the response.
@@ -34,6 +36,14 @@ public class ServerBridge
         _webView = webView;
         _mainWindow = mainWindow;
         _logToUI = logToUI;
+    }
+
+    /// <summary>
+    /// Set the scheduled task runner instance.
+    /// </summary>
+    public void SetTaskRunner(ScheduledTaskRunner runner)
+    {
+        _taskRunner = runner;
     }
 
     /// <summary>
@@ -62,7 +72,7 @@ public class ServerBridge
         }
         catch
         {
-            // WebView not ready yet ??silently drop.
+            // WebView not ready yet -- silently drop.
         }
     }
 
@@ -105,8 +115,24 @@ public class ServerBridge
                         HandleBrowsePythonPath();
                         break;
 
+                    case "browseStartupScriptPath":
+                        HandleBrowseStartupScriptPath();
+                        break;
+
+                    case "schedulerTasksChanged":
+                        HandleSchedulerTasksChanged(root);
+                        break;
+
+                    case "schedulerRunTask":
+                        HandleSchedulerRunTask(root);
+                        break;
+
+                    case "schedulerBrowseScript":
+                        HandleSchedulerBrowseScript(root);
+                        break;
+
                     default:
-                        // Unknown message type ??ignore.
+                        // Unknown message type -- ignore.
                         break;
                 }
             }
@@ -145,6 +171,179 @@ public class ServerBridge
         if (!root.TryGetProperty("settings", out var settingsProp))
             return;
 
+        try
+        {
+            var newSettings = JsonSerializer.Deserialize<AppSettings>(settingsProp.GetRawText());
+            if (newSettings != null)
+            {
+                _mainWindow.SettingsManager.Update(newSettings);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save settings: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
+    /// Handle scheduled tasks changed from the Scheduler tab.
+    /// Persists the updated tasks list to settings.
+    /// </summary>
+    private void HandleSchedulerTasksChanged(JsonElement root)
+    {
+        if (!root.TryGetProperty("tasks", out var tasksProp))
+            return;
+
+        try
+        {
+            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText());
+            if (tasks != null)
+            {
+                _mainWindow.SettingsManager.Current.ScheduledTasks = tasks;
+                _mainWindow.SettingsManager.Save();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save scheduled tasks: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
+    /// Handle "Run Now" button from Scheduler tab.
+    /// Executes the script immediately and reports result back.
+    /// </summary>
+    private void HandleSchedulerRunTask(JsonElement root)
+    {
+        if (!root.TryGetProperty("index", out var indexProp) ||
+            !root.TryGetProperty("scriptPath", out var pathProp))
+            return;
+
+        var index = indexProp.GetInt32();
+        var scriptPath = pathProp.GetString() ?? "";
+
+        Task.Run(async () =>
+        {
+            var (success, message) = _taskRunner != null ? await _taskRunner.RunTaskNow(scriptPath) : (false, "Runner not initialized");
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "schedulerRunResult",
+                index = index,
+                success = success,
+                message = message
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        });
+    }
+
+    /// <summary>
+    /// Open a native file dialog for browsing script files.
+    /// Sends the selected path back to the Scheduler tab.
+    /// </summary>
+    private void HandleSchedulerBrowseScript(JsonElement root)
+    {
+        if (!root.TryGetProperty("index", out var indexProp))
+            return;
+
+        var index = indexProp.GetInt32();
+        string? selectedPath = null;
+
+        if (_webView.InvokeRequired)
+        {
+            _webView.Invoke(() => { selectedPath = ShowScriptFileDialog(); });
+        }
+        else
+        {
+            selectedPath = ShowScriptFileDialog();
+        }
+
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "schedulerBrowseResult",
+                index = index,
+                selectedPath = selectedPath
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    private string? ShowScriptFileDialog()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Select cm-script File",
+            Filter = "cm-script files (*.cms)|*.cms|All files (*.*)|*.*",
+            CheckFileExists = true
+        };
+
+        return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
+    }
+
+    /// <summary>
+    /// Open a native file dialog for browsing startup script paths.
+    /// Sends the selected path back to the frontend.
+    /// </summary>
+    private void HandleBrowseStartupScriptPath()
+    {
+        string? selectedPath = null;
+
+        if (_webView.InvokeRequired)
+        {
+            _webView.Invoke(() => { selectedPath = ShowStartupScriptFileDialog(); });
+        }
+        else
+        {
+            selectedPath = ShowStartupScriptFileDialog();
+        }
+
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "startupScriptBrowseResult",
+                selectedPath = selectedPath
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    private string? ShowStartupScriptFileDialog()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Select Startup Script",
+            Filter = "cm-script files (*.cms)|*.cms|Python scripts (*.py)|*.py|All files (*.*)|*.*",
+            CheckFileExists = true
+        };
+
+        return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
     }
 
     /// <summary>
@@ -153,79 +352,50 @@ public class ServerBridge
     /// </summary>
     private void HandleBrowsePythonPath()
     {
-        // Use WinForms OpenFileDialog since we're already in a WinForms app
         string? selectedPath = null;
 
         if (_webView.InvokeRequired)
         {
-            _webView.Invoke(() =>
+            _webView.Invoke(() => { selectedPath = ShowPythonFileDialog(); });
+        }
+        else
+        {
+            selectedPath = ShowPythonFileDialog();
+        }
+
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var responseJson = JsonSerializer.Serialize(new
             {
-                selectedPath = ShowOpenFileDialog();
+                type = "browseResult",
+                selectedPath = selectedPath
             });
-        }
-        else
-        {
-            selectedPath = ShowOpenFileDialog();
-        }
 
-        // Send result back to frontend
-        var response = JsonSerializer.Serialize(new
-        {
-            type = "browseResult",
-            selectedPath = selectedPath ?? string.Empty
-        });
-
-        if (_webView.InvokeRequired)
-        {
-            _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(response));
-        }
-        else
-        {
-            _webView.CoreWebView2.PostWebMessageAsJson(response);
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
         }
     }
 
-    /// <summary>
-    /// Show the native file dialog for selecting a Python executable.
-    /// </summary>
-    private string? ShowOpenFileDialog()
+    private string? ShowPythonFileDialog()
     {
         using var dialog = new OpenFileDialog
         {
             Title = "Select Python Interpreter",
-            Filter = "Python Executables (python*.exe)|python*.exe|All Executables (*.exe;*.bat;*.cmd)|*.exe;*.bat;*.cmd|All Files (*.*)|*.*",
-            FilterIndex = 1,
+            Filter = "Python (python.exe)|python.exe|All files (*.*)|*.*",
             CheckFileExists = true
         };
 
-        // Try to set initial directory to common Python install locations
-        var commonPaths = new[]
-        {
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Programs\Python",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Python",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Python"
-        };
-
-        foreach (var path in commonPaths)
-        {
-            if (Directory.Exists(path))
-            {
-                dialog.InitialDirectory = path;
-                break;
-            }
-        }
-
-        if (dialog.ShowDialog() == DialogResult.OK)
-        {
-            return dialog.FileName;
-        }
-
-        return null;
+        return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
     }
 
     /// <summary>
-    /// Validate a Python path from the frontend.
-    /// Checks if the path exists and sends the result back.
+    /// Validate a Python path and send result back to the frontend.
     /// </summary>
     private void HandleValidatePythonPath(JsonElement root)
     {
@@ -234,11 +404,11 @@ public class ServerBridge
 
         var pythonPath = pathProp.GetString();
         var isValid = false;
-        var errorMessage = string.Empty;
+        var errorMessage = "";
 
         if (string.IsNullOrWhiteSpace(pythonPath))
         {
-            // Empty path is considered valid (user hasn't set one yet)
+            // Empty path is considered valid (optional field)
             isValid = true;
         }
         else
@@ -293,7 +463,7 @@ public class ServerBridge
     }
 
     /// <summary>
-    /// IServer.Execute ??receives a request JSON string from cm-script,
+    /// IServer.Execute -- receives a request JSON string from cm-script,
     /// dispatches it to the frontend, and waits for the response.
     /// </summary>
     public string Execute(string requestJson)
@@ -361,7 +531,7 @@ public class ServerBridge
             }
             else
             {
-                // Timeout ??return empty response.
+                // Timeout -- return empty response.
                 _logToUI("Warning", $"Request '{request.request}' timed out after 30s", "program");
                 var response = new Response(request.request, "");
                 return Server.CreateResponse(response);
@@ -379,7 +549,5 @@ public class ServerBridge
         }
     }
 }
-
-
 
 
