@@ -884,3 +884,299 @@ body.tab-right .splitter.right-splitter {
     margin-top: 4px;
     font-style: italic;
 }
+
+/* ── Scheduler Panel ──────────────────────────────────────────────── */
+.scheduler-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    height: 100%;
+}
+
+.scheduler-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.scheduler-toolbar-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.scheduler-add-btn {
+    font-size: 13px;
+    padding: 5px 14px;
+}
+
+.scheduler-table-wrapper {
+    flex: 1;
+    overflow: auto;
+}
+
+.scheduler-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.scheduler-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.scheduler-table th {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.scheduler-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--bg-tertiary);
+    vertical-align: middle;
+}
+
+.scheduler-row:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.scheduler-row-disabled {
+    opacity: 0.5;
+}
+
+.scheduler-empty-row td {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 12px;
+    font-style: italic;
+}
+
+/* Column widths */
+.scheduler-col-enabled {
+    width: 70px;
+    text-align: center;
+}
+
+.scheduler-col-enabled input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.scheduler-col-time {
+    width: 120px;
+}
+
+.scheduler-col-script {
+    min-width: 200px;
+}
+
+.scheduler-col-status {
+    width: 140px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.scheduler-col-actions {
+    width: 170px;
+    white-space: nowrap;
+}
+
+.scheduler-time-input {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.scheduler-time-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.scheduler-script-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.scheduler-script-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-width: 0;
+}
+
+.scheduler-script-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.scheduler-browse-btn {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    min-width: 32px;
+}
+
+.scheduler-action-btn {
+    font-size: 12px;
+    padding: 3px 10px;
+    margin-right: 4px;
+}
+
+.scheduler-action-btn.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.scheduler-action-btn.btn-danger:hover {
+    background-color: #c50f1f;
+    border-color: #c50f1f;
+}
+
+/* Reusable button classes (shared with settings) */
+.btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background-color: var(--menu-hover-bg);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background-color: #c50f1f;
+    border-color: #c50f1f;
+}
+
+/* ── Scheduler: Recurrence Controls ──────────────────────────────── */
+.scheduler-col-recurrence {
+    min-width: 200px;
+    vertical-align: top;
+}
+
+.scheduler-recurrence-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scheduler-recurrence-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    width: fit-content;
+}
+
+.scheduler-recurrence-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.scheduler-days-container {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+}
+
+.scheduler-day-btn {
+    width: 34px;
+    height: 26px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+    padding: 0;
+}
+
+.scheduler-day-btn:hover {
+    background-color: var(--menu-hover-bg);
+}
+
+.scheduler-day-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.scheduler-once-container {
+    display: flex;
+    align-items: center;
+}
+
+.scheduler-once-date {
+    padding: 3px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.scheduler-once-date:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}

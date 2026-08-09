@@ -1,4 +1,4 @@
-/**
+﻿/**
  * tabs.js - Tab management and drag-and-drop reordering.
  * Uses mousedown/mousemove/mouseup for custom drag with visual ghost and drop indicator.
  */
@@ -172,65 +172,76 @@ const Tabs = {
 
         // Set up listeners only once
         if (!this._scrollShadowInitialized) {
-            this._scrollShadowInitialized = true;
-
             tabList.addEventListener('scroll', checkOverflow);
-
-            const resizeObserver = new ResizeObserver(checkOverflow);
-            resizeObserver.observe(tabList);
+            window.addEventListener('resize', checkOverflow);
+            this._scrollShadowInitialized = true;
         }
 
-        // Always re-check overflow state
+        // Always check immediately after render
         checkOverflow();
     },
 
     /**
-     * Create a tab element.
-     * @param {object} tab - The tab data.
-     * @param {number} index - The tab index.
+     * Create a single tab element.
+     * @param {object} tab - Tab data.
+     * @param {number} index - Tab index.
      * @returns {HTMLElement} The tab element.
      */
     createTabElement(tab, index) {
-        const div = document.createElement('div');
-        div.className = 'tab-item' + (tab.id === this.activeTabId ? ' active' : '');
-        div.dataset.tabId = tab.id;
-        div.dataset.index = index;
+        const tabElement = document.createElement('div');
+        tabElement.className = 'tab-item' + (tab.id === this.activeTabId ? ' active' : '');
+        tabElement.dataset.tabId = tab.id;
+        tabElement.dataset.index = index;
 
-        // Icon (if provided)
+        // Tab icon (if any)
         if (tab.icon) {
-            const icon = document.createElement('span');
-            icon.className = 'tab-icon';
-            icon.textContent = tab.icon;
-            div.appendChild(icon);
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'tab-icon';
+            iconSpan.textContent = tab.icon;
+            tabElement.appendChild(iconSpan);
         }
 
-        // Title
-        const title = document.createElement('span');
-        title.className = 'tab-title';
-        title.textContent = tab.title;
-        div.appendChild(title);
+        // Tab title
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'tab-title';
+        titleSpan.textContent = tab.title;
+        tabElement.appendChild(titleSpan);
 
         // Close button
         const closeBtn = document.createElement('button');
         closeBtn.className = 'tab-close';
-        closeBtn.textContent = '✕';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.title = 'Close';
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.closeTab(tab.id);
         });
-        div.appendChild(closeBtn);
+        tabElement.appendChild(closeBtn);
 
-        // Click to select (only when not dragging)
-        div.addEventListener('click', () => {
-            if (!this.dragState.isDragging) {
-                this.selectTab(tab.id);
-            }
+        // Click to select
+        tabElement.addEventListener('click', () => {
+            this.selectTab(tab.id);
         });
 
-        // Mousedown to start potential drag
-        div.addEventListener('mousedown', (e) => this.onMouseDown(e, index));
+        // Mouse down for drag
+        tabElement.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            if (e.target.classList.contains('tab-close')) return;
+            this.onMouseDown(e, index, tabElement);
+        });
 
-        return div;
+        return tabElement;
+    },
+
+    /**
+     * Escape HTML to prevent XSS.
+     * @param {string} str - The string to escape.
+     * @returns {string} The escaped string.
+     */
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     },
 
     /**
@@ -259,6 +270,9 @@ const Tabs = {
         } else if (activeTab.contentType === 'Log') {
             // Log panel is rendered by LogStore
             LogStore.renderLogPanel(panel);
+        } else if (activeTab.contentType === 'Scheduler') {
+            // Scheduler panel is rendered by Scheduler module
+            Scheduler.renderSchedulerPanel(panel);
         } else {
             panel.innerHTML = '<div class="tab-panel-welcome">' +
                 this.escapeHtml(activeTab.contentType) + '</div>';
@@ -268,20 +282,7 @@ const Tabs = {
     },
 
     /**
-     * Escape HTML special characters.
-     * @param {string} text - The text to escape.
-     * @returns {string} The escaped text.
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
-    // ── Drag & Drop ─────────────────────────────────────────────
-
-    /**
-     * Set up global mousemove and mouseup listeners for drag.
+     * Set up global drag listeners (mousemove, mouseup).
      */
     setupGlobalDragListeners() {
         document.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -289,23 +290,22 @@ const Tabs = {
     },
 
     /**
-     * Set up mouse wheel scrolling for horizontal tab list (top position).
-     * Converts vertical wheel events to horizontal scroll on the tab list.
+     * Set up horizontal wheel scrolling for top-position tabs.
      */
     setupWheelScroll() {
-        const tabStrip = document.querySelector('.tab-strip');
-        if (!tabStrip) return;
+        const wrapper = document.getElementById('tabListWrapper');
+        if (!wrapper) return;
 
-        tabStrip.addEventListener('wheel', (e) => {
-            // Only handle horizontal scrolling when tab strip is at top
-            if (tabStrip.classList.contains('left') || tabStrip.classList.contains('right')) {
-                return;
-            }
-
+        wrapper.addEventListener('wheel', (e) => {
             const tabList = document.getElementById('tabList');
             if (!tabList) return;
 
-            // Convert vertical scroll to horizontal
+            // Only handle horizontal scrolling when tabs are at top
+            const tabStrip = tabList.closest('.tab-strip');
+            if (tabStrip && (tabStrip.classList.contains('left') || tabStrip.classList.contains('right'))) {
+                return; // Let vertical scroll work naturally
+            }
+
             if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
                 e.preventDefault();
                 tabList.scrollLeft += e.deltaY;
@@ -314,115 +314,96 @@ const Tabs = {
     },
 
     /**
-     * Handle mousedown on a tab element.
-     * @param {MouseEvent} e - The mouse event.
-     * @param {number} index - The index of the clicked tab.
+     * Handle mousedown - start drag tracking.
      */
-    onMouseDown(e, index) {
-        // Only handle left mouse button
-        if (e.button !== 0) return;
-
-        // Don't start drag from close button
-        if (e.target.classList.contains('tab-close')) return;
-
-        this.dragState.startX = e.clientX;
-        this.dragState.startY = e.clientY;
-        this.dragState.dragIndex = index;
-        this.dragState.sourceElement = e.currentTarget;
-
-        // Prevent text selection during drag
-        e.preventDefault();
+    onMouseDown(e, index, tabElement) {
+        const ds = this.dragState;
+        ds.dragIndex = index;
+        ds.sourceElement = tabElement;
+        ds.startX = e.clientX;
+        ds.startY = e.clientY;
     },
 
     /**
-     * Handle mousemove - starts drag after threshold, updates ghost and indicator.
-     * @param {MouseEvent} e - The mouse event.
+     * Handle mousemove - update drag position or start drag.
      */
     onMouseMove(e) {
         const ds = this.dragState;
-
-        // No pending drag
         if (ds.dragIndex === -1) return;
 
-        // Check if threshold exceeded to start drag
         if (!ds.isDragging) {
+            // Check if we've exceeded the drag threshold
             const dx = e.clientX - ds.startX;
             const dy = e.clientY - ds.startY;
             if (Math.abs(dx) < this.dragThreshold && Math.abs(dy) < this.dragThreshold) {
                 return;
             }
-            this.startDrag(e);
+
+            // Start dragging
+            ds.isDragging = true;
+
+            // Create ghost element
+            if (ds.sourceElement) {
+                ds.sourceElement.classList.add('dragging');
+
+                const rect = ds.sourceElement.getBoundingClientRect();
+                ds.ghostOffsetX = ds.startX - rect.left;
+                ds.ghostOffsetY = ds.startY - rect.top;
+
+                ds.ghostElement = ds.sourceElement.cloneNode(true);
+                ds.ghostElement.className = 'tab-ghost';
+                ds.ghostElement.style.position = 'fixed';
+                ds.ghostElement.style.left = rect.left + 'px';
+                ds.ghostElement.style.top = rect.top + 'px';
+                ds.ghostElement.style.width = rect.width + 'px';
+                ds.ghostElement.style.pointerEvents = 'none';
+                ds.ghostElement.style.zIndex = '10000';
+                document.body.appendChild(ds.ghostElement);
+
+                // Create drop indicator
+                ds.dropIndicator = document.createElement('div');
+                ds.dropIndicator.className = 'tab-drop-indicator';
+                ds.dropIndicator.style.position = 'fixed';
+                ds.dropIndicator.style.pointerEvents = 'none';
+                ds.dropIndicator.style.zIndex = '10001';
+                ds.dropIndicator.style.display = 'none';
+                document.body.appendChild(ds.dropIndicator);
+            }
         }
 
-        // Update ghost position to follow cursor
-        if (ds.ghostElement) {
-            ds.ghostElement.style.left = (e.clientX - ds.ghostOffsetX) + 'px';
-            ds.ghostElement.style.top = (e.clientY - ds.ghostOffsetY) + 'px';
-        }
+        if (ds.isDragging) {
+            // Update ghost position
+            if (ds.ghostElement) {
+                ds.ghostElement.style.left = (e.clientX - ds.ghostOffsetX) + 'px';
+                ds.ghostElement.style.top = (e.clientY - ds.ghostOffsetY) + 'px';
+            }
 
-        // Update drop indicator position
-        this.updateDropIndicator(e.clientX, e.clientY);
+            // Update drop indicator
+            this.updateDropIndicator(e.clientX, e.clientY);
+        }
     },
 
     /**
-     * Start the drag operation - create ghost element and drop indicator.
-     * @param {MouseEvent} e - The mouse event that triggered the drag start.
-     */
-    startDrag(e) {
-        const ds = this.dragState;
-        ds.isDragging = true;
-
-        const sourceEl = ds.sourceElement;
-        const rect = sourceEl.getBoundingClientRect();
-
-        // Create ghost element (visual clone that follows the cursor)
-        const ghost = sourceEl.cloneNode(true);
-        ghost.className = 'tab-item tab-ghost';
-        ghost.style.width = rect.width + 'px';
-        document.body.appendChild(ghost);
-        ds.ghostElement = ghost;
-
-        // Offset so the ghost doesn't jump to cursor center
-        ds.ghostOffsetX = e.clientX - rect.left;
-        ds.ghostOffsetY = e.clientY - rect.top;
-        ghost.style.left = (e.clientX - ds.ghostOffsetX) + 'px';
-        ghost.style.top = (e.clientY - ds.ghostOffsetY) + 'px';
-
-        // Dim the source tab
-        sourceEl.classList.add('dragging');
-
-        // Create drop indicator element
-        const indicator = document.createElement('div');
-        const isSide = ds.sourceElement.closest('.tab-strip').classList.contains('left') ||
-                       ds.sourceElement.closest('.tab-strip').classList.contains('right');
-        indicator.className = 'drop-indicator ' + (isSide ? 'drop-indicator-horizontal' : 'drop-indicator-vertical');
-        indicator.style.display = 'none';
-        document.body.appendChild(indicator);
-        ds.dropIndicator = indicator;
-    },
-
-    /**
-     * Calculate insertion index and position the drop indicator.
-     * @param {number} clientX - Cursor X position.
-     * @param {number} clientY - Cursor Y position.
+     * Update the drop indicator position based on cursor location.
      */
     updateDropIndicator(clientX, clientY) {
         const ds = this.dragState;
         const tabList = document.getElementById('tabList');
-        const tabStrip = tabList.closest('.tab-strip');
-        const stripRect = tabStrip.getBoundingClientRect();
-        const isSide = tabStrip.classList.contains('left') || tabStrip.classList.contains('right');
+        if (!tabList || !ds.dropIndicator) return;
 
+        const stripRect = tabList.getBoundingClientRect();
+        const isSide = tabList.closest('.tab-strip')?.classList.contains('left') ||
+                       tabList.closest('.tab-strip')?.classList.contains('right');
+
+        // Check if cursor is outside the tab strip
         if (isSide) {
-            // Side tabs: hide indicator if cursor is outside the tab strip horizontally
-            if (clientX < stripRect.left || clientX > stripRect.right) {
+            if (clientY < stripRect.top || clientY > stripRect.bottom) {
                 ds.dropIndicator.style.display = 'none';
                 ds.insertIndex = -1;
                 return;
             }
         } else {
-            // Top tabs: hide indicator if cursor is outside the tab strip vertically
-            if (clientY < stripRect.top || clientY > stripRect.bottom) {
+            if (clientX < stripRect.left || clientX > stripRect.right) {
                 ds.dropIndicator.style.display = 'none';
                 ds.insertIndex = -1;
                 return;
