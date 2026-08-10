@@ -26,30 +26,30 @@ public class ScriptFuncTests
         }
     }
 
-    // ── ShowWindow ─────────────────────────────────────────────────
+    // ── ShowMessage ─────────────────────────────────────────────────
 
     [Fact]
-    public void ShowWindow_Function_Call_SendsCorrectRequest()
+    public void ShowMessage_Function_Call_SendsCorrectRequest()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowWindow;
+        var fn = ScriptFunctions.ShowMessage;
 
         fn.Call(server, new List<object> { "myWindow", "Hello!" });
 
         Assert.NotNull(server.LastRequestJson);
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
-        Assert.Equal("ShowWindow", request.request);
+        Assert.Equal("ShowMessage", request.request);
         Assert.Equal(2, request.args.Count);
         Assert.Equal("myWindow", request.args[0]);
         Assert.Equal("Hello!", request.args[1]);
     }
 
     [Fact]
-    public void ShowWindow_Function_WrongArgCount_Throws()
+    public void ShowMessage_Function_WrongArgCount_Throws()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowWindow;
+        var fn = ScriptFunctions.ShowMessage;
 
         var ex = Assert.Throws<RouterException>(() =>
             fn.Call(server, new List<object> { "onlyOne" }));
@@ -57,10 +57,10 @@ public class ScriptFuncTests
     }
 
     [Fact]
-    public void ShowWindow_Function_WrongArgType_Throws()
+    public void ShowMessage_Function_WrongArgType_Throws()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowWindow;
+        var fn = ScriptFunctions.ShowMessage;
 
         var ex = Assert.Throws<RouterException>(() =>
             fn.Call(server, new List<object> { 42L, "message" }));
@@ -223,18 +223,18 @@ public class ScriptFuncTests
         var server = new CapturingServer();
         var router = new Router(server);
 
-        router.Add("ShowWindow", ScriptFunctions.ShowWindow);
+        router.Add("ShowMessage", ScriptFunctions.ShowMessage);
         router.Add("Log", ScriptFunctions.Log);
         router.Add("Warning", ScriptFunctions.Warning);
         router.Add("Error", ScriptFunctions.Error);
         router.Add("GetUserName", ScriptFunctions.GetUserName);
 
-        router.Call("ShowWindow", new List<object> { "win1", "msg1" });
+        router.Call("ShowMessage", new List<object> { "win1", "msg1" });
 
         Assert.NotNull(server.LastRequestJson);
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
-        Assert.Equal("ShowWindow", request.request);
+        Assert.Equal("ShowMessage", request.request);
     }
 
     [Fact]

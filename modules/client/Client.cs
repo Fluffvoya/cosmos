@@ -20,8 +20,8 @@ public class Client
         return response?.message;
     }
 
-    public static Request ShowWindow(string name, string message)
-        => new Request("ShowWindow", name, message);
+    public static Request ShowMessage(string name, string message)
+        => new Request("ShowMessage", name, message);
 
     public static Request Log(string content)
         => new Request("Log", content);

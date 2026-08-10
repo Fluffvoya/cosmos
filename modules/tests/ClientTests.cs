@@ -26,9 +26,9 @@ public class ClientTests
     [Fact]
     public void Request_Constructor_SetsRequestAndArgs()
     {
-        var req = new Request("ShowWindow", "myWindow", "hello");
+        var req = new Request("ShowMessage", "myWindow", "hello");
 
-        Assert.Equal("ShowWindow", req.request);
+        Assert.Equal("ShowMessage", req.request);
         Assert.Equal(2, req.args.Count);
         Assert.Equal("myWindow", req.args[0]);
         Assert.Equal("hello", req.args[1]);
@@ -97,12 +97,12 @@ public class ClientTests
     [Fact]
     public void Request_Deserialize_ValidJson_ReturnsRequest()
     {
-        var json = """{"request":"ShowWindow","args":["win1","hello"]}""";
+        var json = """{"request":"ShowMessage","args":["win1","hello"]}""";
 
         var result = Request.Deserialize(json);
 
         Assert.NotNull(result);
-        Assert.Equal("ShowWindow", result.request);
+        Assert.Equal("ShowMessage", result.request);
         Assert.Equal(2, result.args.Count);
         Assert.Equal("win1", result.args[0]);
         Assert.Equal("hello", result.args[1]);
@@ -199,25 +199,25 @@ public class ClientTests
         Assert.Throws<PublicModelException>(() => Response.Deserialize("not valid json"));
     }
 
-    // ── Client.ShowWindow ──────────────────────────────────────────
+    // ── Client.ShowMessage ──────────────────────────────────────────
 
     [Fact]
-    public void Client_ShowWindow_ReturnsCorrectRequest()
+    public void Client_ShowMessage_ReturnsCorrectRequest()
     {
-        var req = Client.ShowWindow("myWindow", "Hello, World!");
+        var req = Client.ShowMessage("myWindow", "Hello, World!");
 
-        Assert.Equal("ShowWindow", req.request);
+        Assert.Equal("ShowMessage", req.request);
         Assert.Equal(2, req.args.Count);
         Assert.Equal("myWindow", req.args[0]);
         Assert.Equal("Hello, World!", req.args[1]);
     }
 
     [Fact]
-    public void Client_ShowWindow_EmptyArgs_ReturnsEmptyStrings()
+    public void Client_ShowMessage_EmptyArgs_ReturnsEmptyStrings()
     {
-        var req = Client.ShowWindow("", "");
+        var req = Client.ShowMessage("", "");
 
-        Assert.Equal("ShowWindow", req.request);
+        Assert.Equal("ShowMessage", req.request);
         Assert.Equal("", req.args[0]);
         Assert.Equal("", req.args[1]);
     }
@@ -348,12 +348,12 @@ public class ClientTests
     [Fact]
     public void Client_CreateRequest_ReturnsValidJson()
     {
-        var json = Client.CreateRequest(Client.ShowWindow("win1", "hello"));
+        var json = Client.CreateRequest(Client.ShowMessage("win1", "hello"));
 
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        Assert.Equal("ShowWindow", root.GetProperty("request").GetString());
+        Assert.Equal("ShowMessage", root.GetProperty("request").GetString());
         Assert.Equal("win1", root.GetProperty("args")[0].GetString());
     }
 
@@ -416,7 +416,7 @@ public class ClientTests
     [Fact]
     public void Request_SerializeAndDeserialize_RoundTrips()
     {
-        var original = new Request("ShowWindow", "win1", "hello");
+        var original = new Request("ShowMessage", "win1", "hello");
         var json = original.Serialize();
         var deserialized = Request.Deserialize(json);
 

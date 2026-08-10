@@ -1,5 +1,2 @@
 COSMOS Log "Hello World!"
-COSMOS Log "Hello World!"
-COSMOS Log "Hello World!"
-COSMOS Log "Hello World!"
-COSMOS Log "Hello World!"
+COSMOS ShowMessage "title" "Hello World!"
