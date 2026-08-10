@@ -247,7 +247,7 @@ public class MainWindow : Form, IServer
         _script = new cm_script.Script(this, pythonPath);
 
         // Register built-in script functions
-        _script.AddFunction("ShowWindow", ScriptFunctions.ShowWindow);
+        _script.AddFunction("ShowMessage", ScriptFunctions.ShowMessage);
         _script.AddFunction("Log", ScriptFunctions.Log);
         _script.AddFunction("Warning", ScriptFunctions.Warning);
         _script.AddFunction("Error", ScriptFunctions.Error);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
@@ -475,6 +475,26 @@ public class ServerBridge
         if (request == null)
             return string.Empty;
 
+        // Intercept ShowMessage requests and display a MessageBox.
+        if (request.request == "ShowMessage" && request.args.Count >= 2)
+        {
+            var title = request.args[0];
+            var message = request.args[1];
+            
+            // Show MessageBox on the UI thread
+            if (_mainWindow.InvokeRequired)
+            {
+                _mainWindow.Invoke(() => MessageBox.Show(_mainWindow, message, title, MessageBoxButtons.OK, MessageBoxIcon.Information));
+            }
+            else
+            {
+                MessageBox.Show(_mainWindow, message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            
+            var msgResponse = new Response(request.request, "");
+            return Server.CreateResponse(msgResponse);
+        }
+        
         // Intercept Log/Warning/Error requests and forward as internal logs.
         if (request.request is "Log" or "Warning" or "Error" && request.args.Count > 0)
         {
@@ -549,5 +569,7 @@ public class ServerBridge
         }
     }
 }
+
+
 
 

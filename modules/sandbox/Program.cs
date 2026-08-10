@@ -1,4 +1,4 @@
-﻿using bridge;
+using bridge;
 using client;
 using cm_script;
 using func_router;
@@ -20,7 +20,7 @@ public class Sandbox
         Function func = new Function((IServer server, List<object> args) =>
         {
             Console.WriteLine("func invoke");
-            var requests = Client.CreateRequest(Client.ShowWindow("a", "b"));
+            var requests = Client.CreateRequest(Client.ShowMessage("a", "b"));
             Console.WriteLine("server:" + server.Execute(requests));
         });
 

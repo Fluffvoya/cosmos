@@ -14,15 +14,15 @@ namespace script_func;
 public static class ScriptFunctions
 {
     /// <summary>
-    /// Shows a window with the given name and message.
+    /// Shows a message with the given name and message.
     /// Args: [String name, String message]
     /// </summary>
-    public static Function ShowWindow => new(
+    public static Function ShowMessage => new(
         (IServer server, List<object> args) =>
         {
             var name = (string)args[0];
             var message = (string)args[1];
-            var request = Client.CreateRequest(Client.ShowWindow(name, message));
+            var request = Client.CreateRequest(Client.ShowMessage(name, message));
             server.Execute(request);
         },
         ArgumentType.String, ArgumentType.String
@@ -82,3 +82,4 @@ public static class ScriptFunctions
         }
     );
 }
+
