@@ -1573,6 +1573,7 @@ body.tab-right .splitter.right-splitter {
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
     padding: 8px 0;
+    height: 100%;
 }
 
 .password-sidebar-empty {
@@ -1881,4 +1882,50 @@ body.tab-right .splitter.right-splitter {
     text-align: center;
     padding: 8px 20px;
     margin-top: 8px;
+}
+
+/* Confirm dialog */
+.password-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2500;
+}
+
+.password-confirm-dialog {
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    width: 380px;
+    max-width: 90vw;
+    overflow: hidden;
+}
+
+.password-confirm-body {
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.password-confirm-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+}
+
+.password-confirm-message {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.password-confirm-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 20px 20px;
 }

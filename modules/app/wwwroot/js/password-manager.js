@@ -709,18 +709,19 @@ const PasswordManager = {
         if (index < 0 || index >= this.platforms.length) return;
 
         const platform = this.platforms[index];
-        if (!confirm(`Delete platform "${platform.name}" and all its accounts?`)) {
-            return;
-        }
+        this.showConfirmDialog(
+            `Delete platform "${platform.name}" and all its accounts?`,
+            () => {
+                this.platforms.splice(index, 1);
 
-        this.platforms.splice(index, 1);
+                if (this.selectedPlatformIndex >= this.platforms.length) {
+                    this.selectedPlatformIndex = this.platforms.length - 1;
+                }
 
-        if (this.selectedPlatformIndex >= this.platforms.length) {
-            this.selectedPlatformIndex = this.platforms.length - 1;
-        }
-
-        this.saveData();
-        this.refreshMainScreen();
+                this.saveData();
+                this.refreshMainScreen();
+            }
+        );
     },
 
     /**
@@ -1013,13 +1014,14 @@ const PasswordManager = {
         if (!platform || accountIndex < 0 || accountIndex >= platform.accounts.length) return;
 
         const account = platform.accounts[accountIndex];
-        if (!confirm(`Delete account "${account.username}"?`)) {
-            return;
-        }
-
-        platform.accounts.splice(accountIndex, 1);
-        this.saveData();
-        this.refreshMainScreen();
+        this.showConfirmDialog(
+            `Delete account "${account.username}"?`,
+            () => {
+                platform.accounts.splice(accountIndex, 1);
+                this.saveData();
+                this.refreshMainScreen();
+            }
+        );
     },
 
     /**
@@ -1407,6 +1409,70 @@ const PasswordManager = {
      */
     closeDialog() {
         const overlay = document.getElementById('passwordDialogOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    },
+
+    /**
+     * Show a custom confirm dialog.
+     * @param {string} message - The confirmation message.
+     * @param {Function} onConfirm - Callback when user confirms.
+     */
+    showConfirmDialog(message, onConfirm) {
+        const overlay = document.createElement('div');
+        overlay.className = 'password-confirm-overlay';
+        overlay.id = 'passwordConfirmOverlay';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'password-confirm-dialog';
+
+        // Body with icon and message
+        const body = document.createElement('div');
+        body.className = 'password-confirm-body';
+
+        const icon = document.createElement('div');
+        icon.className = 'password-confirm-icon';
+        icon.textContent = '\u{26A0}';  // warning sign
+        body.appendChild(icon);
+
+        const msg = document.createElement('div');
+        msg.className = 'password-confirm-message';
+        msg.textContent = message;
+        body.appendChild(msg);
+
+        dialog.appendChild(body);
+
+        // Buttons
+        const buttons = document.createElement('div');
+        buttons.className = 'password-confirm-buttons';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', () => this.closeConfirmDialog());
+        buttons.appendChild(cancelBtn);
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn btn-danger';
+        confirmBtn.textContent = 'Delete';
+        confirmBtn.addEventListener('click', () => {
+            this.closeConfirmDialog();
+            if (onConfirm) onConfirm();
+        });
+        buttons.appendChild(confirmBtn);
+
+        dialog.appendChild(buttons);
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    },
+
+    /**
+     * Close the confirm dialog.
+     */
+    closeConfirmDialog() {
+        const overlay = document.getElementById('passwordConfirmOverlay');
         if (overlay) {
             overlay.remove();
         }
