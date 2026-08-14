@@ -131,6 +131,10 @@ public class ServerBridge
                         HandleBrowseStartupScriptPath();
                         break;
 
+                    case "validateStartupScriptPath":
+                        HandleValidateStartupScriptPath(root);
+                        break;
+
                     case "schedulerTasksChanged":
                         HandleSchedulerTasksChanged(root);
                         break;
@@ -400,11 +404,79 @@ public class ServerBridge
         using var dialog = new OpenFileDialog
         {
             Title = "Select Startup Script",
-            Filter = "cm-script files (*.cms)|*.cms|Python scripts (*.py)|*.py|All files (*.*)|*.*",
+            Filter = "cm-script files (*.cms)|*.cms|All files (*.*)|*.*",
             CheckFileExists = true
         };
 
         return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
+    }
+
+    /// <summary>
+    /// Validate a startup script path and send result back to the frontend.
+    /// Only .cms files are considered valid.
+    /// </summary>
+    private void HandleValidateStartupScriptPath(JsonElement root)
+    {
+        if (!root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var scriptPath = pathProp.GetString();
+        var isValid = false;
+        var errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(scriptPath))
+        {
+            // Empty path is considered valid (startup script is optional)
+            isValid = true;
+        }
+        else
+        {
+            try
+            {
+                // Expand environment variables like %USERPROFILE%
+                var expandedPath = Environment.ExpandEnvironmentVariables(scriptPath);
+
+                // Check if the file exists
+                if (File.Exists(expandedPath))
+                {
+                    // Only .cms files are valid for startup scripts
+                    if (expandedPath.EndsWith(".cms", StringComparison.OrdinalIgnoreCase))
+                    {
+                        isValid = true;
+                    }
+                    else
+                    {
+                        errorMessage = "Only .cms (cm-script) files are supported.";
+                    }
+                }
+                else
+                {
+                    errorMessage = "File does not exist.";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Invalid path: {ex.Message}";
+            }
+        }
+
+        // Send validation result back to the frontend
+        var response = JsonSerializer.Serialize(new
+        {
+            type = "startupScriptPathValidation",
+            path = scriptPath,
+            isValid = isValid,
+            error = errorMessage
+        });
+
+        if (_webView.InvokeRequired)
+        {
+            _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(response));
+        }
+        else
+        {
+            _webView.CoreWebView2.PostWebMessageAsJson(response);
+        }
     }
 
     /// <summary>

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -290,13 +289,12 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
 
             if (startupScript.EndsWith(".cms", StringComparison.OrdinalIgnoreCase))
             {
-                // cm-script file �C run through the script engine
+                // cm-script file - run through the script engine
                 RunStartupScript(startupScript);
             }
             else
             {
-                // External script �C run as process
-                RunExternalStartupScript(startupScript);
+                _serverBridge.SendInternalLog("Warning", $"Startup script must be a .cms file. Ignoring: {startupScript}", "program");
             }
         }
     }
@@ -329,75 +327,6 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         });
     }
 
-    /// <summary>
-    /// Run an external script as startup script.
-    /// </summary>
-    private void RunExternalStartupScript(string scriptPath)
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                _serverBridge.SendInternalLog("Info", $"Running startup script: {scriptPath}", "program");
-
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = scriptPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                // If it's a Python script, use the configured Python path
-                if (scriptPath.EndsWith(".py", StringComparison.OrdinalIgnoreCase))
-                {
-                    var pythonPath = _settingsManager.Current.PythonPath;
-                    if (!string.IsNullOrWhiteSpace(pythonPath) && File.Exists(pythonPath))
-                    {
-                        startInfo.FileName = Environment.ExpandEnvironmentVariables(pythonPath);
-                        startInfo.Arguments = $"\"{scriptPath}\"";
-                    }
-                }
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    // Read output asynchronously
-                    var outputTask = process.StandardOutput.ReadToEndAsync();
-                    var errorTask = process.StandardError.ReadToEndAsync();
-
-                    await process.WaitForExitAsync();
-
-                    var output = await outputTask;
-                    var error = await errorTask;
-
-                    if (!string.IsNullOrWhiteSpace(output))
-                    {
-                        _serverBridge.SendInternalLog("Info", $"Startup script output: {output.Trim()}", "program");
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(error))
-                    {
-                        _serverBridge.SendInternalLog("Warning", $"Startup script errors: {error.Trim()}", "program");
-                    }
-
-                    if (process.ExitCode != 0)
-                    {
-                        _serverBridge.SendInternalLog("Warning", $"Startup script exited with code: {process.ExitCode}", "program");
-                    }
-                    else
-                    {
-                        _serverBridge.SendInternalLog("Info", "Startup script completed successfully", "program");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _serverBridge.SendInternalLog("Error", $"Failed to run startup script: {ex.Message}", "program");
-            }
-        });
-    }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
