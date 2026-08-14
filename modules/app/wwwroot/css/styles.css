@@ -918,12 +918,18 @@ body.tab-right .splitter.right-splitter {
 }
 
 /* ── Script Terminal Panel ──────────────────────────────────── */
-.script-panel {
-    display: flex;
+/* Use higher specificity to override .tab-panel.active */
+.tab-panel.script-panel {
+    display: flex !important;
     flex-direction: column;
-    padding: 0;
+    padding: 0 !important;
     height: 100%;
     overflow: hidden;
+}
+
+/* Hide cached Script panel when switching to another tab */
+.tab-panel.script-panel.script-panel-hidden {
+    display: none !important;
 }
 
 .script-toolbar {
@@ -963,7 +969,7 @@ body.tab-right .splitter.right-splitter {
     cursor: text;
 }
 
-/* Terminal input area — pinned at the very bottom */
+/* Terminal input area — fixed at the very bottom of the window */
 .script-terminal-input-area {
     display: flex;
     align-items: center;
@@ -972,6 +978,9 @@ body.tab-right .splitter.right-splitter {
     background-color: var(--bg-secondary);
     flex-shrink: 0;
     gap: 8px;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 .script-terminal-prompt {

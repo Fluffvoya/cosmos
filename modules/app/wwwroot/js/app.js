@@ -84,6 +84,9 @@ const App = {
                 if (data.settings && Array.isArray(data.settings.scheduledTasks)) {
                     Scheduler.loadTasks(data.settings.scheduledTasks);
                 }
+                if (data.settings && Array.isArray(data.settings.scriptOutput)) {
+                    ScriptPlayground.loadFromSettings(data.settings.scriptOutput);
+                }
                 break;
             case 'pythonPathValidation':
                 Settings.handleValidationResponse(data);

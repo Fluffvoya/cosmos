@@ -2,7 +2,8 @@
  * script.js - Terminal-style cm-script runner tab.
  * Each line entered is executed individually, similar to a terminal REPL.
  * Script logs (Log/Warning/Error) are displayed inline in the output area.
- * Output is persisted to localStorage and restored across sessions.
+ * Output is persisted via the C# backend (settings file) and restored on startup.
+ * The Script panel is cached in the DOM so input survives tab switches.
  */
 
 const ScriptPlayground = {
@@ -13,8 +14,27 @@ const ScriptPlayground = {
     history: [],
     historyIndex: -1,
 
-    /** localStorage key for persisted output */
-    STORAGE_KEY: 'cosmos_script_output',
+    /** In-memory output entries (synced to backend) */
+    outputEntries: [],
+
+    /** Cached Script panel DOM element (preserved across tab switches) */
+    _cachedPanel: null,
+
+    /**
+     * Load persisted output from backend settings.
+     * Called on startup when settingsLoaded message arrives.
+     * @param {Array<{text: string, level: string}>} entries
+     */
+    loadFromSettings(entries) {
+        if (!Array.isArray(entries)) return;
+        this.outputEntries = entries;
+
+        // If the output area is already rendered, refresh it
+        const outputWrapper = document.getElementById('scriptOutput');
+        if (outputWrapper) {
+            this.renderEntries(outputWrapper);
+        }
+    },
 
     /**
      * Open (or focus) the Script tab.
@@ -71,7 +91,7 @@ const ScriptPlayground = {
         outputWrapper.id = 'scriptOutput';
         container.appendChild(outputWrapper);
 
-        // Input area at the bottom (fixed position via flex)
+        // Input area at the bottom (fixed position via CSS)
         const inputArea = document.createElement('div');
         inputArea.className = 'script-terminal-input-area';
 
@@ -92,11 +112,35 @@ const ScriptPlayground = {
 
         container.appendChild(inputArea);
 
-        // Restore persisted output
-        this.restoreOutput();
+        // Restore persisted output from memory (loaded from settings on startup)
+        this.renderEntries(outputWrapper);
 
         // Focus the input
         requestAnimationFrame(() => input.focus());
+    },
+
+    /**
+     * Render all entries into the output wrapper.
+     * @param {HTMLElement} outputWrapper
+     */
+    renderEntries(outputWrapper) {
+        outputWrapper.innerHTML = '';
+        for (const entry of this.outputEntries) {
+            const line = document.createElement('div');
+            line.className = 'script-output-line' + (entry.level ? ' script-output-' + entry.level : '');
+
+            const span = document.createElement('span');
+            span.className = 'script-output-text';
+            span.textContent = entry.text;
+            line.appendChild(span);
+
+            outputWrapper.appendChild(line);
+        }
+
+        // Scroll to bottom after rendering
+        requestAnimationFrame(() => {
+            outputWrapper.scrollTop = outputWrapper.scrollHeight;
+        });
     },
 
     /**
@@ -239,65 +283,26 @@ const ScriptPlayground = {
             outputWrapper.scrollTop = outputWrapper.scrollHeight;
         });
 
-        // Persist to localStorage
+        // Persist to backend
         this.persistLine(text, level);
     },
 
     /**
-     * Persist a single output line to localStorage.
+     * Persist a single output line to the backend settings file.
      * @param {string} text
      * @param {string} level
      */
     persistLine(text, level) {
-        try {
-            const entries = this.loadEntries();
-            entries.push({ text, level, time: Date.now() });
-            // Keep at most 500 lines to avoid unbounded growth
-            while (entries.length > 500) entries.shift();
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(entries));
-        } catch {
-            // localStorage full or unavailable — silently ignore
+        this.outputEntries.push({ text, level });
+        // Keep at most 500 lines to avoid unbounded growth
+        while (this.outputEntries.length > 500) this.outputEntries.shift();
+
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'scriptOutputChanged',
+                output: this.outputEntries
+            }));
         }
-    },
-
-    /**
-     * Load persisted entries from localStorage.
-     * @returns {Array<{text: string, level: string, time: number}>}
-     */
-    loadEntries() {
-        try {
-            const raw = localStorage.getItem(this.STORAGE_KEY);
-            if (!raw) return [];
-            return JSON.parse(raw);
-        } catch {
-            return [];
-        }
-    },
-
-    /**
-     * Restore persisted output into the output area.
-     */
-    restoreOutput() {
-        const entries = this.loadEntries();
-        const outputWrapper = document.getElementById('scriptOutput');
-        if (!outputWrapper || entries.length === 0) return;
-
-        for (const entry of entries) {
-            const line = document.createElement('div');
-            line.className = 'script-output-line' + (entry.level ? ' script-output-' + entry.level : '');
-
-            const span = document.createElement('span');
-            span.className = 'script-output-text';
-            span.textContent = entry.text;
-            line.appendChild(span);
-
-            outputWrapper.appendChild(line);
-        }
-
-        // Scroll to bottom after restoring
-        requestAnimationFrame(() => {
-            outputWrapper.scrollTop = outputWrapper.scrollHeight;
-        });
     },
 
     /**
@@ -307,10 +312,14 @@ const ScriptPlayground = {
         const outputWrapper = document.getElementById('scriptOutput');
         if (!outputWrapper) return;
         outputWrapper.innerHTML = '';
+        this.outputEntries = [];
 
-        // Also clear persisted data
-        try {
-            localStorage.removeItem(this.STORAGE_KEY);
-        } catch { }
+        // Clear persisted data in backend
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'scriptOutputChanged',
+                output: []
+            }));
+        }
     }
 };

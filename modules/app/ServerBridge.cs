@@ -135,6 +135,10 @@ public class ServerBridge
                         HandleSchedulerTasksChanged(root);
                         break;
 
+                    case "scriptOutputChanged":
+                        HandleScriptOutputChanged(root);
+                        break;
+
                     case "schedulerRunTask":
                         HandleSchedulerRunTask(root);
                         break;
@@ -222,6 +226,27 @@ public class ServerBridge
         catch (Exception ex)
         {
             _logToUI("Error", $"Failed to save scheduled tasks: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
+    /// Handle script output changes from the Script Terminal.
+    /// Persists the updated output to settings.
+    /// </summary>
+    private void HandleScriptOutputChanged(JsonElement root)
+    {
+        if (!root.TryGetProperty("output", out var outputProp))
+            return;
+
+        try
+        {
+            var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText());
+            _mainWindow.SettingsManager.Current.ScriptOutput = output;
+            _mainWindow.SettingsManager.Save();
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save script output: {ex.Message}", "program");
         }
     }
 
@@ -531,8 +556,8 @@ public class ServerBridge
             return Server.CreateResponse(msgResponse);
         }
         
-        // Intercept Log/Warning/Error requests and forward as internal logs.
-        // Also post a scriptLog message so the Script Terminal can display it inline.
+        // Intercept Log/Warning/Error requests from script execution.
+        // Only forward to the Script Terminal — do NOT route to the Log tab.
         if (request.request is "Log" or "Warning" or "Error" && request.args.Count > 0)
         {
             var level = request.request switch
@@ -543,9 +568,8 @@ public class ServerBridge
                     _ => request.request
                 };
             var message = request.args[0];
-            _logToUI(level, message, "script");
 
-            // Forward to the Script Terminal as well
+            // Forward to the Script Terminal only
             try
             {
                 var scriptLogJson = JsonSerializer.Serialize(new
