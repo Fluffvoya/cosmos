@@ -17,7 +17,7 @@ Represents a function call request from a cm-script to the host.
 ```csharp
 public class Request
 {
-    public string request { get; set; }       // Function name (e.g. "ShowMessage")
+    public string request { get; set; }       // Function name (e.g. "MessageBox")
     public List<string> args { get; set; }    // String arguments
 }
 ```

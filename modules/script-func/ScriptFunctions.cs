@@ -14,15 +14,15 @@ namespace script_func;
 public static class ScriptFunctions
 {
     /// <summary>
-    /// Shows a message with the given name and message.
+    /// Shows a native message box with the given title and message.
     /// Args: [String name, String message]
     /// </summary>
-    public static Function ShowMessage => new(
+    public static Function MessageBox => new(
         (IServer server, List<object> args) =>
         {
             var name = (string)args[0];
             var message = (string)args[1];
-            var request = Client.CreateRequest(Client.ShowMessage(name, message));
+            var request = Client.CreateRequest(Client.MessageBox(name, message));
             server.Execute(request);
         },
         ArgumentType.String, ArgumentType.String
@@ -70,16 +70,26 @@ public static class ScriptFunctions
         ArgumentType.String
     );
 
+    private static readonly HashSet<string> ValidMessageBarLevels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "info", "warning", "error"
+    };
+
     /// <summary>
     /// Shows a non-blocking message bar (toast) with the given message and level.
-    /// Args: [String message, String level] — level is "info", "warning", or "error".
+    /// Args: [String message, String level] — level must be "info", "warning", or "error".
+    /// Throws ScriptFuncException if level is not a recognized value.
     /// </summary>
-    public static Function ShowMessageBar => new(
+    public static Function MessageBar => new(
         (IServer server, List<object> args) =>
         {
             var message = (string)args[0];
             var level = (string)args[1];
-            var request = Client.CreateRequest(Client.ShowMessageBar(message, level));
+            if (!ValidMessageBarLevels.Contains(level))
+                throw new ScriptFuncException(
+                    ErrorCode.InvalidArgumentValue,
+                    $"Invalid message bar level '{level}'. Expected one of: info, warning, error.");
+            var request = Client.CreateRequest(Client.MessageBar(message, level));
             server.Execute(request);
         },
         ArgumentType.String, ArgumentType.String

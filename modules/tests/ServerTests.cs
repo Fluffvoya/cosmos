@@ -49,12 +49,12 @@ public class ServerTests
     [Fact]
     public void Server_GetRequest_ValidJson_ReturnsRequest()
     {
-        var json = """{"request":"ShowMessage","args":["win1","hello"]}""";
+        var json = """{"request":"MessageBox","args":["win1","hello"]}""";
 
         var result = Server.GetRequest(json);
 
         Assert.NotNull(result);
-        Assert.Equal("ShowMessage", result.request);
+        Assert.Equal("MessageBox", result.request);
         Assert.Equal(2, result.args.Count);
     }
 
@@ -71,11 +71,11 @@ public class ServerTests
     [Fact]
     public void Server_GetRequestName_ValidJson_ReturnsName()
     {
-        var json = """{"request":"ShowMessage","args":["win1"]}""";
+        var json = """{"request":"MessageBox","args":["win1"]}""";
 
         var result = Server.GetRequestName(json);
 
-        Assert.Equal("ShowMessage", result);
+        Assert.Equal("MessageBox", result);
     }
 
     // ── Round-trip: CreateResponse -> Client.GetResponse ────────────
@@ -98,12 +98,12 @@ public class ServerTests
     [Fact]
     public void Client_CreateRequest_ServerGetRequest_RoundTrips()
     {
-        var json = Client.CreateRequest(Client.ShowMessage("win1", "hello"));
+        var json = Client.CreateRequest(Client.MessageBox("win1", "hello"));
 
         var result = Server.GetRequest(json);
 
         Assert.NotNull(result);
-        Assert.Equal("ShowMessage", result.request);
+        Assert.Equal("MessageBox", result.request);
         Assert.Equal(2, result.args.Count);
         Assert.Equal("win1", result.args[0]);
         Assert.Equal("hello", result.args[1]);

@@ -1,2 +1,2 @@
 COSMOS Log "Hello World!"
-COSMOS ShowMessage "title" "Hello World!"
+COSMOS MessageBox "title" "Hello World!"

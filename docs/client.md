@@ -15,9 +15,9 @@ Factory methods for creating `Request` objects and parsing `Response` objects. U
 Static factory class. All methods are static.
 
 ```csharp
-public static Request ShowMessage(string name, string message)
+public static Request MessageBox(string name, string message)
 ```
-Creates a `ShowMessage` request with two arguments: the window name and the message text.
+Creates a `MessageBox` request with two arguments: the window name and the message text.
 
 ```csharp
 public static Request Log(string content)
@@ -33,6 +33,11 @@ Creates a `Warning` request with one argument.
 public static Request Error(string content)
 ```
 Creates an `Error` request with one argument.
+
+```csharp
+public static Request MessageBar(string message, string level)
+```
+Creates a `MessageBar` request with two arguments: the message text and the level (`"info"`, `"warning"`, or `"error"`).
 
 ```csharp
 public static Request GetUserName()

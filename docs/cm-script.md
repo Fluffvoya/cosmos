@@ -24,7 +24,7 @@ Comments start with `!` and extend to end of line. Blank lines are ignored.
 ```
 ! Startup script
 COSMOS Log "Hello from Cosmos"
-$ ShowMessage "Main" "Ready"
+$ MessageBox "Main" "Ready"
 EXE mytool.exe --verbose
 PYTHON helper.py
 ```

@@ -39,7 +39,7 @@ Single quotes are **not** string delimiters — `'hello'` is treated as an ident
 ! A startup script
 COSMOS Log "System ready"
 $ Warning "Check configuration"
-COSMOS ShowMessage "Main" "All services started"
+COSMOS MessageBox "Main" "All services started"
 
 ! Launch external tools
 EXE mytool.exe --verbose
