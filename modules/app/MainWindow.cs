@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using app_bridge;
+using app_scheduler;
+using app_settings;
 using bridge;
 using script_func;
 
@@ -15,9 +18,10 @@ namespace app;
 /// <summary>
 /// Main application window hosting a WebView2 control.
 /// Implements IServer so cm-script can call back into the UI.
+/// Implements IWebViewBridge and IScriptRunner for decoupled module communication.
 /// Frameless window with DWM-extended frame for native animations.
 /// </summary>
-public class MainWindow : Form, IServer
+public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
 {
     private WebView2 _webView = null!;
     private ServerBridge _serverBridge = null!;
@@ -25,12 +29,12 @@ public class MainWindow : Form, IServer
     private ScheduledTaskRunner? _taskRunner;
     private readonly SettingsManager _settingsManager = new();
 
-    // ©¤©¤ Window styles ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // ï¿½ï¿½ï¿½ï¿½ Window styles ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     private const int WS_THICKFRAME  = 0x00040000;
     private const int WS_CAPTION     = 0x00C00000;
     private const int WS_MAXIMIZEBOX = 0x00010000;
 
-    // ©¤©¤ WndProc messages ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // ï¿½ï¿½ï¿½ï¿½ WndProc messages ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     private const int WM_NCCALCSIZE = 0x0083;
     private const int WM_NCHITTEST  = 0x0084;
     private const int HTCLIENT = 1;
@@ -44,7 +48,7 @@ public class MainWindow : Form, IServer
     private const int HTBOTTOMLEFT = 16;
     private const int HTBOTTOMRIGHT = 17;
 
-    // ©¤©¤ DWM ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // ï¿½ï¿½ï¿½ï¿½ DWM ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     [DllImport("dwmapi.dll")]
     private static extern int DwmExtendFrameIntoClientArea(
         IntPtr hwnd, ref MARGINS pMarInset);
@@ -58,7 +62,7 @@ public class MainWindow : Form, IServer
         public int cyBottomHeight;
     }
 
-    // ©¤©¤ For JS-initiated drag ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // ï¿½ï¿½ï¿½ï¿½ For JS-initiated drag ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
 
@@ -261,21 +265,7 @@ public class MainWindow : Form, IServer
                 _serverBridge.SendInternalLog(level, message, sender);
             }
             catch { }
-        }, (json) =>
-        {
-            try
-            {
-                if (_webView.InvokeRequired)
-                {
-                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(json));
-                }
-                else
-                {
-                    _webView.CoreWebView2.PostWebMessageAsJson(json);
-                }
-            }
-            catch { }
-        });
+        }, scriptRunner: this, webViewBridge: this);
         _taskRunner.Start();
 
         // Pass the runner to the bridge
@@ -289,12 +279,12 @@ public class MainWindow : Form, IServer
 
             if (startupScript.EndsWith(".cms", StringComparison.OrdinalIgnoreCase))
             {
-                // cm-script file ¨C run through the script engine
+                // cm-script file ï¿½C run through the script engine
                 RunStartupScript(startupScript);
             }
             else
             {
-                // External script ¨C run as process
+                // External script ï¿½C run as process
                 RunExternalStartupScript(startupScript);
             }
         }
@@ -445,6 +435,36 @@ public class MainWindow : Form, IServer
     public string Execute(string requests)
     {
         return _serverBridge.Execute(requests);
+    }
+
+    /// <summary>
+    /// IWebViewBridge.PostMessage - post a JSON message to the WebView2 frontend.
+    /// </summary>
+    public void PostMessage(string json)
+    {
+        try
+        {
+            if (_webView.InvokeRequired)
+            {
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(json));
+            }
+            else
+            {
+                _webView.CoreWebView2.PostWebMessageAsJson(json);
+            }
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// IScriptRunner.Run - run a cm-script source string.
+    /// </summary>
+    public async Task Run(string source)
+    {
+        if (_script == null)
+            throw new InvalidOperationException("Script engine not initialized");
+
+        await _script.Run(source);
     }
 }
 

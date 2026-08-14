@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
-namespace app;
+namespace app_settings;
 
 /// <summary>
 /// Manages application settings persistence.
@@ -80,59 +79,4 @@ public class SettingsManager
         Save();
         SettingsChanged?.Invoke(Current);
     }
-}
-
-/// <summary>
-/// Application settings model.
-/// </summary>
-public class AppSettings
-{
-    [JsonPropertyName("tabPosition")]
-    public string TabPosition { get; set; } = "top";
-
-    [JsonPropertyName("tabStripWidth")]
-    public int TabStripWidth { get; set; } = 140;
-
-    [JsonPropertyName("pythonPath")]
-    public string PythonPath { get; set; } = "";
-
-    [JsonPropertyName("startupScriptPath")]
-    public string StartupScriptPath { get; set; } = "";
-
-    [JsonPropertyName("scheduledTasks")]
-    public List<ScheduledTask> ScheduledTasks { get; set; } = new();
-}
-
-/// <summary>
-/// Represents a scheduled task that runs a cm-script at a specified time.
-/// </summary>
-public class ScheduledTask
-{
-    [JsonPropertyName("enabled")]
-    public bool Enabled { get; set; } = true;
-
-    [JsonPropertyName("time")]
-    public string Time { get; set; } = "00:00";
-
-    [JsonPropertyName("scriptPath")]
-    public string ScriptPath { get; set; } = "";
-
-    /// <summary>
-    /// Recurrence type: "once", "daily", "weekly".
-    /// </summary>
-    [JsonPropertyName("recurrence")]
-    public string Recurrence { get; set; } = "daily";
-
-    /// <summary>
-    /// Days of week for weekly recurrence (0=Sun, 1=Mon, ..., 6=Sat).
-    /// Only used when Recurrence is "weekly".
-    /// </summary>
-    [JsonPropertyName("days")]
-    public List<int> Days { get; set; } = new();
-
-    /// <summary>
-    /// For "once" tasks, the date to run (yyyy-MM-dd). Empty means first matching time.
-    /// </summary>
-    [JsonPropertyName("onceDate")]
-    public string OnceDate { get; set; } = "";
 }

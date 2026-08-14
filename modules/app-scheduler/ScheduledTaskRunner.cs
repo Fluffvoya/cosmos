@@ -1,9 +1,12 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using app_bridge;
+using app_settings;
 
-namespace app;
+namespace app_scheduler;
 
 /// <summary>
 /// Background service that periodically checks scheduled tasks and runs them
@@ -13,15 +16,21 @@ public class ScheduledTaskRunner : IDisposable
 {
     private readonly SettingsManager _settingsManager;
     private readonly Action<string, string, string> _logToUI;
-    private readonly Action<string>? _postMessage;
-    private System.Threading.Timer? _timer;
+    private readonly IScriptRunner? _scriptRunner;
+    private readonly IWebViewBridge? _webViewBridge;
+    private Timer? _timer;
     private string? _lastRunMinute;
 
-    public ScheduledTaskRunner(SettingsManager settingsManager, Action<string, string, string> logToUI, Action<string>? postMessage = null)
+    public ScheduledTaskRunner(
+        SettingsManager settingsManager,
+        Action<string, string, string> logToUI,
+        IScriptRunner? scriptRunner = null,
+        IWebViewBridge? webViewBridge = null)
     {
         _settingsManager = settingsManager;
         _logToUI = logToUI;
-        _postMessage = postMessage;
+        _scriptRunner = scriptRunner;
+        _webViewBridge = webViewBridge;
     }
 
     /// <summary>
@@ -31,7 +40,7 @@ public class ScheduledTaskRunner : IDisposable
     public void Start()
     {
         _logToUI("Info", "Scheduled task runner started", "program");
-        _timer = new System.Threading.Timer(CheckTasks, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        _timer = new Timer(CheckTasks, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
         _logToUI("Info", $"Checking {_settingsManager.Current.ScheduledTasks.Count} scheduled tasks", "program");
     }
 
@@ -137,7 +146,7 @@ public class ScheduledTaskRunner : IDisposable
     }
 
     /// <summary>
-    /// Execute a single scheduled task by running its cm-script through Script.Run().
+    /// Execute a single scheduled task by running its cm-script through the script runner.
     /// </summary>
     private async void ExecuteTask(int index, ScheduledTask task)
     {
@@ -155,8 +164,7 @@ public class ScheduledTaskRunner : IDisposable
             return;
         }
 
-        var script = MainWindow.Instance?.Script;
-        if (script == null)
+        if (_scriptRunner == null)
         {
             _logToUI("Error", "Script engine not initialized", "program");
             return;
@@ -167,7 +175,7 @@ public class ScheduledTaskRunner : IDisposable
         try
         {
             var source = await File.ReadAllTextAsync(scriptPath);
-            await script.Run(source);
+            await _scriptRunner.Run(source);
             _logToUI("Info", $"Scheduled task #{index + 1} completed", "program");
 
             // If this was a "once" task, disable it after successful execution
@@ -180,13 +188,13 @@ public class ScheduledTaskRunner : IDisposable
                 // Notify frontend to refresh
                 try
                 {
-                    var json = System.Text.Json.JsonSerializer.Serialize(new
+                    var json = JsonSerializer.Serialize(new
                     {
                         type = "schedulerTaskAutoDisabled",
                         index = index,
                         enabled = false
                     });
-                    _postMessage?.Invoke(json);
+                    _webViewBridge?.PostMessage(json);
                 }
                 catch { }
             }
@@ -209,15 +217,14 @@ public class ScheduledTaskRunner : IDisposable
         if (!File.Exists(expanded))
             return (false, $"File not found: {expanded}");
 
-        var script = MainWindow.Instance?.Script;
-        if (script == null)
+        if (_scriptRunner == null)
             return (false, "Script engine not initialized");
 
         try
         {
             _logToUI("Info", $"Manual run: {expanded}", "program");
             var source = await File.ReadAllTextAsync(scriptPath);
-            await script.Run(source);
+            await _scriptRunner.Run(source);
             return (true, "OK");
         }
         catch (Exception ex)
