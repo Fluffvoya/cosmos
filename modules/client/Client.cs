@@ -34,4 +34,7 @@ public class Client
 
     public static Request GetUserName()
         => new Request("GetUserName");
+
+    public static Request ShowMessageBar(string message, string level)
+        => new Request("ShowMessageBar", message, level);
 }

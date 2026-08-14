@@ -255,6 +255,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         _script.AddFunction("Warning", ScriptFunctions.Warning);
         _script.AddFunction("Error", ScriptFunctions.Error);
         _script.AddFunction("GetUserName", ScriptFunctions.GetUserName);
+        _script.AddFunction("ShowMessageBar", ScriptFunctions.ShowMessageBar);
 
         // Start the scheduled task runner
         _taskRunner = new ScheduledTaskRunner(_settingsManager, (level, message, sender) =>

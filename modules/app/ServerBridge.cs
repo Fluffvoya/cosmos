@@ -662,6 +662,32 @@ public class ServerBridge
             return Server.CreateResponse(logResponse);
         }
 
+        // Intercept ShowMessageBar — forward to frontend as a non-blocking toast.
+        if (request.request == "ShowMessageBar" && request.args.Count >= 2)
+        {
+            var message = request.args[0];
+            var level = request.args[1];
+
+            try
+            {
+                var toastJson = JsonSerializer.Serialize(new
+                {
+                    type = "messageBar",
+                    message = message,
+                    level = level
+                });
+
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(toastJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(toastJson);
+            }
+            catch { }
+
+            var barResponse = new Response(request.request, "");
+            return Server.CreateResponse(barResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 

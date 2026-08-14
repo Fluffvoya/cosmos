@@ -71,6 +71,21 @@ public static class ScriptFunctions
     );
 
     /// <summary>
+    /// Shows a non-blocking message bar (toast) with the given message and level.
+    /// Args: [String message, String level] — level is "info", "warning", or "error".
+    /// </summary>
+    public static Function ShowMessageBar => new(
+        (IServer server, List<object> args) =>
+        {
+            var message = (string)args[0];
+            var level = (string)args[1];
+            var request = Client.CreateRequest(Client.ShowMessageBar(message, level));
+            server.Execute(request);
+        },
+        ArgumentType.String, ArgumentType.String
+    );
+
+    /// <summary>
     /// Gets the current user name from the main program.
     /// Args: none
     /// </summary>
