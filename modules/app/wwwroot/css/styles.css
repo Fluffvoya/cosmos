@@ -917,12 +917,19 @@ body.tab-right .splitter.right-splitter {
     font-size: 13px;
 }
 
-/* ── Script Playground Panel ──────────────────────────────────── */
-.script-panel {
-    display: flex;
+/* ── Script Terminal Panel ──────────────────────────────────── */
+/* Use higher specificity to override .tab-panel.active */
+.tab-panel.script-panel {
+    display: flex !important;
     flex-direction: column;
-    padding: 0;
+    padding: 0 !important;
     height: 100%;
+    overflow: hidden;
+}
+
+/* Hide cached Script panel when switching to another tab */
+.tab-panel.script-panel.script-panel-hidden {
+    display: none !important;
 }
 
 .script-toolbar {
@@ -942,142 +949,88 @@ body.tab-right .splitter.right-splitter {
     flex: 1;
 }
 
-.script-run-btn {
-    font-size: 13px;
-    padding: 5px 14px;
-}
-
 .script-clear-btn {
     font-size: 13px;
     padding: 5px 14px;
 }
 
-.script-split-layout {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.script-editor-section,
-.script-output-section {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    flex: 1;
-}
-
-.script-editor-section {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.script-section-label {
-    padding: 6px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-}
-
-.script-editor-wrapper {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.script-editor {
-    width: 100%;
-    height: 100%;
-    padding: 12px 16px;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text-primary);
-    background-color: var(--bg-primary);
-    tab-size: 4;
-}
-
-.script-editor::placeholder {
-    color: var(--text-muted);
-    opacity: 0.7;
-}
-
-.script-output-wrapper {
+/* Terminal output area — scrollable, fills remaining space */
+.script-terminal-output {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 8px 0;
     font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
     font-size: 13px;
+    line-height: 1.6;
+    background-color: var(--bg-primary);
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
-.script-output-placeholder {
-    padding: 24px 16px;
-    text-align: center;
-    color: var(--text-muted);
-    font-family: inherit;
-    font-style: italic;
-}
-
-.script-output-line {
+/* Terminal input area — fixed at the very bottom of the window */
+.script-terminal-input-area {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 3px 16px;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.script-terminal-prompt {
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-color);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.script-terminal-input {
+    flex: 1;
+    padding: 4px 0;
+    border: none;
+    outline: none;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
     line-height: 1.5;
+    color: var(--text-primary);
+    background-color: transparent;
+}
+
+.script-terminal-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* Output lines — plain text, fully selectable */
+.script-output-line {
+    padding: 2px 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .script-output-line:hover {
     background-color: rgba(0, 0, 0, 0.03);
 }
 
-.script-output-time {
-    color: var(--text-muted);
-    font-size: 12px;
-    flex-shrink: 0;
-}
-
-.script-output-badge {
-    display: inline-block;
-    padding: 0 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    flex-shrink: 0;
-}
-
-.script-output-badge-info {
-    background-color: #e8f4fd;
-    color: #0078d4;
-}
-
-.script-output-badge-success {
-    background-color: #e6f9e6;
-    color: #1a8c1a;
-}
-
-.script-output-badge-error {
-    background-color: #fde8e8;
-    color: #c50f1f;
-}
-
-.script-output-badge-warning {
-    background-color: #fff4ce;
-    color: #a07800;
-}
-
 .script-output-text {
-    white-space: pre-wrap;
-    word-break: break-word;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+/* Level-specific text colors */
+.script-output-line.script-output-info .script-output-text {
+    color: #0078d4;
 }
 
 .script-output-line.script-output-success .script-output-text {
@@ -1090,6 +1043,11 @@ body.tab-right .splitter.right-splitter {
 
 .script-output-line.script-output-warning .script-output-text {
     color: #a07800;
+}
+
+.script-output-line.script-output-command .script-output-text {
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 /* ── Scheduler Panel ──────────────────────────────────────────────── */

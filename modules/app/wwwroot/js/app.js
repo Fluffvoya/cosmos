@@ -84,6 +84,9 @@ const App = {
                 if (data.settings && Array.isArray(data.settings.scheduledTasks)) {
                     Scheduler.loadTasks(data.settings.scheduledTasks);
                 }
+                if (data.settings && Array.isArray(data.settings.scriptOutput)) {
+                    ScriptPlayground.loadFromSettings(data.settings.scriptOutput);
+                }
                 break;
             case 'pythonPathValidation':
                 Settings.handleValidationResponse(data);
@@ -108,6 +111,9 @@ const App = {
                 break;
             case 'scriptRunResult':
                 ScriptPlayground.handleRunResult(data);
+                break;
+            case 'scriptLog':
+                ScriptPlayground.handleScriptLog(data);
                 break;
             default:
                 console.warn('Unknown backend message type:', data.type);

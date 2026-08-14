@@ -4,8 +4,9 @@ using app_bridge;
 namespace app_script;
 
 /// <summary>
-/// Handles cm-script execution requests from the Script Playground tab.
-/// Runs user-provided cm-script source and posts the result back to the frontend.
+/// Handles cm-script execution requests from the Script Terminal tab.
+/// Runs each line of user-provided cm-script source individually and posts
+/// per-line results back to the frontend.
 /// </summary>
 public class ScriptRunner
 {
@@ -27,10 +28,10 @@ public class ScriptRunner
     }
 
     /// <summary>
-    /// Execute a cm-script source string and post the result to the frontend.
+    /// Execute a cm-script source string (single line) and post the result to the frontend.
     /// Runs on a background thread; the result is posted as a scriptRunResult message.
     /// </summary>
-    /// <param name="source">The cm-script source code to execute.</param>
+    /// <param name="source">The cm-script source code to execute (single line).</param>
     public void RunSource(string source)
     {
         Task.Run(async () =>
@@ -42,11 +43,10 @@ public class ScriptRunner
             {
                 await _scriptRunner.Run(source);
                 success = true;
-                message = "Script completed successfully.";
             }
             catch (Exception ex)
             {
-                message = $"Script error: {ex.Message}";
+                message = $"Error: {ex.Message}";
             }
 
             var responseJson = JsonSerializer.Serialize(new

@@ -64,8 +64,15 @@ const Tabs = {
         const index = this.tabs.findIndex(t => t.id === tabId);
         if (index === -1) return;
 
+        const closedTab = this.tabs[index];
         this.tabs.splice(index, 1);
         this.renderTabs();
+
+        // Clear cached Script panel if the closed tab was a Script tab
+        if (closedTab.contentType === 'Script' && ScriptPlayground._cachedPanel) {
+            ScriptPlayground._cachedPanel.remove();
+            ScriptPlayground._cachedPanel = null;
+        }
 
         // If the closed tab was active, select the nearest tab
         if (this.activeTabId === tabId) {
@@ -246,15 +253,48 @@ const Tabs = {
 
     /**
      * Render the content area for the active tab.
+     * The Script panel is cached and reused (hidden via CSS class, not destroyed)
+     * so that the input field preserves its value across tab switches.
      */
     renderTabContent() {
         const contentArea = document.getElementById('tabContent');
-        contentArea.innerHTML = '';
-
         const activeTab = this.tabs.find(t => t.id === this.activeTabId);
+
+        // Remove non-cached panels only (preserve Script panel in DOM)
+        const toRemove = [];
+        for (const child of contentArea.children) {
+            if (child !== ScriptPlayground._cachedPanel) {
+                toRemove.push(child);
+            }
+        }
+        toRemove.forEach(el => el.remove());
+
+        // Hide cached Script panel when switching to a non-Script tab
+        if (ScriptPlayground._cachedPanel) {
+            if (activeTab && activeTab.contentType === 'Script') {
+                ScriptPlayground._cachedPanel.classList.remove('script-panel-hidden');
+            } else {
+                ScriptPlayground._cachedPanel.classList.add('script-panel-hidden');
+            }
+        }
+
         if (!activeTab) {
-            // No tabs - show empty state
-            contentArea.innerHTML = '<div class="tab-panel-welcome">No tabs open</div>';
+            const empty = document.createElement('div');
+            empty.className = 'tab-panel-welcome';
+            empty.textContent = 'No tabs open';
+            contentArea.appendChild(empty);
+            return;
+        }
+
+        if (activeTab.contentType === 'Script') {
+            // Reuse cached Script panel (preserves input value)
+            if (!ScriptPlayground._cachedPanel) {
+                const panel = document.createElement('div');
+                panel.className = 'tab-panel active script-panel';
+                ScriptPlayground.renderScriptPanel(panel);
+                ScriptPlayground._cachedPanel = panel;
+                contentArea.appendChild(panel);
+            }
             return;
         }
 
@@ -265,17 +305,11 @@ const Tabs = {
             panel.innerHTML = '<div class="tab-panel-welcome">' +
                 this.escapeHtml(activeTab.title) + '</div>';
         } else if (activeTab.contentType === 'Settings') {
-            // Settings is handled by the settings overlay
             panel.innerHTML = '<div class="tab-panel-welcome">Settings</div>';
         } else if (activeTab.contentType === 'Log') {
-            // Log panel is rendered by LogStore
             LogStore.renderLogPanel(panel);
         } else if (activeTab.contentType === 'Scheduler') {
-            // Scheduler panel is rendered by Scheduler module
             Scheduler.renderSchedulerPanel(panel);
-        } else if (activeTab.contentType === 'Script') {
-            // Script playground panel is rendered by ScriptPlayground module
-            ScriptPlayground.renderScriptPanel(panel);
         } else {
             panel.innerHTML = '<div class="tab-panel-welcome">' +
                 this.escapeHtml(activeTab.contentType) + '</div>';

@@ -21,4 +21,19 @@ public class AppSettings
 
     [JsonPropertyName("scheduledTasks")]
     public List<ScheduledTask> ScheduledTasks { get; set; } = new();
+
+    [JsonPropertyName("scriptOutput")]
+    public List<ScriptOutputEntry>? ScriptOutput { get; set; }
+}
+
+/// <summary>
+/// A single line of script terminal output.
+/// </summary>
+public class ScriptOutputEntry
+{
+    [JsonPropertyName("text")]
+    public string Text { get; set; } = "";
+
+    [JsonPropertyName("level")]
+    public string Level { get; set; } = "";
 }
