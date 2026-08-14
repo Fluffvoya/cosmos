@@ -923,6 +923,7 @@ body.tab-right .splitter.right-splitter {
     flex-direction: column;
     padding: 0;
     height: 100%;
+    overflow: hidden;
 }
 
 .script-toolbar {
@@ -947,7 +948,7 @@ body.tab-right .splitter.right-splitter {
     padding: 5px 14px;
 }
 
-/* Terminal output area (scrollable) */
+/* Terminal output area — scrollable, fills remaining space */
 .script-terminal-output {
     flex: 1;
     min-height: 0;
@@ -955,14 +956,18 @@ body.tab-right .splitter.right-splitter {
     padding: 8px 0;
     font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
     font-size: 13px;
+    line-height: 1.6;
     background-color: var(--bg-primary);
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
-/* Terminal input area at the bottom */
+/* Terminal input area — pinned at the very bottom */
 .script-terminal-input-area {
     display: flex;
     align-items: center;
-    padding: 8px 16px;
+    padding: 10px 16px;
     border-top: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
     flex-shrink: 0;
@@ -980,7 +985,7 @@ body.tab-right .splitter.right-splitter {
 
 .script-terminal-input {
     flex: 1;
-    padding: 6px 0;
+    padding: 4px 0;
     border: none;
     outline: none;
     font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
@@ -995,63 +1000,28 @@ body.tab-right .splitter.right-splitter {
     opacity: 0.6;
 }
 
-/* Output lines */
+/* Output lines — plain text, fully selectable */
 .script-output-line {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 3px 16px;
-    line-height: 1.5;
+    padding: 2px 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .script-output-line:hover {
     background-color: rgba(0, 0, 0, 0.03);
 }
 
-.script-output-time {
-    color: var(--text-muted);
-    font-size: 12px;
-    flex-shrink: 0;
-}
-
-.script-output-badge {
-    display: inline-block;
-    padding: 0 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    flex-shrink: 0;
-}
-
-.script-output-badge-info {
-    background-color: #e8f4fd;
-    color: #0078d4;
-}
-
-.script-output-badge-success {
-    background-color: #e6f9e6;
-    color: #1a8c1a;
-}
-
-.script-output-badge-error {
-    background-color: #fde8e8;
-    color: #c50f1f;
-}
-
-.script-output-badge-warning {
-    background-color: #fff4ce;
-    color: #a07800;
-}
-
-.script-output-badge-command {
-    background-color: #e8e8e8;
-    color: #555;
-}
-
 .script-output-text {
-    white-space: pre-wrap;
-    word-break: break-word;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+/* Level-specific text colors */
+.script-output-line.script-output-info .script-output-text {
+    color: #0078d4;
 }
 
 .script-output-line.script-output-success .script-output-text {

@@ -2,6 +2,7 @@
  * script.js - Terminal-style cm-script runner tab.
  * Each line entered is executed individually, similar to a terminal REPL.
  * Script logs (Log/Warning/Error) are displayed inline in the output area.
+ * Output is persisted to localStorage and restored across sessions.
  */
 
 const ScriptPlayground = {
@@ -11,6 +12,9 @@ const ScriptPlayground = {
     /** Command history for up/down arrow navigation */
     history: [],
     historyIndex: -1,
+
+    /** localStorage key for persisted output */
+    STORAGE_KEY: 'cosmos_script_output',
 
     /**
      * Open (or focus) the Script tab.
@@ -61,20 +65,13 @@ const ScriptPlayground = {
 
         container.appendChild(toolbar);
 
-        // Output area (scrollable, takes up most of the space)
+        // Output area (scrollable, fills remaining space)
         const outputWrapper = document.createElement('div');
         outputWrapper.className = 'script-terminal-output';
         outputWrapper.id = 'scriptOutput';
-
-        // Welcome message
-        const welcome = document.createElement('div');
-        welcome.className = 'script-output-line script-output-info';
-        welcome.textContent = 'cm-script Terminal - Type a command and press Enter to execute.';
-        outputWrapper.appendChild(welcome);
-
         container.appendChild(outputWrapper);
 
-        // Input area at the bottom (terminal prompt)
+        // Input area at the bottom (fixed position via flex)
         const inputArea = document.createElement('div');
         inputArea.className = 'script-terminal-input-area';
 
@@ -95,7 +92,10 @@ const ScriptPlayground = {
 
         container.appendChild(inputArea);
 
-        // Focus the input when the panel is rendered
+        // Restore persisted output
+        this.restoreOutput();
+
+        // Focus the input
         requestAnimationFrame(() => input.focus());
     },
 
@@ -134,7 +134,7 @@ const ScriptPlayground = {
         this.historyIndex = -1;
 
         // Echo the command to the output
-        this.appendOutput('> ' + source, 'command');
+        this.appendLine('> ' + source, 'command');
 
         // Clear input
         input.value = '';
@@ -146,7 +146,7 @@ const ScriptPlayground = {
                 source: source
             }));
         } else {
-            this.appendOutput('WebView2 not available. Cannot run script.', 'error');
+            this.appendLine('WebView2 not available. Cannot run script.', 'error');
         }
     },
 
@@ -182,63 +182,55 @@ const ScriptPlayground = {
 
     /**
      * Handle script execution result from the backend.
-     * @param {object} data - {type, success, message, line}
+     * @param {object} data - {type, success, message}
      */
     handleRunResult(data) {
         if (data.success) {
             if (data.message) {
-                this.appendOutput(data.message, 'success');
+                this.appendLine(data.message, 'success');
             }
         } else {
-            this.appendOutput(data.message || 'Execution failed.', 'error');
+            this.appendLine(data.message || 'Execution failed.', 'error');
         }
     },
 
     /**
      * Handle a script log message forwarded from the backend.
-     * These are Log/Warning/Error calls made by cm-script during execution.
+     * Displays in log copy format: [HH:mm:ss.fff] [LEVEL] message
      * @param {object} data - {type, level, message}
      */
     handleScriptLog(data) {
-        const level = data.level || 'info';
-        this.appendOutput(data.message || '', level);
+        const level = (data.level || 'info').toUpperCase();
+        const message = data.message || '';
+
+        // Format matching the Log tab copy format
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        const ms = String(now.getMilliseconds()).padStart(3, '0');
+        const time = `${h}:${m}:${s}.${ms}`;
+
+        const formatted = `[${time}] [${level}] ${message}`;
+        this.appendLine(formatted, data.level || 'info');
     },
 
     /**
-     * Append a line to the output area.
+     * Append a line to the output area and persist it.
      * @param {string} text - The output text.
      * @param {string} level - 'info', 'success', 'error', 'warning', or 'command'.
      */
-    appendOutput(text, level) {
+    appendLine(text, level) {
         const outputWrapper = document.getElementById('scriptOutput');
         if (!outputWrapper) return;
 
         const line = document.createElement('div');
         line.className = 'script-output-line' + (level ? ' script-output-' + level : '');
 
-        // Timestamp (skip for command echoes)
-        if (level !== 'command') {
-            const timestamp = document.createElement('span');
-            timestamp.className = 'script-output-time';
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            timestamp.textContent = h + ':' + m + ':' + s;
-            line.appendChild(timestamp);
-
-            // Level badge
-            const badge = document.createElement('span');
-            badge.className = 'script-output-badge script-output-badge-' + (level || 'info');
-            badge.textContent = (level || 'info').toUpperCase();
-            line.appendChild(badge);
-        }
-
-        // Message text
-        const msg = document.createElement('span');
-        msg.className = 'script-output-text';
-        msg.textContent = text;
-        line.appendChild(msg);
+        const span = document.createElement('span');
+        span.className = 'script-output-text';
+        span.textContent = text;
+        line.appendChild(span);
 
         outputWrapper.appendChild(line);
 
@@ -246,14 +238,79 @@ const ScriptPlayground = {
         requestAnimationFrame(() => {
             outputWrapper.scrollTop = outputWrapper.scrollHeight;
         });
+
+        // Persist to localStorage
+        this.persistLine(text, level);
     },
 
     /**
-     * Clear the output area.
+     * Persist a single output line to localStorage.
+     * @param {string} text
+     * @param {string} level
+     */
+    persistLine(text, level) {
+        try {
+            const entries = this.loadEntries();
+            entries.push({ text, level, time: Date.now() });
+            // Keep at most 500 lines to avoid unbounded growth
+            while (entries.length > 500) entries.shift();
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(entries));
+        } catch {
+            // localStorage full or unavailable — silently ignore
+        }
+    },
+
+    /**
+     * Load persisted entries from localStorage.
+     * @returns {Array<{text: string, level: string, time: number}>}
+     */
+    loadEntries() {
+        try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch {
+            return [];
+        }
+    },
+
+    /**
+     * Restore persisted output into the output area.
+     */
+    restoreOutput() {
+        const entries = this.loadEntries();
+        const outputWrapper = document.getElementById('scriptOutput');
+        if (!outputWrapper || entries.length === 0) return;
+
+        for (const entry of entries) {
+            const line = document.createElement('div');
+            line.className = 'script-output-line' + (entry.level ? ' script-output-' + entry.level : '');
+
+            const span = document.createElement('span');
+            span.className = 'script-output-text';
+            span.textContent = entry.text;
+            line.appendChild(span);
+
+            outputWrapper.appendChild(line);
+        }
+
+        // Scroll to bottom after restoring
+        requestAnimationFrame(() => {
+            outputWrapper.scrollTop = outputWrapper.scrollHeight;
+        });
+    },
+
+    /**
+     * Clear the output area and persisted data.
      */
     clearOutput() {
         const outputWrapper = document.getElementById('scriptOutput');
         if (!outputWrapper) return;
         outputWrapper.innerHTML = '';
+
+        // Also clear persisted data
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+        } catch { }
     }
 };
