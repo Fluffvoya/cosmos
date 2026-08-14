@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
 using app_scheduler;
+using app_script;
 using app_settings;
 using bridge;
 using public_model;
@@ -25,6 +26,7 @@ public class ServerBridge
     private readonly MainWindow _mainWindow;
     private readonly Action<string, string, string> _logToUI; // (level, message, sender)
     private ScheduledTaskRunner? _taskRunner;
+    private ScriptRunner? _scriptRunner;
 
     // Pending requests waiting for frontend responses.
     // Key: request ID (correlation ID), Value: TaskCompletionSource for the response.
@@ -46,6 +48,14 @@ public class ServerBridge
     public void SetTaskRunner(ScheduledTaskRunner runner)
     {
         _taskRunner = runner;
+    }
+
+    /// <summary>
+    /// Set the script runner instance for the Script Playground.
+    /// </summary>
+    public void SetScriptRunner(ScriptRunner runner)
+    {
+        _scriptRunner = runner;
     }
 
     /// <summary>
@@ -131,6 +141,10 @@ public class ServerBridge
 
                     case "schedulerBrowseScript":
                         HandleSchedulerBrowseScript(root);
+                        break;
+
+                    case "scriptRunSource":
+                        HandleScriptRunSource(root);
                         break;
 
                     default:
@@ -286,6 +300,26 @@ public class ServerBridge
             }
             catch { }
         }
+    }
+
+    /// <summary>
+    /// Handle script execution request from the Script Playground tab.
+    /// Delegates to ScriptRunner which runs the source and posts the result.
+    /// </summary>
+    private void HandleScriptRunSource(JsonElement root)
+    {
+        if (!root.TryGetProperty("source", out var sourceProp))
+            return;
+
+        var source = sourceProp.GetString() ?? "";
+
+        if (_scriptRunner == null)
+        {
+            _logToUI("Error", "ScriptRunner not initialized.", "program");
+            return;
+        }
+
+        _scriptRunner.RunSource(source);
     }
 
     private string? ShowScriptFileDialog()

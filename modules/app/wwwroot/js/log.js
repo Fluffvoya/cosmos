@@ -110,6 +110,7 @@ const LogStore = {
             '<th class="log-col-level">Level</th>' +
             '<th class="log-col-sender">Sender</th>' +
             '<th class="log-col-message">Message</th>' +
+            '<th class="log-col-action">Action</th>' +
             '</tr>';
         table.appendChild(thead);
 
@@ -121,7 +122,7 @@ const LogStore = {
         if (filtered.length === 0) {
             const tr = document.createElement('tr');
             tr.className = 'log-empty-row';
-            tr.innerHTML = '<td colspan="4">No log entries</td>';
+            tr.innerHTML = '<td colspan="5">No log entries</td>';
             tbody.appendChild(tr);
         } else {
             filtered.forEach(entry => {
@@ -203,6 +204,20 @@ const LogStore = {
         tdMessage.textContent = entry.content;
         tr.appendChild(tdMessage);
 
+        // Action (copy button)
+        const tdAction = document.createElement('td');
+        tdAction.className = 'log-col-action';
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'log-copy-btn';
+        copyBtn.title = 'Copy to clipboard';
+        copyBtn.textContent = '📋';  // clipboard emoji
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.copyLogEntry(entry, copyBtn);
+        });
+        tdAction.appendChild(copyBtn);
+        tr.appendChild(tdAction);
+
         return tr;
     },
 
@@ -226,5 +241,42 @@ const LogStore = {
         const s = String(date.getSeconds()).padStart(2, '0');
         const ms = String(date.getMilliseconds()).padStart(3, '0');
         return `${h}:${m}:${s}.${ms}`;
+    },
+
+    /**
+     * Format a log entry as a single line and copy to clipboard.
+     * @param {object} entry - The log entry.
+     * @param {HTMLElement} btn - The copy button element (for visual feedback).
+     */
+    copyLogEntry(entry, btn) {
+        const time = this.formatTime(entry.timestamp);
+        const text = `[${time}] [${entry.level}] [${entry.sender}] ${entry.content}`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            // Brief visual confirmation
+            btn.textContent = '✓';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋';
+                btn.classList.remove('copied');
+            }, 1000);
+        }).catch(() => {
+            // Fallback: select and copy via textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            btn.textContent = '✓';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋';
+                btn.classList.remove('copied');
+            }, 1000);
+        });
     }
 };

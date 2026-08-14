@@ -106,6 +106,9 @@ const App = {
             case 'schedulerTaskAutoDisabled':
                 Scheduler.handleAutoDisabled(data);
                 break;
+            case 'scriptRunResult':
+                ScriptPlayground.handleRunResult(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -247,6 +250,9 @@ const App = {
                         break;
                     case 'newScheduler':
                         Scheduler.openSchedulerTab();
+                        break;
+                    case 'newScript':
+                        ScriptPlayground.openScriptTab();
                         break;
                     case 'about':
                         this.showAbout();

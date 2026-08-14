@@ -273,6 +273,9 @@ const Tabs = {
         } else if (activeTab.contentType === 'Scheduler') {
             // Scheduler panel is rendered by Scheduler module
             Scheduler.renderSchedulerPanel(panel);
+        } else if (activeTab.contentType === 'Script') {
+            // Script playground panel is rendered by ScriptPlayground module
+            ScriptPlayground.renderScriptPanel(panel);
         } else {
             panel.innerHTML = '<div class="tab-panel-welcome">' +
                 this.escapeHtml(activeTab.contentType) + '</div>';
