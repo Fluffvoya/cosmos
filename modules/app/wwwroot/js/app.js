@@ -118,6 +118,24 @@ const App = {
             case 'messageBar':
                 MessageBar.show(data.message, data.level);
                 break;
+            case 'passwordManagerSetupCheck':
+                PasswordManager.handleSetupCheck(data.isSetup);
+                break;
+            case 'passwordManagerSetupSuccess':
+                PasswordManager.handleSetupSuccess();
+                break;
+            case 'passwordManagerAuthSuccess':
+                PasswordManager.handleAuthSuccess(data.platforms);
+                break;
+            case 'passwordManagerAuthFailure':
+                PasswordManager.handleAuthFailure(data.message);
+                break;
+            case 'passwordManagerChangePasswordSuccess':
+                PasswordManager.handleChangePasswordSuccess();
+                break;
+            case 'passwordManagerChangePasswordFailure':
+                PasswordManager.handleChangePasswordFailure(data.message);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -262,6 +280,9 @@ const App = {
                         break;
                     case 'newScript':
                         ScriptPlayground.openScriptTab();
+                        break;
+                    case 'newPasswordManager':
+                        PasswordManager.openPasswordManagerTab();
                         break;
                     case 'about':
                         this.showAbout();

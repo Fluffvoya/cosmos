@@ -286,6 +286,14 @@ const Tabs = {
             return;
         }
 
+        if (activeTab.contentType === 'PasswordManager') {
+            const panel = document.createElement('div');
+            panel.className = 'tab-panel active password-panel';
+            PasswordManager.renderPasswordManagerPanel(panel);
+            contentArea.appendChild(panel);
+            return;
+        }
+
         if (activeTab.contentType === 'Script') {
             // Reuse cached Script panel (preserves input value)
             if (!ScriptPlayground._cachedPanel) {

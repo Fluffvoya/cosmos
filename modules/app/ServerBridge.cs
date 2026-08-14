@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
+using app_password;
 using app_scheduler;
 using app_script;
 using app_settings;
@@ -16,6 +17,17 @@ using server;
 namespace app;
 
 /// <summary>
+/// Shared JSON serializer options using camelCase to match frontend conventions.
+/// </summary>
+internal static class ServerBridgeJsonOptions
+{
+    public static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+}
+
+/// <summary>
 /// Bridges IServer requests from cm-script to the WebView2 frontend.
 /// Parses incoming requests, dispatches them to the frontend via postMessage,
 /// and waits for responses back from the frontend.
@@ -24,6 +36,7 @@ public class ServerBridge
 {
     private readonly WebView2 _webView;
     private readonly MainWindow _mainWindow;
+    private readonly AppPasswordManager _passwordManager;
     private readonly Action<string, string, string> _logToUI; // (level, message, sender)
     private ScheduledTaskRunner? _taskRunner;
     private ScriptRunner? _scriptRunner;
@@ -35,10 +48,14 @@ public class ServerBridge
     // Counter for generating unique request IDs.
     private long _requestIdCounter;
 
-    public ServerBridge(WebView2 webView, MainWindow mainWindow, Action<string, string, string> logToUI)
+    // Current authenticated password for encryption/decryption
+    private string? _currentPassword;
+
+    public ServerBridge(WebView2 webView, MainWindow mainWindow, AppPasswordManager passwordManager, Action<string, string, string> logToUI)
     {
         _webView = webView;
         _mainWindow = mainWindow;
+        _passwordManager = passwordManager;
         _logToUI = logToUI;
     }
 
@@ -71,7 +88,7 @@ public class ServerBridge
                 level = level,
                 message = message,
                 sender = sender
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             if (_webView.InvokeRequired)
             {
@@ -155,6 +172,26 @@ public class ServerBridge
                         HandleScriptRunSource(root);
                         break;
 
+                    case "passwordManagerCheckSetup":
+                        HandlePasswordManagerCheckSetup();
+                        break;
+
+                    case "passwordManagerSetup":
+                        HandlePasswordManagerSetup(root);
+                        break;
+
+                    case "passwordManagerAuth":
+                        HandlePasswordManagerAuth(root);
+                        break;
+
+                    case "passwordManagerChangePassword":
+                        HandlePasswordManagerChangePassword(root);
+                        break;
+
+                    case "passwordManagerSaveData":
+                        HandlePasswordManagerSaveData(root);
+                        break;
+
                     default:
                         // Unknown message type -- ignore.
                         break;
@@ -197,7 +234,7 @@ public class ServerBridge
 
         try
         {
-            var newSettings = JsonSerializer.Deserialize<AppSettings>(settingsProp.GetRawText());
+            var newSettings = JsonSerializer.Deserialize<AppSettings>(settingsProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (newSettings != null)
             {
                 _mainWindow.SettingsManager.Update(newSettings);
@@ -220,7 +257,7 @@ public class ServerBridge
 
         try
         {
-            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText());
+            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (tasks != null)
             {
                 _mainWindow.SettingsManager.Current.ScheduledTasks = tasks;
@@ -244,7 +281,7 @@ public class ServerBridge
 
         try
         {
-            var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText());
+            var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             _mainWindow.SettingsManager.Current.ScriptOutput = output;
             _mainWindow.SettingsManager.Save();
         }
@@ -277,7 +314,7 @@ public class ServerBridge
                 index = index,
                 success = success,
                 message = message
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -318,7 +355,7 @@ public class ServerBridge
                 type = "schedulerBrowseResult",
                 index = index,
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -386,7 +423,7 @@ public class ServerBridge
             {
                 type = "startupScriptBrowseResult",
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -467,7 +504,7 @@ public class ServerBridge
             path = scriptPath,
             isValid = isValid,
             error = errorMessage
-        });
+        }, ServerBridgeJsonOptions.CamelCase);
 
         if (_webView.InvokeRequired)
         {
@@ -502,7 +539,7 @@ public class ServerBridge
             {
                 type = "browseResult",
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -583,7 +620,7 @@ public class ServerBridge
             path = pythonPath,
             isValid = isValid,
             error = errorMessage
-        });
+        }, ServerBridgeJsonOptions.CamelCase);
 
         if (_webView.InvokeRequired)
         {
@@ -649,7 +686,7 @@ public class ServerBridge
                     type = "scriptLog",
                     level = level,
                     message = message
-                });
+                }, ServerBridgeJsonOptions.CamelCase);
 
                 if (_webView.InvokeRequired)
                     _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(scriptLogJson));
@@ -675,7 +712,7 @@ public class ServerBridge
                     type = "messageBar",
                     message = message,
                     level = level
-                });
+                }, ServerBridgeJsonOptions.CamelCase);
 
                 if (_webView.InvokeRequired)
                     _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(toastJson));
@@ -704,7 +741,7 @@ public class ServerBridge
                 requestId = requestId,
                 requestName = request.request,
                 args = request.args
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             // Post message to frontend on the UI thread.
             if (_webView.InvokeRequired)
@@ -742,6 +779,203 @@ public class ServerBridge
         finally
         {
             _pendingRequests.TryRemove(requestId, out _);
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager setup check request.
+    /// Sends response indicating whether master password is set up.
+    /// </summary>
+    private void HandlePasswordManagerCheckSetup()
+    {
+        var isSetup = _passwordManager.IsSetup();
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "passwordManagerSetupCheck",
+            isSetup = isSetup
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle password manager initial setup.
+    /// Creates master password hash and initializes empty data.
+    /// </summary>
+    private void HandlePasswordManagerSetup(JsonElement root)
+    {
+        if (!root.TryGetProperty("password", out var passwordProp))
+            return;
+
+        var password = passwordProp.GetString();
+        if (string.IsNullOrEmpty(password))
+            return;
+
+        var success = _passwordManager.Setup(password);
+
+        if (success)
+        {
+            _currentPassword = password;
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerSetupSuccess"
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager authentication.
+    /// Verifies password and returns decrypted data on success.
+    /// </summary>
+    private void HandlePasswordManagerAuth(JsonElement root)
+    {
+        if (!root.TryGetProperty("password", out var passwordProp))
+            return;
+
+        var password = passwordProp.GetString();
+        if (string.IsNullOrEmpty(password))
+            return;
+
+        var isValid = _passwordManager.VerifyPassword(password);
+
+        if (isValid)
+        {
+            _currentPassword = password;
+            var platforms = _passwordManager.LoadData(password);
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerAuthSuccess",
+                platforms = platforms
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+        else
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerAuthFailure",
+                message = "Incorrect password."
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager password change request.
+    /// Verifies old password and updates to new password.
+    /// </summary>
+    private void HandlePasswordManagerChangePassword(JsonElement root)
+    {
+        if (!root.TryGetProperty("currentPassword", out var currentProp) ||
+            !root.TryGetProperty("newPassword", out var newProp))
+            return;
+
+        var currentPassword = currentProp.GetString();
+        var newPassword = newProp.GetString();
+
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
+            return;
+
+        var success = _passwordManager.ChangePassword(currentPassword, newPassword);
+
+        if (success)
+        {
+            _currentPassword = newPassword;
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerChangePasswordSuccess"
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+        else
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerChangePasswordFailure",
+                message = "Failed to change password. Please verify your current password."
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager save data request.
+    /// Encrypts and saves platform data.
+    /// </summary>
+    private void HandlePasswordManagerSaveData(JsonElement root)
+    {
+        if (_currentPassword == null)
+        {
+            _logToUI("Error", "Cannot save password data: not authenticated", "program");
+            return;
+        }
+
+        if (!root.TryGetProperty("platforms", out var platformsProp))
+            return;
+
+        try
+        {
+            var platforms = JsonSerializer.Deserialize<PlatformData[]>(platformsProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
+            if (platforms != null)
+            {
+                _passwordManager.SaveData(_currentPassword, platforms);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save password data: {ex.Message}", "program");
         }
     }
 }
