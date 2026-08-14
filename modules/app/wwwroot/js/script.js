@@ -1,18 +1,19 @@
 /**
- * script.js - Script Playground tab.
- * Provides an interactive editor where users can write and run cm-script code,
- * with execution output displayed inline.
+ * script.js - Terminal-style cm-script runner tab.
+ * Each line entered is executed individually, similar to a terminal REPL.
+ * Script logs (Log/Warning/Error) are displayed inline in the output area.
  */
 
 const ScriptPlayground = {
     /** ID of the Script tab (if open) */
     scriptTabId: null,
 
-    /** Whether a script is currently running */
-    isRunning: false,
+    /** Command history for up/down arrow navigation */
+    history: [],
+    historyIndex: -1,
 
     /**
-     * Open (or focus) the Script Playground tab.
+     * Open (or focus) the Script tab.
      */
     openScriptTab() {
         if (this.scriptTabId) {
@@ -34,7 +35,7 @@ const ScriptPlayground = {
     },
 
     /**
-     * Render the Script Playground panel.
+     * Render the Script panel in terminal style.
      * Called by Tabs.renderTabContent when contentType === 'Script'.
      * @param {HTMLElement} container - The panel element to render into.
      */
@@ -42,169 +43,198 @@ const ScriptPlayground = {
         container.innerHTML = '';
         container.className = 'tab-panel active script-panel';
 
-        // Toolbar
+        // Toolbar with title and clear button
         const toolbar = document.createElement('div');
         toolbar.className = 'script-toolbar';
 
         const title = document.createElement('span');
         title.className = 'script-toolbar-title';
-        title.textContent = 'Script Playground';
+        title.textContent = 'cm-script Terminal';
         toolbar.appendChild(title);
-
-        // Run button
-        const runBtn = document.createElement('button');
-        runBtn.className = 'btn btn-primary script-run-btn';
-        runBtn.id = 'scriptRunBtn';
-        runBtn.textContent = '▶ Run';
-        runBtn.disabled = this.isRunning;
-        runBtn.addEventListener('click', () => this.runScript());
-        toolbar.appendChild(runBtn);
 
         // Clear output button
         const clearBtn = document.createElement('button');
         clearBtn.className = 'btn btn-secondary script-clear-btn';
-        clearBtn.textContent = 'Clear Output';
+        clearBtn.textContent = 'Clear';
         clearBtn.addEventListener('click', () => this.clearOutput());
         toolbar.appendChild(clearBtn);
 
         container.appendChild(toolbar);
 
-        // Split layout: editor (top) + output (bottom)
-        const splitLayout = document.createElement('div');
-        splitLayout.className = 'script-split-layout';
-
-        // Editor section
-        const editorSection = document.createElement('div');
-        editorSection.className = 'script-editor-section';
-
-        const editorLabel = document.createElement('div');
-        editorLabel.className = 'script-section-label';
-        editorLabel.textContent = 'Editor';
-        editorSection.appendChild(editorLabel);
-
-        const editorWrapper = document.createElement('div');
-        editorWrapper.className = 'script-editor-wrapper';
-
-        const editor = document.createElement('textarea');
-        editor.className = 'script-editor';
-        editor.id = 'scriptEditor';
-        editor.placeholder = '! Write your cm-script code here\n! Example:\nCOSMOS Log "Hello from Script Playground!"\nCOSMOS ShowMessage "Greeting" "Hello, World!"';
-        editor.spellcheck = false;
-        editorWrapper.appendChild(editor);
-        editorSection.appendChild(editorWrapper);
-
-        splitLayout.appendChild(editorSection);
-
-        // Output section
-        const outputSection = document.createElement('div');
-        outputSection.className = 'script-output-section';
-
-        const outputLabel = document.createElement('div');
-        outputLabel.className = 'script-section-label';
-        outputLabel.textContent = 'Output';
-        outputSection.appendChild(outputLabel);
-
+        // Output area (scrollable, takes up most of the space)
         const outputWrapper = document.createElement('div');
-        outputWrapper.className = 'script-output-wrapper';
+        outputWrapper.className = 'script-terminal-output';
         outputWrapper.id = 'scriptOutput';
 
-        // Show placeholder if empty
-        const placeholder = document.createElement('div');
-        placeholder.className = 'script-output-placeholder';
-        placeholder.id = 'scriptOutputPlaceholder';
-        placeholder.textContent = 'Output will appear here after running a script.';
-        outputWrapper.appendChild(placeholder);
+        // Welcome message
+        const welcome = document.createElement('div');
+        welcome.className = 'script-output-line script-output-info';
+        welcome.textContent = 'cm-script Terminal - Type a command and press Enter to execute.';
+        outputWrapper.appendChild(welcome);
 
-        outputSection.appendChild(outputWrapper);
-        splitLayout.appendChild(outputSection);
+        container.appendChild(outputWrapper);
 
-        container.appendChild(splitLayout);
+        // Input area at the bottom (terminal prompt)
+        const inputArea = document.createElement('div');
+        inputArea.className = 'script-terminal-input-area';
+
+        const promptPrefix = document.createElement('span');
+        promptPrefix.className = 'script-terminal-prompt';
+        promptPrefix.textContent = '>';
+        inputArea.appendChild(promptPrefix);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'script-terminal-input';
+        input.id = 'scriptTerminalInput';
+        input.placeholder = 'Enter cm-script command...';
+        input.spellcheck = false;
+        input.autocomplete = 'off';
+        input.addEventListener('keydown', (e) => this.handleInputKeydown(e));
+        inputArea.appendChild(input);
+
+        container.appendChild(inputArea);
+
+        // Focus the input when the panel is rendered
+        requestAnimationFrame(() => input.focus());
     },
 
     /**
-     * Run the script content from the editor.
-     * Sends the source to the backend for execution.
+     * Handle keydown events in the terminal input.
+     * Enter: execute the command. Up/Down: navigate history.
+     * @param {KeyboardEvent} e
      */
-    runScript() {
-        const editor = document.getElementById('scriptEditor');
-        if (!editor) return;
-
-        const source = editor.value;
-        if (!source.trim()) {
-            this.appendOutput('No script content to run.', 'warning');
-            return;
+    handleInputKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.executeInput();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.navigateHistory(-1);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.navigateHistory(1);
         }
+    },
 
-        // Disable run button while executing
-        this.isRunning = true;
-        const runBtn = document.getElementById('scriptRunBtn');
-        if (runBtn) runBtn.disabled = true;
+    /**
+     * Execute the current input value as a cm-script line.
+     */
+    executeInput() {
+        const input = document.getElementById('scriptTerminalInput');
+        if (!input) return;
 
-        this.appendOutput('Running...', 'info');
+        const source = input.value;
+        if (!source.trim()) return;
 
+        // Add to history (avoid consecutive duplicates)
+        if (this.history.length === 0 || this.history[this.history.length - 1] !== source) {
+            this.history.push(source);
+        }
+        this.historyIndex = -1;
+
+        // Echo the command to the output
+        this.appendOutput('> ' + source, 'command');
+
+        // Clear input
+        input.value = '';
+
+        // Send to backend for execution
         if (App.isWebViewReady) {
             window.chrome.webview.postMessage(JSON.stringify({
                 type: 'scriptRunSource',
                 source: source
             }));
         } else {
-            // Standalone mode — no backend
             this.appendOutput('WebView2 not available. Cannot run script.', 'error');
-            this.isRunning = false;
-            if (runBtn) runBtn.disabled = false;
         }
+    },
+
+    /**
+     * Navigate command history with up/down arrows.
+     * @param {number} direction - -1 for up (older), +1 for down (newer).
+     */
+    navigateHistory(direction) {
+        const input = document.getElementById('scriptTerminalInput');
+        if (!input || this.history.length === 0) return;
+
+        if (direction === -1) {
+            // Up: go to older entry
+            if (this.historyIndex === -1) {
+                this.historyIndex = this.history.length - 1;
+            } else if (this.historyIndex > 0) {
+                this.historyIndex--;
+            }
+        } else {
+            // Down: go to newer entry
+            if (this.historyIndex === -1) return;
+            if (this.historyIndex < this.history.length - 1) {
+                this.historyIndex++;
+            } else {
+                this.historyIndex = -1;
+                input.value = '';
+                return;
+            }
+        }
+
+        input.value = this.history[this.historyIndex] || '';
     },
 
     /**
      * Handle script execution result from the backend.
-     * @param {object} data - {type, success, message}
+     * @param {object} data - {type, success, message, line}
      */
     handleRunResult(data) {
-        this.isRunning = false;
-        const runBtn = document.getElementById('scriptRunBtn');
-        if (runBtn) runBtn.disabled = false;
-
         if (data.success) {
-            this.appendOutput(data.message || 'Script completed successfully.', 'success');
+            if (data.message) {
+                this.appendOutput(data.message, 'success');
+            }
         } else {
-            this.appendOutput(data.message || 'Script execution failed.', 'error');
+            this.appendOutput(data.message || 'Execution failed.', 'error');
         }
     },
 
     /**
-     * Append a line to the output panel.
+     * Handle a script log message forwarded from the backend.
+     * These are Log/Warning/Error calls made by cm-script during execution.
+     * @param {object} data - {type, level, message}
+     */
+    handleScriptLog(data) {
+        const level = data.level || 'info';
+        this.appendOutput(data.message || '', level);
+    },
+
+    /**
+     * Append a line to the output area.
      * @param {string} text - The output text.
-     * @param {string} level - 'info', 'success', 'error', or 'warning'.
+     * @param {string} level - 'info', 'success', 'error', 'warning', or 'command'.
      */
     appendOutput(text, level) {
         const outputWrapper = document.getElementById('scriptOutput');
         if (!outputWrapper) return;
 
-        // Remove placeholder if present
-        const placeholder = document.getElementById('scriptOutputPlaceholder');
-        if (placeholder) placeholder.remove();
-
         const line = document.createElement('div');
         line.className = 'script-output-line' + (level ? ' script-output-' + level : '');
 
-        // Timestamp
-        const timestamp = document.createElement('span');
-        timestamp.className = 'script-output-time';
-        const now = new Date();
-        const h = String(now.getHours()).padStart(2, '0');
-        const m = String(now.getMinutes()).padStart(2, '0');
-        const s = String(now.getSeconds()).padStart(2, '0');
-        const ms = String(now.getMilliseconds()).padStart(3, '0');
-        timestamp.textContent = h + ':' + m + ':' + s + '.' + ms;
-        line.appendChild(timestamp);
+        // Timestamp (skip for command echoes)
+        if (level !== 'command') {
+            const timestamp = document.createElement('span');
+            timestamp.className = 'script-output-time';
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            timestamp.textContent = h + ':' + m + ':' + s;
+            line.appendChild(timestamp);
 
-        // Level badge
-        const badge = document.createElement('span');
-        badge.className = 'script-output-badge script-output-badge-' + (level || 'info');
-        badge.textContent = (level || 'info').toUpperCase();
-        line.appendChild(badge);
+            // Level badge
+            const badge = document.createElement('span');
+            badge.className = 'script-output-badge script-output-badge-' + (level || 'info');
+            badge.textContent = (level || 'info').toUpperCase();
+            line.appendChild(badge);
+        }
 
-        // Message
+        // Message text
         const msg = document.createElement('span');
         msg.className = 'script-output-text';
         msg.textContent = text;
@@ -219,19 +249,11 @@ const ScriptPlayground = {
     },
 
     /**
-     * Clear the output panel.
+     * Clear the output area.
      */
     clearOutput() {
         const outputWrapper = document.getElementById('scriptOutput');
         if (!outputWrapper) return;
-
         outputWrapper.innerHTML = '';
-
-        // Re-add placeholder
-        const placeholder = document.createElement('div');
-        placeholder.className = 'script-output-placeholder';
-        placeholder.id = 'scriptOutputPlaceholder';
-        placeholder.textContent = 'Output will appear here after running a script.';
-        outputWrapper.appendChild(placeholder);
     }
 };

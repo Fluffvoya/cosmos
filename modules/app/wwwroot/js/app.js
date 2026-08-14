@@ -109,6 +109,9 @@ const App = {
             case 'scriptRunResult':
                 ScriptPlayground.handleRunResult(data);
                 break;
+            case 'scriptLog':
+                ScriptPlayground.handleScriptLog(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }

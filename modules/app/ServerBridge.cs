@@ -532,6 +532,7 @@ public class ServerBridge
         }
         
         // Intercept Log/Warning/Error requests and forward as internal logs.
+        // Also post a scriptLog message so the Script Terminal can display it inline.
         if (request.request is "Log" or "Warning" or "Error" && request.args.Count > 0)
         {
             var level = request.request switch
@@ -543,6 +544,23 @@ public class ServerBridge
                 };
             var message = request.args[0];
             _logToUI(level, message, "script");
+
+            // Forward to the Script Terminal as well
+            try
+            {
+                var scriptLogJson = JsonSerializer.Serialize(new
+                {
+                    type = "scriptLog",
+                    level = level,
+                    message = message
+                });
+
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(scriptLogJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(scriptLogJson);
+            }
+            catch { }
 
             var logResponse = new Response(request.request, "");
             return Server.CreateResponse(logResponse);

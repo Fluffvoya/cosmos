@@ -11,3 +11,4 @@ public interface IWebViewBridge
     /// </summary>
     void PostMessage(string json);
 }
+
