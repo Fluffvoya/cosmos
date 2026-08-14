@@ -26,30 +26,30 @@ public class ScriptFuncTests
         }
     }
 
-    // ── ShowMessage ─────────────────────────────────────────────────
+    // ── MessageBox ─────────────────────────────────────────────────
 
     [Fact]
-    public void ShowMessage_Function_Call_SendsCorrectRequest()
+    public void MessageBox_Function_Call_SendsCorrectRequest()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowMessage;
+        var fn = ScriptFunctions.MessageBox;
 
         fn.Call(server, new List<object> { "myWindow", "Hello!" });
 
         Assert.NotNull(server.LastRequestJson);
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
-        Assert.Equal("ShowMessage", request.request);
+        Assert.Equal("MessageBox", request.request);
         Assert.Equal(2, request.args.Count);
         Assert.Equal("myWindow", request.args[0]);
         Assert.Equal("Hello!", request.args[1]);
     }
 
     [Fact]
-    public void ShowMessage_Function_WrongArgCount_Throws()
+    public void MessageBox_Function_WrongArgCount_Throws()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowMessage;
+        var fn = ScriptFunctions.MessageBox;
 
         var ex = Assert.Throws<RouterException>(() =>
             fn.Call(server, new List<object> { "onlyOne" }));
@@ -57,10 +57,10 @@ public class ScriptFuncTests
     }
 
     [Fact]
-    public void ShowMessage_Function_WrongArgType_Throws()
+    public void MessageBox_Function_WrongArgType_Throws()
     {
         var server = new CapturingServer();
-        var fn = ScriptFunctions.ShowMessage;
+        var fn = ScriptFunctions.MessageBox;
 
         var ex = Assert.Throws<RouterException>(() =>
             fn.Call(server, new List<object> { 42L, "message" }));
@@ -215,6 +215,35 @@ public class ScriptFuncTests
         Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
     }
 
+    // ── MessageBar ──────────────────────────────────────────────────
+
+    [Fact]
+    public void MessageBar_Function_InvalidLevel_ThrowsScriptFuncException()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.MessageBar;
+
+        var ex = Assert.Throws<ScriptFuncException>(() =>
+            fn.Call(server, new List<object> { "hello", "critical" }));
+        Assert.Equal(ErrorCode.InvalidArgumentValue, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void MessageBar_Function_ValidLevel_SendsCorrectRequest()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.MessageBar;
+
+        fn.Call(server, new List<object> { "hello", "warning" });
+
+        Assert.NotNull(server.LastRequestJson);
+        var request = Request.Deserialize(server.LastRequestJson);
+        Assert.NotNull(request);
+        Assert.Equal("MessageBar", request.request);
+        Assert.Equal("hello", request.args[0]);
+        Assert.Equal("warning", request.args[1]);
+    }
+
     // ── Router integration ─────────────────────────────────────────
 
     [Fact]
@@ -223,18 +252,18 @@ public class ScriptFuncTests
         var server = new CapturingServer();
         var router = new Router(server);
 
-        router.Add("ShowMessage", ScriptFunctions.ShowMessage);
+        router.Add("MessageBox", ScriptFunctions.MessageBox);
         router.Add("Log", ScriptFunctions.Log);
         router.Add("Warning", ScriptFunctions.Warning);
         router.Add("Error", ScriptFunctions.Error);
         router.Add("GetUserName", ScriptFunctions.GetUserName);
 
-        router.Call("ShowMessage", new List<object> { "win1", "msg1" });
+        router.Call("MessageBox", new List<object> { "win1", "msg1" });
 
         Assert.NotNull(server.LastRequestJson);
         var request = Request.Deserialize(server.LastRequestJson);
         Assert.NotNull(request);
-        Assert.Equal("ShowMessage", request.request);
+        Assert.Equal("MessageBox", request.request);
     }
 
     [Fact]

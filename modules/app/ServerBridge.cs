@@ -645,8 +645,8 @@ public class ServerBridge
         if (request == null)
             return string.Empty;
 
-        // Intercept ShowMessage requests and display a MessageBox.
-        if (request.request == "ShowMessage" && request.args.Count >= 2)
+        // Intercept MessageBox requests and display a native dialog.
+        if (request.request == "MessageBox" && request.args.Count >= 2)
         {
             var title = request.args[0];
             var message = request.args[1];
@@ -699,8 +699,8 @@ public class ServerBridge
             return Server.CreateResponse(logResponse);
         }
 
-        // Intercept ShowMessageBar — forward to frontend as a non-blocking toast.
-        if (request.request == "ShowMessageBar" && request.args.Count >= 2)
+        // Intercept MessageBar — forward to frontend as a non-blocking toast.
+        if (request.request == "MessageBar" && request.args.Count >= 2)
         {
             var message = request.args[0];
             var level = request.args[1];

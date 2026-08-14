@@ -14,13 +14,13 @@ Provides pre-built `Function` objects that wrap the `Client` API. These are the 
 
 All properties return a new `Function` instance on each access.
 
-#### `ShowMessage`
+#### `MessageBox`
 
 ```csharp
-public static Function ShowMessage { get; }
+public static Function MessageBox { get; }
 ```
 - **Arguments:** `[String name, String message]`
-- **Action:** Calls `Client.ShowMessage(name, message)`, serializes the request, and sends it via `IServer.Execute`.
+- **Action:** Calls `Client.MessageBox(name, message)`, serializes the request, and sends it via `IServer.Execute`.
 
 #### `Log`
 
@@ -45,6 +45,14 @@ public static Function Error { get; }
 ```
 - **Arguments:** `[String content]`
 - **Action:** Calls `Client.Error(content)` and sends via `IServer.Execute`.
+
+#### `MessageBar`
+
+```csharp
+public static Function MessageBar { get; }
+```
+- **Arguments:** `[String message, String level]` — `level` must be `"info"`, `"warning"`, or `"error"`.
+- **Action:** Calls `Client.MessageBar(message, level)`, serializes the request, and sends it via `IServer.Execute`. Throws `ScriptFuncException(InvalidArgumentValue)` if `level` is not a recognized value.
 
 #### `GetUserName`
 

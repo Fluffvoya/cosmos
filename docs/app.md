@@ -54,7 +54,7 @@ The main form. Implements three interfaces:
 2. WebView2 is initialized with a virtual host mapping (`app.local` → `wwwroot/`).
 3. `ServerBridge` is created to handle frontend messages.
 4. cm-script engine is initialized with the configured Python path.
-5. Built-in functions are registered: `ShowMessage`, `Log`, `Warning`, `Error`, `GetUserName`.
+5. Built-in functions are registered: `MessageBox`, `Log`, `Warning`, `Error`, `GetUserName`.
 6. `ScheduledTaskRunner` is started.
 7. Startup script is executed if configured (`.cms` through script engine, `.py`/other as external process).
 
@@ -84,7 +84,7 @@ public class ServerBridge
 
 1. Deserializes the `Request` JSON.
 2. **Intercepts** built-in requests:
-   - `ShowMessage` → shows a native `MessageBox` on the UI thread.
+   - `MessageBox` → shows a native `MessageBox` on the UI thread.
    - `Log`/`Warning`/`Error` → forwards as internal log messages.
 3. For other requests: generates a unique request ID, creates a `TaskCompletionSource`, posts the request to the frontend via `postMessage`, and blocks (up to 30 seconds) waiting for the frontend to respond.
 4. Returns the frontend's response as a serialized `Response` JSON.

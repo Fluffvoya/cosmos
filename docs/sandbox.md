@@ -28,7 +28,7 @@ public static async Task Main(string[] args)
 ```
 
 Runs two test scenarios:
-1. `COSMOS func` — calls a registered function that sends a `ShowMessage` request through `SandboxServer`.
+1. `COSMOS func` — calls a registered function that sends a `MessageBox` request through `SandboxServer`.
 2. `PYTHON D:\program\a.py` — launches a Python script through the interpreter.
 
 ## Dependencies

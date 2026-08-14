@@ -21,7 +21,7 @@ public interface IServer
 
 Receives a serialized `Request` JSON string, processes it, and returns a serialized `Response` JSON string. Implementations include:
 
-- **`MainWindow`** (app module) — routes requests to the WebView2 frontend or intercepts them for built-in operations (ShowMessage, Log, Warning, Error).
+- **`MainWindow`** (app module) — routes requests to the WebView2 frontend or intercepts them for built-in operations (MessageBox, Log, Warning, Error).
 - **`SandboxServer`** (sandbox module) — debug implementation that prints to console.
 
 ## Dependencies

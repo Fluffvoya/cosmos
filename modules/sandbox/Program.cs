@@ -20,7 +20,7 @@ public class Sandbox
         Function func = new Function((IServer server, List<object> args) =>
         {
             Console.WriteLine("func invoke");
-            var requests = Client.CreateRequest(Client.ShowMessage("a", "b"));
+            var requests = Client.CreateRequest(Client.MessageBox("a", "b"));
             Console.WriteLine("server:" + server.Execute(requests));
         });
 

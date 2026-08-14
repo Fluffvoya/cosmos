@@ -20,8 +20,8 @@ public class Client
         return response?.message;
     }
 
-    public static Request ShowMessage(string name, string message)
-        => new Request("ShowMessage", name, message);
+    public static Request MessageBox(string name, string message)
+        => new Request("MessageBox", name, message);
 
     public static Request Log(string content)
         => new Request("Log", content);
@@ -35,6 +35,6 @@ public class Client
     public static Request GetUserName()
         => new Request("GetUserName");
 
-    public static Request ShowMessageBar(string message, string level)
-        => new Request("ShowMessageBar", message, level);
+    public static Request MessageBar(string message, string level)
+        => new Request("MessageBar", message, level);
 }

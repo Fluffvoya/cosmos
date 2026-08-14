@@ -28,6 +28,7 @@ public enum ErrorCode
 
     // Script-func module (5xxx)
     EmptyArgumentValue = 5001,
+    InvalidArgumentValue = 5002,
 
     // Process module (6xxx)
     PythonNotFound = 6001,
