@@ -271,6 +271,17 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         // Pass the runner to the bridge
         _serverBridge.SetTaskRunner(_taskRunner);
 
+        // Initialize the script playground runner
+        var scriptRunner = new app_script.ScriptRunner(this, this, (level, message, sender) =>
+        {
+            try
+            {
+                _serverBridge.SendInternalLog(level, message, sender);
+            }
+            catch { }
+        });
+        _serverBridge.SetScriptRunner(scriptRunner);
+
         // Run startup script if configured
         var startupScript = _settingsManager.Current.StartupScriptPath;
         if (!string.IsNullOrWhiteSpace(startupScript))
