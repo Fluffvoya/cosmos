@@ -1422,3 +1422,463 @@ body.tab-right .splitter.right-splitter {
 .message-bar-close:hover {
     color: #ffffff;
 }
+
+/* ── Password Manager Panel ──────────────────────────────────────── */
+.password-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    height: 100%;
+}
+
+.password-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 16px;
+}
+
+/* Setup and Login screens */
+.password-setup,
+.password-login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.password-setup h2,
+.password-login h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.password-setup-desc,
+.password-login-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.password-input-group {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.password-input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.password-input-group input[type="password"],
+.password-input-group input[type="text"],
+.password-input-group input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.password-input-group input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+.password-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.password-input-row input {
+    flex: 1;
+}
+
+.password-error {
+    color: var(--danger-color);
+    font-size: 13px;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.password-submit-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+}
+
+/* Main screen layout */
+.password-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.password-toolbar-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.password-change-pwd-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+}
+
+.password-add-platform-btn {
+    font-size: 13px;
+    padding: 5px 14px;
+}
+
+.password-success-msg {
+    color: #1a8c1a;
+    font-size: 13px;
+    margin-left: 12px;
+}
+
+.password-main-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Platform sidebar */
+.password-sidebar {
+    width: 220px;
+    min-width: 220px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.password-sidebar-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-style: italic;
+}
+
+.password-platform-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    gap: 8px;
+}
+
+.password-platform-item:hover {
+    background-color: var(--menu-hover-bg);
+}
+
+.password-platform-item.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.password-platform-item.active .password-platform-count {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.password-platform-name {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.password-platform-count {
+    font-size: 11px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.password-platform-delete {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.password-platform-item:hover .password-platform-delete {
+    display: block;
+}
+
+.password-platform-item.active .password-platform-delete {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.password-platform-delete:hover {
+    color: var(--danger-color) !important;
+}
+
+/* Account detail area */
+.password-detail {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.password-detail-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.password-account-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.password-account-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.password-accounts-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-style: italic;
+}
+
+.password-account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.password-account-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.password-account-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.password-account-row:last-child {
+    margin-bottom: 0;
+}
+
+.password-account-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.password-account-value {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+}
+
+.password-account-value.password-hidden {
+    color: var(--text-muted);
+    letter-spacing: 2px;
+}
+
+.password-copy-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.password-copy-btn:hover {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.password-copy-btn.copied {
+    background-color: #1a8c1a;
+    color: white;
+    border-color: #1a8c1a;
+}
+
+.password-toggle-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.password-toggle-btn:hover {
+    background-color: var(--menu-hover-bg);
+}
+
+.password-account-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bg-tertiary);
+}
+
+/* Dialog overlay */
+.password-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.password-dialog {
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    width: 380px;
+    max-width: 90vw;
+    overflow: hidden;
+}
+
+.password-dialog-wide {
+    width: 450px;
+}
+
+.password-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.password-dialog-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.password-dialog-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    line-height: 1;
+}
+
+.password-dialog-close:hover {
+    color: var(--danger-color);
+}
+
+.password-dialog .password-input-group {
+    padding: 0 20px;
+    margin-top: 16px;
+}
+
+.password-dialog .password-error {
+    padding: 0 20px;
+}
+
+.password-dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 16px;
+}
+
+.password-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    margin-top: 16px;
+}
+
+.password-checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.password-checkbox-group label {
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.password-generate-btn {
+    margin: 16px 20px 0;
+    width: calc(100% - 40px);
+}
+
+.password-copy-feedback {
+    color: #1a8c1a;
+    font-size: 13px;
+    text-align: center;
+    padding: 8px 20px;
+    margin-top: 8px;
+}

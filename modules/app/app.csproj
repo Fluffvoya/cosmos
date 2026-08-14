@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\app-bridge\app-bridge.csproj" />
+    <ProjectReference Include="..\app-password\app-password.csproj" />
     <ProjectReference Include="..\app-settings\app-settings.csproj" />
     <ProjectReference Include="..\app-scheduler\app-scheduler.csproj" />
     <ProjectReference Include="..\app-script\app-script.csproj" />

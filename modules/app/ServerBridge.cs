@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
+using app_password;
 using app_scheduler;
 using app_script;
 using app_settings;
@@ -24,6 +25,7 @@ public class ServerBridge
 {
     private readonly WebView2 _webView;
     private readonly MainWindow _mainWindow;
+    private readonly AppPasswordManager _passwordManager;
     private readonly Action<string, string, string> _logToUI; // (level, message, sender)
     private ScheduledTaskRunner? _taskRunner;
     private ScriptRunner? _scriptRunner;
@@ -35,10 +37,14 @@ public class ServerBridge
     // Counter for generating unique request IDs.
     private long _requestIdCounter;
 
-    public ServerBridge(WebView2 webView, MainWindow mainWindow, Action<string, string, string> logToUI)
+    // Current authenticated password for encryption/decryption
+    private string? _currentPassword;
+
+    public ServerBridge(WebView2 webView, MainWindow mainWindow, AppPasswordManager passwordManager, Action<string, string, string> logToUI)
     {
         _webView = webView;
         _mainWindow = mainWindow;
+        _passwordManager = passwordManager;
         _logToUI = logToUI;
     }
 
@@ -153,6 +159,26 @@ public class ServerBridge
 
                     case "scriptRunSource":
                         HandleScriptRunSource(root);
+                        break;
+
+                    case "passwordManagerCheckSetup":
+                        HandlePasswordManagerCheckSetup();
+                        break;
+
+                    case "passwordManagerSetup":
+                        HandlePasswordManagerSetup(root);
+                        break;
+
+                    case "passwordManagerAuth":
+                        HandlePasswordManagerAuth(root);
+                        break;
+
+                    case "passwordManagerChangePassword":
+                        HandlePasswordManagerChangePassword(root);
+                        break;
+
+                    case "passwordManagerSaveData":
+                        HandlePasswordManagerSaveData(root);
                         break;
 
                     default:
@@ -742,6 +768,203 @@ public class ServerBridge
         finally
         {
             _pendingRequests.TryRemove(requestId, out _);
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager setup check request.
+    /// Sends response indicating whether master password is set up.
+    /// </summary>
+    private void HandlePasswordManagerCheckSetup()
+    {
+        var isSetup = _passwordManager.IsSetup();
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "passwordManagerSetupCheck",
+            isSetup = isSetup
+        });
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle password manager initial setup.
+    /// Creates master password hash and initializes empty data.
+    /// </summary>
+    private void HandlePasswordManagerSetup(JsonElement root)
+    {
+        if (!root.TryGetProperty("password", out var passwordProp))
+            return;
+
+        var password = passwordProp.GetString();
+        if (string.IsNullOrEmpty(password))
+            return;
+
+        var success = _passwordManager.Setup(password);
+
+        if (success)
+        {
+            _currentPassword = password;
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerSetupSuccess"
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager authentication.
+    /// Verifies password and returns decrypted data on success.
+    /// </summary>
+    private void HandlePasswordManagerAuth(JsonElement root)
+    {
+        if (!root.TryGetProperty("password", out var passwordProp))
+            return;
+
+        var password = passwordProp.GetString();
+        if (string.IsNullOrEmpty(password))
+            return;
+
+        var isValid = _passwordManager.VerifyPassword(password);
+
+        if (isValid)
+        {
+            _currentPassword = password;
+            var platforms = _passwordManager.LoadData(password);
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerAuthSuccess",
+                platforms = platforms
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+        else
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerAuthFailure",
+                message = "Incorrect password."
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager password change request.
+    /// Verifies old password and updates to new password.
+    /// </summary>
+    private void HandlePasswordManagerChangePassword(JsonElement root)
+    {
+        if (!root.TryGetProperty("currentPassword", out var currentProp) ||
+            !root.TryGetProperty("newPassword", out var newProp))
+            return;
+
+        var currentPassword = currentProp.GetString();
+        var newPassword = newProp.GetString();
+
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
+            return;
+
+        var success = _passwordManager.ChangePassword(currentPassword, newPassword);
+
+        if (success)
+        {
+            _currentPassword = newPassword;
+
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerChangePasswordSuccess"
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+        else
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "passwordManagerChangePasswordFailure",
+                message = "Failed to change password. Please verify your current password."
+            });
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Handle password manager save data request.
+    /// Encrypts and saves platform data.
+    /// </summary>
+    private void HandlePasswordManagerSaveData(JsonElement root)
+    {
+        if (_currentPassword == null)
+        {
+            _logToUI("Error", "Cannot save password data: not authenticated", "program");
+            return;
+        }
+
+        if (!root.TryGetProperty("platforms", out var platformsProp))
+            return;
+
+        try
+        {
+            var platforms = JsonSerializer.Deserialize<PlatformData[]>(platformsProp.GetRawText());
+            if (platforms != null)
+            {
+                _passwordManager.SaveData(_currentPassword, platforms);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save password data: {ex.Message}", "program");
         }
     }
 }

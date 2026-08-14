@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using app_bridge;
+using app_password;
 using app_scheduler;
 using app_settings;
 using bridge;
@@ -27,6 +28,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     private cm_script.Script? _script;
     private ScheduledTaskRunner? _taskRunner;
     private readonly SettingsManager _settingsManager = new();
+    private readonly AppPasswordManager _passwordManager = new();
 
     // ���� Window styles ����������������������������������������������������������������������������������������
     private const int WS_THICKFRAME  = 0x00040000;
@@ -88,6 +90,11 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     /// Gets the settings manager instance.
     /// </summary>
     public SettingsManager SettingsManager => _settingsManager;
+
+    /// <summary>
+    /// Gets the password manager instance.
+    /// </summary>
+    public AppPasswordManager PasswordManager => _passwordManager;
 
     public MainWindow()
     {
@@ -218,7 +225,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         _webView.Source = new Uri("https://app.local/index.html");
 
         // Create bridge
-        _serverBridge = new ServerBridge(_webView, this, (level, message, sender) =>
+        _serverBridge = new ServerBridge(_webView, this, _passwordManager, (level, message, sender) =>
         {
             try
             {
