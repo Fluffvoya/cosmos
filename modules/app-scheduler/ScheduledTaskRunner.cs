@@ -223,7 +223,7 @@ public class ScheduledTaskRunner : IDisposable
         try
         {
             _logToUI("Info", $"Manual run: {expanded}", "program");
-            var source = await File.ReadAllTextAsync(scriptPath);
+            var source = await File.ReadAllTextAsync(expanded);
             await _scriptRunner.Run(source);
             return (true, "OK");
         }
