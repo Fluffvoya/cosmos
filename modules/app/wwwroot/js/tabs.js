@@ -252,7 +252,7 @@ const Tabs = {
     },
 
     /**
-     * Render the Start page panel with greeting and quick-action cards.
+     * Render the Start page panel with greeting, time, and quick-action cards.
      * @param {HTMLElement} panel - The container element to render into.
      */
     renderStartPanel(panel) {
@@ -264,13 +264,18 @@ const Tabs = {
             ? 'Welcome back, ' + this.escapeHtml(username)
             : 'Welcome to Cosmos';
 
+        // Current time and date
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
         // Quick-action card definitions
         const cards = [
-            { icon: '\u{1F4DC}', title: 'Log',       desc: 'View system logs',           action: 'newLog' },
-            { icon: '⏰',   title: 'Scheduler',  desc: 'Manage scheduled tasks',     action: 'newScheduler' },
-            { icon: '\u{1F4BB}', title: 'Script',    desc: 'Open script playground',     action: 'newScript' },
-            { icon: '\u{1F511}', title: 'Passwords', desc: 'Password manager',           action: 'newPasswordManager' },
-            { icon: '⚙️', title: 'Settings', desc: 'Configure application',    action: 'openSettings' },
+            { icon: '\u{1F4DC}', title: 'Log',        desc: 'View system logs',         action: 'newLog' },
+            { icon: '⏰',   title: 'Scheduler',  desc: 'Manage scheduled tasks',   action: 'newScheduler' },
+            { icon: '\u{1F4BB}', title: 'Script',     desc: 'Open script playground',   action: 'newScript' },
+            { icon: '\u{1F511}', title: 'Passwords',  desc: 'Password manager',         action: 'newPasswordManager' },
+            { icon: '⚙️', title: 'Settings', desc: 'Configure application',   action: 'openSettings' },
         ];
 
         // Build card HTML
@@ -288,6 +293,7 @@ const Tabs = {
                 '<div class="start-greeting">' +
                     '<div class="start-greeting-title">' + greetingText + '</div>' +
                     '<div class="start-greeting-sub">What would you like to do?</div>' +
+                    '<div class="start-time">' + dateStr + ' · ' + timeStr + '</div>' +
                 '</div>' +
                 '<div class="start-cards">' + cardsHtml + '</div>' +
                 '<div class="start-footer">Cosmos v1.0</div>' +

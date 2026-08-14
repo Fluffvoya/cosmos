@@ -18,6 +18,7 @@ public class ScheduledTaskRunner : IDisposable
     private readonly Action<string, string, string> _logToUI;
     private readonly IScriptRunner? _scriptRunner;
     private readonly IWebViewBridge? _webViewBridge;
+    private readonly string? _dataFolder;
     private Timer? _timer;
     private string? _lastRunMinute;
 
@@ -25,12 +26,14 @@ public class ScheduledTaskRunner : IDisposable
         SettingsManager settingsManager,
         Action<string, string, string> logToUI,
         IScriptRunner? scriptRunner = null,
-        IWebViewBridge? webViewBridge = null)
+        IWebViewBridge? webViewBridge = null,
+        string? dataFolder = null)
     {
         _settingsManager = settingsManager;
         _logToUI = logToUI;
         _scriptRunner = scriptRunner;
         _webViewBridge = webViewBridge;
+        _dataFolder = dataFolder;
     }
 
     /// <summary>
@@ -41,7 +44,8 @@ public class ScheduledTaskRunner : IDisposable
     {
         _logToUI("Info", "Scheduled task runner started", "program");
         _timer = new Timer(CheckTasks, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
-        _logToUI("Info", $"Checking {_settingsManager.Current.ScheduledTasks.Count} scheduled tasks", "program");
+        var tasks = DataStore.Load<List<ScheduledTask>>("tasks.json", _dataFolder) ?? new List<ScheduledTask>();
+        _logToUI("Info", $"Checking {tasks.Count} scheduled tasks", "program");
     }
 
     /// <summary>
@@ -70,8 +74,8 @@ public class ScheduledTaskRunner : IDisposable
                 return;
             _lastRunMinute = currentMinute;
 
-            var tasks = _settingsManager.Current.ScheduledTasks;
-            if (tasks == null || tasks.Count == 0)
+            var tasks = DataStore.Load<List<ScheduledTask>>("tasks.json", _dataFolder) ?? new List<ScheduledTask>();
+            if (tasks.Count == 0)
             {
                 _logToUI("Info", "No scheduled tasks found", "program");
                 return;
@@ -182,7 +186,13 @@ public class ScheduledTaskRunner : IDisposable
             if (task.Recurrence == "once")
             {
                 task.Enabled = false;
-                _settingsManager.Save();
+                // Reload tasks, update the disabled one, and save back
+                var currentTasks = DataStore.Load<List<ScheduledTask>>("tasks.json", _dataFolder) ?? new List<ScheduledTask>();
+                if (index < currentTasks.Count)
+                {
+                    currentTasks[index].Enabled = false;
+                    DataStore.Save("tasks.json", currentTasks, _dataFolder);
+                }
                 _logToUI("Info", $"One-time task #{index + 1} disabled after execution", "program");
 
                 // Notify frontend to refresh

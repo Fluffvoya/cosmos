@@ -10,6 +10,7 @@ namespace tests;
 public class ScheduledTaskRunnerTests : IDisposable
 {
     private readonly List<string> _logs = new();
+    private readonly string _tempDir = Path.Combine(Path.GetTempPath(), "cosmos_test_" + Guid.NewGuid().ToString("N"));
 
     private void LogToUI(string level, string message, string sender)
     {
@@ -19,9 +20,14 @@ public class ScheduledTaskRunnerTests : IDisposable
     private SettingsManager CreateManagerWithTasks(params ScheduledTask[] tasks)
     {
         var manager = new SettingsManager();
-        foreach (var task in tasks)
-            manager.Current.ScheduledTasks.Add(task);
+        // Save tasks to an isolated temp directory so parallel tests don't collide
+        DataStore.Save("tasks.json", new List<ScheduledTask>(tasks), _tempDir);
         return manager;
+    }
+
+    private ScheduledTaskRunner CreateRunner(SettingsManager manager, IScriptRunner? scriptRunner = null, IWebViewBridge? webViewBridge = null)
+    {
+        return new ScheduledTaskRunner(manager, LogToUI, scriptRunner, webViewBridge, _tempDir);
     }
 
     private class MockScriptRunner : IScriptRunner
@@ -50,7 +56,9 @@ public class ScheduledTaskRunnerTests : IDisposable
 
     public void Dispose()
     {
-        // Cleanup if needed
+        // Clean up the isolated temp directory
+        if (Directory.Exists(_tempDir))
+            Directory.Delete(_tempDir, true);
     }
 
     // ── Constructor ─────────────────────────────────────────────────
@@ -59,7 +67,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Constructor_WithValidParameters_DoesNotThrow()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         Assert.NotNull(runner);
     }
@@ -70,7 +78,7 @@ public class ScheduledTaskRunnerTests : IDisposable
         var manager = CreateManagerWithTasks();
         var scriptRunner = new MockScriptRunner();
         var webViewBridge = new MockWebViewBridge();
-        var runner = new ScheduledTaskRunner(manager, LogToUI, scriptRunner, webViewBridge);
+        var runner = CreateRunner(manager, scriptRunner, webViewBridge);
 
         Assert.NotNull(runner);
     }
@@ -81,7 +89,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Start_LogsStartMessage()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         runner.Start();
 
@@ -95,7 +103,7 @@ public class ScheduledTaskRunnerTests : IDisposable
         var manager = CreateManagerWithTasks(
             new ScheduledTask { Time = "09:00" },
             new ScheduledTask { Time = "18:00" });
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         runner.Start();
 
@@ -107,7 +115,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Stop_LogsStopMessage()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         runner.Start();
         runner.Stop();
@@ -119,7 +127,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Stop_WithoutStart_DoesNotThrow()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         // Stop without Start should not throw
         runner.Stop();
@@ -131,7 +139,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Dispose_StopsRunner()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         runner.Start();
         runner.Dispose();
@@ -144,7 +152,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Dispose_WithoutStart_DoesNotThrow()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         // Dispose without Start should not throw
         runner.Dispose();
@@ -156,7 +164,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public async Task RunTaskNow_EmptyPath_ReturnsFailure()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         var (success, message) = await runner.RunTaskNow("");
 
@@ -168,7 +176,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public async Task RunTaskNow_WhitespacePath_ReturnsFailure()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         var (success, message) = await runner.RunTaskNow("   ");
 
@@ -179,7 +187,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public async Task RunTaskNow_NonExistentFile_ReturnsFailure()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         var (success, message) = await runner.RunTaskNow(@"C:\nonexistent\script.cms");
 
@@ -195,7 +203,7 @@ public class ScheduledTaskRunnerTests : IDisposable
         var tempFile = Path.GetTempFileName();
         try
         {
-            var runner = new ScheduledTaskRunner(manager, LogToUI, scriptRunner: null);
+            var runner = CreateRunner(manager);
 
             var (success, message) = await runner.RunTaskNow(tempFile);
 
@@ -217,7 +225,7 @@ public class ScheduledTaskRunnerTests : IDisposable
         try
         {
             File.WriteAllText(tempFile, "COSMOS noop");
-            var runner = new ScheduledTaskRunner(manager, LogToUI, scriptRunner);
+            var runner = CreateRunner(manager, scriptRunner);
 
             var (success, message) = await runner.RunTaskNow(tempFile);
 
@@ -241,7 +249,7 @@ public class ScheduledTaskRunnerTests : IDisposable
         try
         {
             File.WriteAllText(tempFile, "COSMOS noop");
-            var runner = new ScheduledTaskRunner(manager, LogToUI, scriptRunner);
+            var runner = CreateRunner(manager, scriptRunner);
 
             var (success, message) = await runner.RunTaskNow(tempFile);
 
@@ -267,7 +275,7 @@ public class ScheduledTaskRunnerTests : IDisposable
             File.WriteAllText(tempFile, "test");
             var envPath = tempFile.Replace(Path.GetTempPath(), "%TEMP%\\");
 
-            var runner = new ScheduledTaskRunner(manager, LogToUI, scriptRunner);
+            var runner = CreateRunner(manager, scriptRunner);
             var (success, message) = await runner.RunTaskNow(envPath);
 
             Assert.True(success);
@@ -284,7 +292,7 @@ public class ScheduledTaskRunnerTests : IDisposable
     public void Start_Stop_Start_DoesNotThrow()
     {
         var manager = CreateManagerWithTasks();
-        var runner = new ScheduledTaskRunner(manager, LogToUI);
+        var runner = CreateRunner(manager);
 
         runner.Start();
         runner.Stop();

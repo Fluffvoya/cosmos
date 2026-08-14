@@ -248,7 +248,7 @@ public class ServerBridge
 
     /// <summary>
     /// Handle scheduled tasks changed from the Scheduler tab.
-    /// Persists the updated tasks list to settings.
+    /// Persists the updated tasks list to tasks.json.
     /// </summary>
     private void HandleSchedulerTasksChanged(JsonElement root)
     {
@@ -257,11 +257,10 @@ public class ServerBridge
 
         try
         {
-            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
+            var tasks = JsonSerializer.Deserialize<List<ScheduledTask>>(tasksProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (tasks != null)
             {
-                _mainWindow.SettingsManager.Current.ScheduledTasks = tasks;
-                _mainWindow.SettingsManager.Save();
+                DataStore.Save("tasks.json", tasks);
             }
         }
         catch (Exception ex)
@@ -272,7 +271,7 @@ public class ServerBridge
 
     /// <summary>
     /// Handle script output changes from the Script Terminal.
-    /// Persists the updated output to settings.
+    /// Persists the updated output to script-output.json.
     /// </summary>
     private void HandleScriptOutputChanged(JsonElement root)
     {
@@ -282,8 +281,7 @@ public class ServerBridge
         try
         {
             var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
-            _mainWindow.SettingsManager.Current.ScriptOutput = output;
-            _mainWindow.SettingsManager.Save();
+            DataStore.Save("script-output.json", output);
         }
         catch (Exception ex)
         {

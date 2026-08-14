@@ -237,13 +237,18 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         // Wire up web message handler
         _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
-        // Send settings to frontend
+        // Send settings, tasks, and script output to frontend
         _webView.CoreWebView2.NavigationCompleted += (_, _) =>
         {
+            var tasks = DataStore.Load<List<ScheduledTask>>("tasks.json") ?? new List<ScheduledTask>();
+            var scriptOutput = DataStore.Load<List<ScriptOutputEntry>>("script-output.json");
+
             var settingsJson = System.Text.Json.JsonSerializer.Serialize(new
             {
                 type = "settingsLoaded",
-                settings = _settingsManager.Current
+                settings = _settingsManager.Current,
+                scheduledTasks = tasks,
+                scriptOutput = scriptOutput
             });
             _webView.CoreWebView2.PostWebMessageAsJson(settingsJson);
         };

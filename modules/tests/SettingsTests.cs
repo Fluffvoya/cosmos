@@ -38,14 +38,6 @@ public class SettingsTests
     }
 
     [Fact]
-    public void AppSettings_DefaultScheduledTasks_IsEmptyList()
-    {
-        var settings = new AppSettings();
-        Assert.NotNull(settings.ScheduledTasks);
-        Assert.Empty(settings.ScheduledTasks);
-    }
-
-    [Fact]
     public void AppSettings_PropertiesCanBeSet()
     {
         var settings = new AppSettings
@@ -249,27 +241,33 @@ public class SettingsTests
     }
 
     [Fact]
-    public void SettingsManager_ScheduledTasks_CanBeManipulated()
+    public void DataStore_SaveAndLoad_RoundTrips()
     {
-        var manager = new SettingsManager();
-
-        manager.Current.ScheduledTasks.Add(new ScheduledTask
+        var tempFile = "cosmos_test_" + Guid.NewGuid().ToString("N") + ".json";
+        try
         {
-            Time = "09:00",
-            ScriptPath = @"C:\scripts\morning.cms",
-            Recurrence = "daily"
-        });
+            var tasks = new List<ScheduledTask>
+            {
+                new() { Time = "09:00", ScriptPath = @"C:\scripts\morning.cms", Recurrence = "daily" },
+                new() { Time = "18:00", ScriptPath = @"C:\scripts\evening.cms", Recurrence = "weekly",
+                         Days = new List<int> { 1, 2, 3, 4, 5 } }
+            };
 
-        manager.Current.ScheduledTasks.Add(new ScheduledTask
+            DataStore.Save(tempFile, tasks);
+            var loaded = DataStore.Load<List<ScheduledTask>>(tempFile);
+
+            Assert.NotNull(loaded);
+            Assert.Equal(2, loaded!.Count);
+            Assert.Equal("09:00", loaded[0].Time);
+            Assert.Equal("weekly", loaded[1].Recurrence);
+        }
+        finally
         {
-            Time = "18:00",
-            ScriptPath = @"C:\scripts\evening.cms",
-            Recurrence = "weekly",
-            Days = new List<int> { 1, 2, 3, 4, 5 }
-        });
-
-        Assert.Equal(2, manager.Current.ScheduledTasks.Count);
-        Assert.Equal("09:00", manager.Current.ScheduledTasks[0].Time);
-        Assert.Equal("weekly", manager.Current.ScheduledTasks[1].Recurrence);
+            // Clean up temp file from ~/.cosmos/
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".cosmos", tempFile);
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 }

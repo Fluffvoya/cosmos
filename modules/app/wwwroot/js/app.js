@@ -81,11 +81,11 @@ const App = {
                 break;
             case 'settingsLoaded':
                 Settings.loadSettings(data.settings);
-                if (data.settings && Array.isArray(data.settings.scheduledTasks)) {
-                    Scheduler.loadTasks(data.settings.scheduledTasks);
+                if (Array.isArray(data.scheduledTasks)) {
+                    Scheduler.loadTasks(data.scheduledTasks);
                 }
-                if (data.settings && Array.isArray(data.settings.scriptOutput)) {
-                    ScriptPlayground.loadFromSettings(data.settings.scriptOutput);
+                if (Array.isArray(data.scriptOutput)) {
+                    ScriptPlayground.loadFromSettings(data.scriptOutput);
                 }
                 break;
             case 'pythonPathValidation':
