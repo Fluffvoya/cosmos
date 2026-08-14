@@ -115,6 +115,9 @@ const App = {
             case 'scriptLog':
                 ScriptPlayground.handleScriptLog(data);
                 break;
+            case 'messageBar':
+                MessageBar.show(data.message, data.level);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -441,6 +444,58 @@ const App = {
 
         // No requestId needed for About dialog (not from script)
         overlay.dataset.requestId = '';
+    }
+};
+
+/**
+ * MessageBar - Non-blocking toast notification system.
+ * Displays temporary messages at the bottom-right of the window.
+ */
+const MessageBar = {
+    /** Duration in ms before a toast auto-dismisses. */
+    DISPLAY_DURATION: 4000,
+
+    /**
+     * Show a toast notification.
+     * @param {string} message - The message text to display.
+     * @param {string} level - Severity level: "info", "warning", or "error".
+     */
+    show(message, level) {
+        const container = document.getElementById('messageBarContainer');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `message-bar-toast message-bar-${level || 'info'}`;
+
+        const text = document.createElement('span');
+        text.className = 'message-bar-text';
+        text.textContent = message || '';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'message-bar-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => this.dismiss(toast));
+
+        toast.appendChild(text);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+
+        // Trigger reflow before adding the visible class for the CSS transition
+        toast.offsetHeight;
+        toast.classList.add('message-bar-visible');
+
+        // Auto-dismiss after the configured duration
+        setTimeout(() => this.dismiss(toast), this.DISPLAY_DURATION);
+    },
+
+    /**
+     * Dismiss a toast with a fade-out animation, then remove from DOM.
+     * @param {HTMLElement} toast - The toast element to dismiss.
+     */
+    dismiss(toast) {
+        if (!toast || toast.classList.contains('message-bar-dismissed')) return;
+        toast.classList.add('message-bar-dismissed');
+        toast.addEventListener('transitionend', () => toast.remove(), { once: true });
     }
 };
 
