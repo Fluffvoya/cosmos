@@ -12,7 +12,7 @@
         <div class="menu-item" data-menu="tabs">
             <span>Tabs</span>
             <div class="menu-dropdown">
-                <div class="menu-dropdown-item" data-action="newWelcome">Welcome</div>
+                <div class="menu-dropdown-item" data-action="newStart">Start</div>
                 <div class="menu-dropdown-item" data-action="newLog">Log</div>
                 <div class="menu-dropdown-item" data-action="newScheduler">Scheduler</div>
                 <div class="menu-dropdown-item" data-action="newScript">Script</div>
@@ -100,6 +100,11 @@
                     <!-- General Settings -->
                     <div class="settings-section" id="settingsGeneral">
                         <h3>General</h3>
+                        <div class="setting-row">
+                            <label>Username</label>
+                            <input type="text" id="settingUsername" placeholder="Enter your name">
+                            <div class="setting-hint">Shown on the Start page greeting.</div>
+                        </div>
                         <div class="setting-row">
                             <label>Tab Position</label>
                             <select id="settingTabPosition">

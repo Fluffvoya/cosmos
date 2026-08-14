@@ -10,6 +10,7 @@ const Settings = {
         tabStripWidth: 140,
         pythonPath: '',
         startupScriptPath: '',
+        username: '',
     },
 
     // Original settings (for change tracking)
@@ -59,6 +60,15 @@ const Settings = {
         if (tabPositionSelect) {
             tabPositionSelect.addEventListener('change', () => {
                 this.settings.tabPosition = tabPositionSelect.value;
+                this.updateChangeTracking();
+            });
+        }
+
+        // Username change
+        const usernameInput = document.getElementById('settingUsername');
+        if (usernameInput) {
+            usernameInput.addEventListener('input', () => {
+                this.settings.username = usernameInput.value;
                 this.updateChangeTracking();
             });
         }
@@ -167,6 +177,12 @@ const Settings = {
      * Update the UI to reflect current settings.
      */
     updateUI() {
+        // Username
+        const usernameInput = document.getElementById('settingUsername');
+        if (usernameInput) {
+            usernameInput.value = this.settings.username || '';
+        }
+
         // Tab position
         const tabPositionSelect = document.getElementById('settingTabPosition');
         if (tabPositionSelect) {
@@ -403,9 +419,10 @@ const Settings = {
      */
     updateChangeTracking() {
         const hasChanges = this.originalSettings && (
-            this.settings.tabPosition !== this.originalSettings.tabPosition || 
+            this.settings.tabPosition !== this.originalSettings.tabPosition ||
             this.settings.pythonPath !== this.originalSettings.pythonPath ||
-            this.settings.startupScriptPath !== this.originalSettings.startupScriptPath
+            this.settings.startupScriptPath !== this.originalSettings.startupScriptPath ||
+            this.settings.username !== this.originalSettings.username
         );
 
         const applyBtn = document.getElementById('settingsApply');

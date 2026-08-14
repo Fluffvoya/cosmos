@@ -252,6 +252,65 @@ const Tabs = {
     },
 
     /**
+     * Render the Start page panel with greeting and quick-action cards.
+     * @param {HTMLElement} panel - The container element to render into.
+     */
+    renderStartPanel(panel) {
+        // Get username from settings (empty string if not set)
+        const username = (Settings.settings && Settings.settings.username) || '';
+
+        // Build greeting text
+        const greetingText = username
+            ? 'Welcome back, ' + this.escapeHtml(username)
+            : 'Welcome to Cosmos';
+
+        // Quick-action card definitions
+        const cards = [
+            { icon: '\u{1F4DC}', title: 'Log',       desc: 'View system logs',           action: 'newLog' },
+            { icon: '⏰',   title: 'Scheduler',  desc: 'Manage scheduled tasks',     action: 'newScheduler' },
+            { icon: '\u{1F4BB}', title: 'Script',    desc: 'Open script playground',     action: 'newScript' },
+            { icon: '\u{1F511}', title: 'Passwords', desc: 'Password manager',           action: 'newPasswordManager' },
+            { icon: '⚙️', title: 'Settings', desc: 'Configure application',    action: 'openSettings' },
+        ];
+
+        // Build card HTML
+        const cardsHtml = cards.map(card =>
+            '<div class="start-card" data-action="' + card.action + '">' +
+                '<div class="start-card-icon">' + card.icon + '</div>' +
+                '<div class="start-card-title">' + card.title + '</div>' +
+                '<div class="start-card-desc">' + card.desc + '</div>' +
+            '</div>'
+        ).join('');
+
+        // Assemble the full Start page
+        panel.innerHTML =
+            '<div class="start-page">' +
+                '<div class="start-greeting">' +
+                    '<div class="start-greeting-title">' + greetingText + '</div>' +
+                    '<div class="start-greeting-sub">What would you like to do?</div>' +
+                '</div>' +
+                '<div class="start-cards">' + cardsHtml + '</div>' +
+                '<div class="start-footer">Cosmos v1.0</div>' +
+            '</div>';
+
+        // Attach click handlers to cards
+        panel.querySelectorAll('.start-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const action = card.dataset.action;
+                if (action === 'openSettings') {
+                    Settings.show();
+                } else {
+                    // Trigger the corresponding menu action
+                    const menuItem = document.querySelector(
+                        '.menu-dropdown-item[data-action="' + action + '"]'
+                    );
+                    if (menuItem) menuItem.click();
+                }
+            });
+        });
+    },
+
+    /**
      * Render the content area for the active tab.
      * The Script panel is cached and reused (hidden via CSS class, not destroyed)
      * so that the input field preserves its value across tab switches.
@@ -280,7 +339,7 @@ const Tabs = {
 
         if (!activeTab) {
             const empty = document.createElement('div');
-            empty.className = 'tab-panel-welcome';
+            empty.className = 'tab-panel-start';
             empty.textContent = 'No tabs open';
             contentArea.appendChild(empty);
             return;
@@ -310,16 +369,15 @@ const Tabs = {
         panel.className = 'tab-panel active';
 
         if (activeTab.contentType === 'Document') {
-            panel.innerHTML = '<div class="tab-panel-welcome">' +
-                this.escapeHtml(activeTab.title) + '</div>';
+            this.renderStartPanel(panel);
         } else if (activeTab.contentType === 'Settings') {
-            panel.innerHTML = '<div class="tab-panel-welcome">Settings</div>';
+            panel.innerHTML = '<div class="tab-panel-start">Settings</div>';
         } else if (activeTab.contentType === 'Log') {
             LogStore.renderLogPanel(panel);
         } else if (activeTab.contentType === 'Scheduler') {
             Scheduler.renderSchedulerPanel(panel);
         } else {
-            panel.innerHTML = '<div class="tab-panel-welcome">' +
+            panel.innerHTML = '<div class="tab-panel-start">' +
                 this.escapeHtml(activeTab.contentType) + '</div>';
         }
 

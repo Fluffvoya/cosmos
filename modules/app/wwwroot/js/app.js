@@ -27,9 +27,9 @@ const App = {
         // Initialize splitter module
         Splitter.init();
 
-        // Add default welcome tab
+        // Add default start tab
         Tabs.addTab({
-            title: 'Welcome',
+            title: 'Start',
             contentType: 'Document',
             icon: null
         });
@@ -265,9 +265,9 @@ const App = {
             item.addEventListener('click', () => {
                 const action = item.dataset.action;
                 switch (action) {
-                    case 'newWelcome':
+                    case 'newStart':
                         Tabs.addTab({
-                            title: 'Welcome',
+                            title: 'Start',
                             contentType: 'Document',
                             icon: null
                         });

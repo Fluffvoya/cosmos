@@ -13,6 +13,9 @@ public class AppSettings
     [JsonPropertyName("tabStripWidth")]
     public int TabStripWidth { get; set; } = 140;
 
+    [JsonPropertyName("username")]
+    public string Username { get; set; } = "";
+
     [JsonPropertyName("pythonPath")]
     public string PythonPath { get; set; } = "";
 
