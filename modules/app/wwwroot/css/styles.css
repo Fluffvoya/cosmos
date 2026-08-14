@@ -1424,11 +1424,13 @@ body.tab-right .splitter.right-splitter {
 }
 
 /* ── Password Manager Panel ──────────────────────────────────────── */
-.password-panel {
-    display: flex;
+/* Use higher specificity to override .tab-panel.active */
+.tab-panel.password-panel {
+    display: flex !important;
     flex-direction: column;
-    padding: 0;
+    padding: 0 !important;
     height: 100%;
+    overflow: hidden;
 }
 
 .password-loading {

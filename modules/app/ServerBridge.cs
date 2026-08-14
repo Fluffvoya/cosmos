@@ -17,6 +17,17 @@ using server;
 namespace app;
 
 /// <summary>
+/// Shared JSON serializer options using camelCase to match frontend conventions.
+/// </summary>
+internal static class ServerBridgeJsonOptions
+{
+    public static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+}
+
+/// <summary>
 /// Bridges IServer requests from cm-script to the WebView2 frontend.
 /// Parses incoming requests, dispatches them to the frontend via postMessage,
 /// and waits for responses back from the frontend.
@@ -77,7 +88,7 @@ public class ServerBridge
                 level = level,
                 message = message,
                 sender = sender
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             if (_webView.InvokeRequired)
             {
@@ -223,7 +234,7 @@ public class ServerBridge
 
         try
         {
-            var newSettings = JsonSerializer.Deserialize<AppSettings>(settingsProp.GetRawText());
+            var newSettings = JsonSerializer.Deserialize<AppSettings>(settingsProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (newSettings != null)
             {
                 _mainWindow.SettingsManager.Update(newSettings);
@@ -246,7 +257,7 @@ public class ServerBridge
 
         try
         {
-            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText());
+            var tasks = JsonSerializer.Deserialize<System.Collections.Generic.List<ScheduledTask>>(tasksProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (tasks != null)
             {
                 _mainWindow.SettingsManager.Current.ScheduledTasks = tasks;
@@ -270,7 +281,7 @@ public class ServerBridge
 
         try
         {
-            var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText());
+            var output = JsonSerializer.Deserialize<List<ScriptOutputEntry>>(outputProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             _mainWindow.SettingsManager.Current.ScriptOutput = output;
             _mainWindow.SettingsManager.Save();
         }
@@ -303,7 +314,7 @@ public class ServerBridge
                 index = index,
                 success = success,
                 message = message
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -344,7 +355,7 @@ public class ServerBridge
                 type = "schedulerBrowseResult",
                 index = index,
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -412,7 +423,7 @@ public class ServerBridge
             {
                 type = "startupScriptBrowseResult",
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -493,7 +504,7 @@ public class ServerBridge
             path = scriptPath,
             isValid = isValid,
             error = errorMessage
-        });
+        }, ServerBridgeJsonOptions.CamelCase);
 
         if (_webView.InvokeRequired)
         {
@@ -528,7 +539,7 @@ public class ServerBridge
             {
                 type = "browseResult",
                 selectedPath = selectedPath
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -609,7 +620,7 @@ public class ServerBridge
             path = pythonPath,
             isValid = isValid,
             error = errorMessage
-        });
+        }, ServerBridgeJsonOptions.CamelCase);
 
         if (_webView.InvokeRequired)
         {
@@ -675,7 +686,7 @@ public class ServerBridge
                     type = "scriptLog",
                     level = level,
                     message = message
-                });
+                }, ServerBridgeJsonOptions.CamelCase);
 
                 if (_webView.InvokeRequired)
                     _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(scriptLogJson));
@@ -701,7 +712,7 @@ public class ServerBridge
                     type = "messageBar",
                     message = message,
                     level = level
-                });
+                }, ServerBridgeJsonOptions.CamelCase);
 
                 if (_webView.InvokeRequired)
                     _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(toastJson));
@@ -730,7 +741,7 @@ public class ServerBridge
                 requestId = requestId,
                 requestName = request.request,
                 args = request.args
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             // Post message to frontend on the UI thread.
             if (_webView.InvokeRequired)
@@ -783,7 +794,7 @@ public class ServerBridge
         {
             type = "passwordManagerSetupCheck",
             isSetup = isSetup
-        });
+        }, ServerBridgeJsonOptions.CamelCase);
 
         try
         {
@@ -817,7 +828,7 @@ public class ServerBridge
             var responseJson = JsonSerializer.Serialize(new
             {
                 type = "passwordManagerSetupSuccess"
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -854,7 +865,7 @@ public class ServerBridge
             {
                 type = "passwordManagerAuthSuccess",
                 platforms = platforms
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -871,7 +882,7 @@ public class ServerBridge
             {
                 type = "passwordManagerAuthFailure",
                 message = "Incorrect password."
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -909,7 +920,7 @@ public class ServerBridge
             var responseJson = JsonSerializer.Serialize(new
             {
                 type = "passwordManagerChangePasswordSuccess"
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -926,7 +937,7 @@ public class ServerBridge
             {
                 type = "passwordManagerChangePasswordFailure",
                 message = "Failed to change password. Please verify your current password."
-            });
+            }, ServerBridgeJsonOptions.CamelCase);
 
             try
             {
@@ -956,7 +967,7 @@ public class ServerBridge
 
         try
         {
-            var platforms = JsonSerializer.Deserialize<PlatformData[]>(platformsProp.GetRawText());
+            var platforms = JsonSerializer.Deserialize<PlatformData[]>(platformsProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
             if (platforms != null)
             {
                 _passwordManager.SaveData(_currentPassword, platforms);

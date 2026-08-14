@@ -7,6 +7,17 @@ using System.Text.Json;
 namespace app_password;
 
 /// <summary>
+/// Shared JSON serializer options using camelCase to match frontend conventions.
+/// </summary>
+internal static class JsonOptions
+{
+    public static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+}
+
+/// <summary>
 /// Manages password storage with encryption.
 /// Master password is hashed with SHA256 + salt and stored in ~/.cosmos/password_hash.dat
 /// Password data is encrypted using AES-256-CBC with the master password as key.
@@ -186,8 +197,8 @@ public class AppPasswordManager
             // Decrypt
             string json = DecryptAes(ciphertext, key, iv);
 
-            // Deserialize
-            var platforms = JsonSerializer.Deserialize<PlatformData[]>(json);
+            // Deserialize using camelCase to match frontend conventions
+            var platforms = JsonSerializer.Deserialize<PlatformData[]>(json, JsonOptions.CamelCase);
             return platforms ?? Array.Empty<PlatformData>();
         }
         catch (Exception ex)
@@ -209,9 +220,8 @@ public class AppPasswordManager
         {
             Directory.CreateDirectory(SettingsFolder);
 
-            // Serialize to JSON
-            var options = new JsonSerializerOptions { WriteIndented = false };
-            string json = JsonSerializer.Serialize(platforms, options);
+            // Serialize to JSON using camelCase to match frontend conventions
+            string json = JsonSerializer.Serialize(platforms, JsonOptions.CamelCase);
             byte[] plaintext = Encoding.UTF8.GetBytes(json);
 
             // Generate random IV
