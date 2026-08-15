@@ -7,6 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Suppress MSB3277: WebView2 NuGet package forces both WinForms and WPF assemblies
          for all .NET 5+ projects. The WPF DLL references WindowsBase 5.0.0.0 which conflicts
          with .NET SDK's WindowsBase 4.0.0.0. This is harmless �?only WinForms is used at runtime.

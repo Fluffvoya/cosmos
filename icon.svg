@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Deep space gradient background -->
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1a1a3e"/>
+      <stop offset="100%" stop-color="#0a0a1a"/>
+    </radialGradient>
+    <!-- Planet gradient -->
+    <radialGradient id="planet" cx="40%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#6ec6ff"/>
+      <stop offset="50%" stop-color="#4a90d9"/>
+      <stop offset="100%" stop-color="#1a3a6e"/>
+    </radialGradient>
+    <!-- Glow effect -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6ec6ff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#6ec6ff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Ring gradient -->
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.1"/>
+      <stop offset="30%" stop-color="#a78bfa" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#c4b5fd" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#a78bfa" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.1"/>
+    </linearGradient>
+    <!-- Star sparkle filter -->
+    <filter id="starGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- Subtle nebula wisps -->
+  <ellipse cx="380" cy="120" rx="120" ry="60" fill="#a78bfa" opacity="0.04" transform="rotate(-20 380 120)"/>
+  <ellipse cx="130" cy="400" rx="100" ry="50" fill="#6ec6ff" opacity="0.04" transform="rotate(15 130 400)"/>
+
+  <!-- Stars - small dots scattered around -->
+  <g fill="#ffffff" filter="url(#starGlow)">
+    <circle cx="80" cy="80" r="2" opacity="0.8"/>
+    <circle cx="420" cy="60" r="1.5" opacity="0.6"/>
+    <circle cx="450" cy="150" r="1" opacity="0.5"/>
+    <circle cx="60" cy="200" r="1.5" opacity="0.7"/>
+    <circle cx="460" cy="300" r="2" opacity="0.6"/>
+    <circle cx="100" cy="420" r="1" opacity="0.5"/>
+    <circle cx="380" cy="440" r="1.5" opacity="0.7"/>
+    <circle cx="150" cy="100" r="1" opacity="0.4"/>
+    <circle cx="350" cy="380" r="1" opacity="0.5"/>
+    <circle cx="70" cy="320" r="1.5" opacity="0.4"/>
+    <circle cx="440" cy="420" r="1" opacity="0.6"/>
+    <circle cx="200" cy="50" r="1" opacity="0.5"/>
+  </g>
+
+  <!-- Brighter accent stars with cross shape -->
+  <g fill="#ffffff" opacity="0.9">
+    <circle cx="430" cy="100" r="2.5"/>
+    <line x1="430" y1="94" x2="430" y2="106" stroke="#ffffff" stroke-width="0.8" opacity="0.6"/>
+    <line x1="424" y1="100" x2="436" y2="100" stroke="#ffffff" stroke-width="0.8" opacity="0.6"/>
+  </g>
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="90" cy="150" r="2"/>
+    <line x1="90" y1="145" x2="90" y2="155" stroke="#ffffff" stroke-width="0.6" opacity="0.5"/>
+    <line x1="85" y1="150" x2="95" y2="150" stroke="#ffffff" stroke-width="0.6" opacity="0.5"/>
+  </g>
+
+  <!-- Ambient glow behind planet -->
+  <circle cx="256" cy="240" r="140" fill="url(#glow)"/>
+
+  <!-- Orbital ring - back part (behind planet) -->
+  <ellipse cx="256" cy="260" rx="180" ry="50" fill="none" stroke="url(#ring)" stroke-width="5" stroke-dasharray="4 8 200 8" transform="rotate(-15 256 260)" opacity="0.4"/>
+
+  <!-- Planet body -->
+  <circle cx="256" cy="240" r="90" fill="url(#planet)"/>
+
+  <!-- Planet surface details - lighter patches -->
+  <ellipse cx="230" cy="210" rx="30" ry="20" fill="#ffffff" opacity="0.08" transform="rotate(-10 230 210)"/>
+  <ellipse cx="280" cy="255" rx="25" ry="15" fill="#ffffff" opacity="0.06" transform="rotate(20 280 255)"/>
+  <ellipse cx="220" cy="260" rx="20" ry="12" fill="#000000" opacity="0.08"/>
+
+  <!-- Terminator shadow on planet -->
+  <clipPath id="planetClip">
+    <circle cx="256" cy="240" r="90"/>
+  </clipPath>
+  <ellipse cx="300" cy="240" rx="60" ry="95" fill="#0a0a1a" opacity="0.25" clip-path="url(#planetClip)"/>
+
+  <!-- Orbital ring - front part (in front of planet) -->
+  <ellipse cx="256" cy="260" rx="180" ry="50" fill="none" stroke="url(#ring)" stroke-width="5" stroke-dasharray="200 8 4 8" transform="rotate(-15 256 260)" opacity="0.9"/>
+
+  <!-- Second orbital ring -->
+  <ellipse cx="256" cy="250" rx="150" ry="70" fill="none" stroke="#6ec6ff" stroke-width="2" stroke-dasharray="2 12" transform="rotate(25 256 250)" opacity="0.3"/>
+
+  <!-- Small orbiting moon/satellite -->
+  <circle cx="400" cy="230" r="8" fill="#c4b5fd"/>
+  <circle cx="400" cy="230" r="4" fill="#e0d5ff"/>
+
+  <!-- "C" letter mark - subtle, integrated into the planet -->
+  <text x="256" y="260" text-anchor="middle" dominant-baseline="central"
+        font-family="'Segoe UI', Arial, sans-serif" font-weight="700" font-size="100"
+        fill="#ffffff" opacity="0.15" letter-spacing="-5">C</text>
+
+  <!-- Bottom label area glow -->
+  <rect x="0" y="380" width="512" height="132" rx="0" ry="0" fill="url(#bg)" opacity="0"/>
+  <text x="256" y="440" text-anchor="middle" dominant-baseline="central"
+        font-family="'Segoe UI', Arial, sans-serif" font-weight="600" font-size="48"
+        fill="#c4b5fd" letter-spacing="8" opacity="0.85">COSMOS</text>
+  <text x="256" y="475" text-anchor="middle" dominant-baseline="central"
+        font-family="'Segoe UI', Arial, sans-serif" font-weight="400" font-size="16"
+        fill="#6ec6ff" letter-spacing="4" opacity="0.5">SYSTEM CONTROL</text>
+</svg>
