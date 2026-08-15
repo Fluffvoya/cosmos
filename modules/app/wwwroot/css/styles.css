@@ -2357,16 +2357,6 @@ body.tab-right .splitter.right-splitter {
     max-width: 100%;
 }
 
-.launcher-card-path {
-    font-size: 11px;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
-}
-
 .launcher-empty {
     display: flex;
     align-items: center;

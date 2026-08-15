@@ -275,12 +275,6 @@ const Launcher = {
         name.textContent = app.name;
         card.appendChild(name);
 
-        // Path (truncated)
-        const path = document.createElement('div');
-        path.className = 'launcher-card-path';
-        path.textContent = app.path;
-        card.appendChild(path);
-
         // Click to launch
         card.addEventListener('click', () => {
             this.launchApp(app.name);
