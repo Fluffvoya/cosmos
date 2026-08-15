@@ -39,6 +39,9 @@
     <ProjectReference Include="..\app-bridge\app-bridge.csproj" />
     <ProjectReference Include="..\app-ringtone\app-ringtone.csproj" />
     <ProjectReference Include="..\app-launcher\app-launcher.csproj" />
+    <ProjectReference Include="..\app-password\app-password.csproj" />
+    <ProjectReference Include="..\app-script\app-script.csproj" />
+    <ProjectReference Include="..\bridge\bridge.csproj" />
   </ItemGroup>
 
 </Project>
