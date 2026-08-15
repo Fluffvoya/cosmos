@@ -130,6 +130,11 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         MinimumSize = new Size(800, 500);
         StartPosition = FormStartPosition.CenterScreen;
 
+        // Set the form icon for the taskbar (ApplicationIcon only sets the .exe icon)
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+        if (File.Exists(iconPath))
+            Icon = new Icon(iconPath);
+
         // Scale initial window size relative to the working area for multi-resolution support
         var workArea = Screen.PrimaryScreen?.WorkingArea
                        ?? new Rectangle(0, 0, 1920, 1080);
