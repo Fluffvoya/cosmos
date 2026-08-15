@@ -746,6 +746,40 @@ public class ServerBridge
             return Server.CreateResponse(barResponse);
         }
 
+        // Intercept PlayRingtone — forward audio file to frontend as base64 data URL.
+        // (file:/// URIs are blocked from https:// pages by WebView2's cross-origin policy.)
+        if (request.request == "PlayRingtone" && request.args.Count >= 1)
+        {
+            var audioPath = Environment.ExpandEnvironmentVariables(request.args[0]);
+
+            try
+            {
+                var audioBytes = File.ReadAllBytes(audioPath);
+                var mimeType = GetMimeType(audioPath);
+                var base64 = Convert.ToBase64String(audioBytes);
+                var audioUri = $"data:{mimeType};base64,{base64}";
+
+                var ringtoneJson = JsonSerializer.Serialize(new
+                {
+                    type = "ringtonePlay",
+                    filePath = audioPath,
+                    audioUrl = audioUri
+                }, ServerBridgeJsonOptions.CamelCase);
+
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(ringtoneJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(ringtoneJson);
+            }
+            catch (Exception ex)
+            {
+                _logToUI("Error", $"PlayRingtone failed: {ex.Message}", "program");
+            }
+
+            var ringtoneResponse = new Response(request.request, "");
+            return Server.CreateResponse(ringtoneResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 
@@ -998,6 +1032,24 @@ public class ServerBridge
         {
             _logToUI("Error", $"Failed to save password data: {ex.Message}", "program");
         }
+    }
+
+    private static string GetMimeType(string filePath)
+    {
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        return ext switch
+        {
+            ".mp3" => "audio/mpeg",
+            ".wav" => "audio/wav",
+            ".ogg" => "audio/ogg",
+            ".flac" => "audio/flac",
+            ".aac" => "audio/aac",
+            ".m4a" => "audio/mp4",
+            ".wma" => "audio/x-ms-wma",
+            ".opus" => "audio/opus",
+            ".webm" => "audio/webm",
+            _ => "audio/mpeg" // fallback
+        };
     }
 }
 

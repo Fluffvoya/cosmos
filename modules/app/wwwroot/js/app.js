@@ -139,6 +139,9 @@ const App = {
             case 'passwordManagerChangePasswordFailure':
                 PasswordManager.handleChangePasswordFailure(data.message);
                 break;
+            case 'ringtonePlay':
+                Ringtone.handlePlayRingtone(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -301,6 +304,9 @@ const App = {
                         break;
                     case 'newPasswordManager':
                         PasswordManager.openPasswordManagerTab();
+                        break;
+                    case 'newRingtone':
+                        Ringtone.openRingtoneTab();
                         break;
                     case 'about':
                         this.showAbout();

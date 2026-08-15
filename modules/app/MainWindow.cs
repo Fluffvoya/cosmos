@@ -229,7 +229,11 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
 
     private async Task InitializeAsync()
     {
-        await _webView.EnsureCoreWebView2Async();
+        // Enable file:// access from web context (needed for ringtone audio playback)
+        var envOptions = new CoreWebView2EnvironmentOptions(
+            additionalBrowserArguments: "--allow-file-access-from-files");
+        var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
+        await _webView.EnsureCoreWebView2Async(env);
 
         // Register bridge for the virtual host
         _webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
@@ -285,6 +289,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         _script.AddFunction("Error", ScriptFunctions.Error);
         _script.AddFunction("GetUserName", ScriptFunctions.GetUserName);
         _script.AddFunction("MessageBar", ScriptFunctions.MessageBar);
+        _script.AddFunction("PlayRingtone", ScriptFunctions.PlayRingtone);
 
         // Start the scheduled task runner
         _taskRunner = new ScheduledTaskRunner(_settingsManager, (level, message, sender) =>

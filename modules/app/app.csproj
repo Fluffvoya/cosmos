@@ -24,6 +24,7 @@
     <ProjectReference Include="..\app-settings\app-settings.csproj" />
     <ProjectReference Include="..\app-scheduler\app-scheduler.csproj" />
     <ProjectReference Include="..\app-script\app-script.csproj" />
+    <ProjectReference Include="..\app-ringtone\app-ringtone.csproj" />
     <ProjectReference Include="..\bridge\bridge.csproj" />
     <ProjectReference Include="..\cm-script\cm-script.csproj" />
     <ProjectReference Include="..\server\server.csproj" />
