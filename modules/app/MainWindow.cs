@@ -286,6 +286,20 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         }
         _script = new cm_script.Script(this, pythonPath);
 
+        // Keep Script's Python path in sync when settings change
+        _settingsManager.SettingsChanged += (newSettings) =>
+        {
+            if (_script != null)
+            {
+                var newPath = newSettings.PythonPath;
+                if (!string.IsNullOrWhiteSpace(newPath))
+                {
+                    newPath = Environment.ExpandEnvironmentVariables(newPath);
+                }
+                _script.python = newPath;
+            }
+        };
+
         // Register built-in script functions
         _script.AddFunction("MessageBox", ScriptFunctions.MessageBox);
         _script.AddFunction("Log", ScriptFunctions.Log);

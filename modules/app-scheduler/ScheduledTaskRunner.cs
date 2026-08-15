@@ -239,6 +239,8 @@ public class ScheduledTaskRunner : IDisposable
         }
         catch (Exception ex)
         {
+            // Route Python / process exceptions to the Log tab
+            _logToUI("Error", ex.Message, "python");
             return (false, ex.Message);
         }
     }

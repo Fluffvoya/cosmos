@@ -1,2 +1,3 @@
 COSMOS Log "Hello World!"
 COSMOS MessageBox "title" "Hello World!"
+PYTHON D:/program/test.py
