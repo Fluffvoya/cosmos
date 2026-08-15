@@ -437,6 +437,8 @@ body {
 .start-card:nth-child(3) { animation-delay: 0.2s; }
 .start-card:nth-child(4) { animation-delay: 0.25s; }
 .start-card:nth-child(5) { animation-delay: 0.3s; }
+.start-card:nth-child(6) { animation-delay: 0.35s; }
+.start-card:nth-child(7) { animation-delay: 0.4s; }
 
 .start-card:hover {
     transform: translateY(-4px);
@@ -746,17 +748,18 @@ body {
     background-color: var(--accent-color);
     z-index: 9998;
     pointer-events: none;
-    border-radius: 1px;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
 }
 
-/* Vertical indicator for top tabs */
+/* Vertical bar for top-position tabs */
 .drop-indicator.drop-indicator-vertical {
-    width: 3px;
+    width: 4px;
 }
 
-/* Horizontal indicator for side tabs */
+/* Horizontal bar for left/right-position tabs */
 .drop-indicator.drop-indicator-horizontal {
-    height: 3px;
+    height: 4px;
 }
 
 /* ── Scrollbar Styling ─────────────────────────────────────────── */
@@ -2212,4 +2215,194 @@ body.tab-right .splitter.right-splitter {
 .ringtone-bar-close:hover {
     background-color: var(--danger-color);
     color: white;
+}
+
+/* ── Launcher Panel ──────────────────────────────────────────────── */
+.launcher-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+}
+
+.launcher-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.launcher-toolbar-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.launcher-search {
+    flex: 1;
+    max-width: 320px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.launcher-search:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+.launcher-search::placeholder {
+    color: var(--text-muted);
+}
+
+.launcher-add-btn {
+    font-size: 13px;
+    padding: 5px 14px;
+    flex-shrink: 0;
+}
+
+.launcher-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+.launcher-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 16px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.launcher-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 16px rgba(0, 120, 212, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.launcher-card:active {
+    transform: translateY(0);
+}
+
+.launcher-card-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+    line-height: 1;
+}
+
+.launcher-card:hover .launcher-card-delete {
+    opacity: 1;
+}
+
+.launcher-card-delete:hover {
+    color: var(--danger-color);
+    background-color: rgba(232, 17, 35, 0.1);
+}
+
+.launcher-card-icon {
+    font-size: 36px;
+    line-height: 1;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.launcher-card-icon-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.launcher-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.launcher-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+.launcher-dialog-overlay {
+    z-index: 2000;
+}
+
+/* ── Launcher Card Drag & Drop ──────────────────────────────────── */
+.launcher-card-dragging {
+    opacity: 0.3;
+}
+
+.launcher-card-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0.85;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-primary);
+    border: 2px solid var(--accent-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 16px;
+    cursor: grabbing;
+}
+
+.launcher-drop-indicator {
+    position: fixed;
+    width: 4px;
+    background-color: var(--accent-color);
+    border-radius: 2px;
+    z-index: 10001;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
 }

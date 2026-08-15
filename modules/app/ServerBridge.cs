@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
+using app_launcher;
 using app_password;
+using cosmos_error;
 using app_scheduler;
 using app_script;
 using app_settings;
@@ -194,6 +199,34 @@ public class ServerBridge
 
                     case "passwordManagerSaveData":
                         HandlePasswordManagerSaveData(root);
+                        break;
+
+                    case "launcherLoadApps":
+                        HandleLauncherLoadApps();
+                        break;
+
+                    case "launcherLaunchApp":
+                        HandleLauncherLaunchApp(root);
+                        break;
+
+                    case "launcherAddApp":
+                        HandleLauncherAddApp(root);
+                        break;
+
+                    case "launcherRemoveApp":
+                        HandleLauncherRemoveApp(root);
+                        break;
+
+                    case "launcherBrowseExecutable":
+                        HandleLauncherBrowseExecutable();
+                        break;
+
+                    case "launcherGetIcon":
+                        HandleLauncherGetIcon(root);
+                        break;
+
+                    case "launcherReorderApps":
+                        HandleLauncherReorderApps(root);
                         break;
 
                     default:
@@ -780,6 +813,15 @@ public class ServerBridge
             return Server.CreateResponse(ringtoneResponse);
         }
 
+        // Intercept OpenRegisteredApp — look up a registered app by name and launch it.
+        if (request.request == "OpenRegisteredApp" && request.args.Count >= 1)
+        {
+            var appName = request.args[0];
+            var launchResult = HandleOpenRegisteredApp(appName);
+            var launchResponse = new Response(request.request, launchResult);
+            return Server.CreateResponse(launchResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 
@@ -1050,6 +1092,391 @@ public class ServerBridge
             ".webm" => "audio/webm",
             _ => "audio/mpeg" // fallback
         };
+    }
+
+    /// <summary>
+    /// Handle request to load the list of registered apps.
+    /// Sends the full list back to the frontend.
+    /// </summary>
+    private void HandleLauncherLoadApps()
+    {
+        try
+        {
+            var apps = AppRegistry.GetAll();
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherAppsLoaded",
+                apps = apps
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to load registered apps: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
+    /// Handle request to launch a registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherLaunchApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp))
+            return;
+
+        var appName = appNameProp.GetString();
+        if (string.IsNullOrEmpty(appName))
+            return;
+
+        var result = HandleOpenRegisteredApp(appName);
+        var success = result == "ok";
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherLaunchResult",
+            appName = appName,
+            success = success,
+            message = success ? "" : result
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle request to add a new registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherAddApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("name", out var nameProp) ||
+            !root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var name = nameProp.GetString();
+        var path = pathProp.GetString();
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(path))
+        {
+            SendLauncherAddResult(false, "Name and path are required.");
+            return;
+        }
+
+        string? arguments = null;
+        if (root.TryGetProperty("arguments", out var argsProp) && argsProp.ValueKind == JsonValueKind.String)
+        {
+            arguments = argsProp.GetString();
+        }
+
+        try
+        {
+            var app = RegisteredApp.Create(name, path, arguments);
+            AppRegistry.Add(app);
+            SendLauncherAddResult(true, null);
+        }
+        catch (LauncherException ex)
+        {
+            SendLauncherAddResult(false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            SendLauncherAddResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handle request to remove a registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherRemoveApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp))
+            return;
+
+        var appName = appNameProp.GetString();
+        if (string.IsNullOrWhiteSpace(appName))
+            return;
+
+        try
+        {
+            AppRegistry.Remove(appName);
+            SendLauncherRemoveResult(true, null);
+        }
+        catch (LauncherException ex)
+        {
+            SendLauncherRemoveResult(false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            SendLauncherRemoveResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Open a native file dialog for browsing executables.
+    /// Sends the selected path back to the Launcher tab.
+    /// </summary>
+    private void HandleLauncherBrowseExecutable()
+    {
+        string? selectedPath = null;
+
+        if (_webView.InvokeRequired)
+        {
+            _webView.Invoke(() => { selectedPath = ShowExecutableFileDialog(); });
+        }
+        else
+        {
+            selectedPath = ShowExecutableFileDialog();
+        }
+
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherBrowseResult",
+                selectedPath = selectedPath
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    private string? ShowExecutableFileDialog()
+    {
+        // Run the file dialog on a dedicated STA thread to avoid COM/Shell
+        // conflicts with the WebView2 control on the UI thread. When browsing
+        // .exe files, Windows Shell loads icons and metadata which can trigger
+        // shell extensions that clash with WebView2's COM state and crash the
+        // host process (STATUS_BREAKPOINT 0x80000003).
+        string? selectedPath = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var dialog = new OpenFileDialog
+                {
+                    Title = "Select Application",
+                    Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
+                    CheckFileExists = true
+                };
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    selectedPath = dialog.FileName;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logToUI("Error", $"Executable file dialog failed: {ex.Message}", "program");
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        return selectedPath;
+    }
+
+    /// <summary>
+    /// Extract the icon from an executable file and send it to the frontend as base64.
+    /// </summary>
+    private void HandleLauncherGetIcon(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp) ||
+            !root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var appName = appNameProp.GetString() ?? "";
+        var appPath = pathProp.GetString() ?? "";
+
+        string? iconBase64 = null;
+
+        try
+        {
+            var expandedPath = Environment.ExpandEnvironmentVariables(appPath);
+            if (File.Exists(expandedPath))
+            {
+                using var icon = Icon.ExtractAssociatedIcon(expandedPath);
+                if (icon != null)
+                {
+                    using var bitmap = icon.ToBitmap();
+                    using var ms = new MemoryStream();
+                    bitmap.Save(ms, ImageFormat.Png);
+                    iconBase64 = Convert.ToBase64String(ms.ToArray());
+                }
+            }
+        }
+        catch
+        {
+            // Icon extraction can fail for various reasons (non-PE files, etc.)
+            // Silently fall back to no icon.
+        }
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherIconLoaded",
+            appName = appName,
+            iconData = iconBase64
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle request to reorder registered apps from the frontend drag-and-drop.
+    /// </summary>
+    private void HandleLauncherReorderApps(JsonElement root)
+    {
+        if (!root.TryGetProperty("fromIndex", out var fromProp) ||
+            !root.TryGetProperty("toIndex", out var toProp))
+            return;
+
+        var fromIndex = fromProp.GetInt32();
+        var toIndex = toProp.GetInt32();
+
+        try
+        {
+            AppRegistry.Reorder(fromIndex, toIndex);
+            var apps = AppRegistry.GetAll();
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherReorderResult",
+                success = true,
+                apps = apps
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to reorder apps: {ex.Message}", "program");
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherReorderResult",
+                success = false,
+                message = ex.Message
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    private void SendLauncherAddResult(bool success, string? message)
+    {
+        var apps = AppRegistry.GetAll();
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherAddResult",
+            success = success,
+            message = message ?? "",
+            apps = apps
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    private void SendLauncherRemoveResult(bool success, string? message)
+    {
+        var apps = AppRegistry.GetAll();
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherRemoveResult",
+            success = success,
+            message = message ?? "",
+            apps = apps
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle an OpenRegisteredApp request by looking up the app and launching it.
+    /// Returns "ok" on success, or an error message on failure.
+    /// </summary>
+    private string HandleOpenRegisteredApp(string appName)
+    {
+        try
+        {
+            var app = AppRegistry.GetByName(appName);
+            if (app == null)
+            {
+                _logToUI("Warning", $"OpenRegisteredApp: '{appName}' not found", "program");
+                return "error:not_found";
+            }
+
+            var expandedPath = Environment.ExpandEnvironmentVariables(app.Path);
+            if (!File.Exists(expandedPath))
+            {
+                _logToUI("Error", $"OpenRegisteredApp: path does not exist: {expandedPath}", "program");
+                return "error:path_invalid";
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = expandedPath,
+                UseShellExecute = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(app.Arguments))
+            {
+                startInfo.Arguments = app.Arguments;
+            }
+
+            Process.Start(startInfo);
+            return "ok";
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"OpenRegisteredApp failed: {ex.Message}", "program");
+            return $"error:{ex.Message}";
+        }
     }
 }
 

@@ -27,6 +27,9 @@ const App = {
         // Initialize splitter module
         Splitter.init();
 
+        // Initialize launcher drag-and-drop
+        Launcher.init();
+
         // Add default start tab
         Tabs.addTab({
             title: 'Start',
@@ -141,6 +144,27 @@ const App = {
                 break;
             case 'ringtonePlay':
                 Ringtone.handlePlayRingtone(data);
+                break;
+            case 'launcherAppsLoaded':
+                Launcher.handleAppsLoaded(data);
+                break;
+            case 'launcherLaunchResult':
+                Launcher.handleLaunchResult(data);
+                break;
+            case 'launcherAddResult':
+                Launcher.handleAddResult(data);
+                break;
+            case 'launcherRemoveResult':
+                Launcher.handleRemoveResult(data);
+                break;
+            case 'launcherBrowseResult':
+                Launcher.handleBrowseResult(data);
+                break;
+            case 'launcherIconLoaded':
+                Launcher.handleIconLoaded(data);
+                break;
+            case 'launcherReorderResult':
+                Launcher.handleReorderResult(data);
                 break;
             default:
                 console.warn('Unknown backend message type:', data.type);
@@ -307,6 +331,9 @@ const App = {
                         break;
                     case 'newRingtone':
                         Ringtone.openRingtoneTab();
+                        break;
+                    case 'newLauncher':
+                        Launcher.openLauncherTab();
                         break;
                     case 'about':
                         this.showAbout();

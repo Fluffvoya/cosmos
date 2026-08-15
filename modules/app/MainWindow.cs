@@ -308,6 +308,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         _script.AddFunction("GetUserName", ScriptFunctions.GetUserName);
         _script.AddFunction("MessageBar", ScriptFunctions.MessageBar);
         _script.AddFunction("PlayRingtone", ScriptFunctions.PlayRingtone);
+        _script.AddFunction("OpenRegisteredApp", ScriptFunctions.OpenRegisteredApp);
 
         // Start the scheduled task runner
         _taskRunner = new ScheduledTaskRunner(_settingsManager, (level, message, sender) =>

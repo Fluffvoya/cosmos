@@ -45,6 +45,11 @@ public static Request GetUserName()
 Creates a `GetUserName` request with no arguments.
 
 ```csharp
+public static Request OpenRegisteredApp(string appName)
+```
+Creates an `OpenRegisteredApp` request with one argument: the registered application name.
+
+```csharp
 public static string CreateRequest(Request request)
 ```
 Serializes a `Request` to JSON. Delegates to `Request.Serialize()`.
