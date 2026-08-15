@@ -128,10 +128,14 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     {
         Text = "Cosmos";
         FormBorderStyle = FormBorderStyle.None;
-        Width = 1100;
-        Height = 750;
         MinimumSize = new Size(800, 500);
         StartPosition = FormStartPosition.CenterScreen;
+
+        // Scale initial window size relative to the working area for multi-resolution support
+        var workArea = Screen.PrimaryScreen?.WorkingArea
+                       ?? new Rectangle(0, 0, 1920, 1080);
+        Width = (int)(workArea.Width * 0.65);
+        Height = (int)(workArea.Height * 0.82);
 
         // Padding creates a gap between the form edges and the WebView2 control.
         // The form receives WM_NCHITTEST directly in this gap (the Chromium HWND
