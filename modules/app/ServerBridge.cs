@@ -822,6 +822,14 @@ public class ServerBridge
             return Server.CreateResponse(launchResponse);
         }
 
+        // Intercept GetUserName — return the username from settings.
+        if (request.request == "GetUserName")
+        {
+            var username = _mainWindow.SettingsManager.Current.Username;
+            var usernameResponse = new Response(request.request, username);
+            return Server.CreateResponse(usernameResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 
