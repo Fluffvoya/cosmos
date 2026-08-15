@@ -8,6 +8,7 @@ x86/
 [Ll]og/
 [Ll]ogs/
 artifacts/
+cosmos/
 
 # Visual Studio
 .vs/

@@ -12,6 +12,7 @@
     <ProjectReference Include="..\func-router\func-router.csproj" />
     <ProjectReference Include="..\argument\argument.csproj" />
     <ProjectReference Include="..\process\process.csproj" />
+    <ProjectReference Include="..\error\error.csproj" />
   </ItemGroup>
 
 </Project>

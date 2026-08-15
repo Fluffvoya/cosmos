@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\error\error.csproj" />
     <ProjectReference Include="..\public-model\public-model.csproj" />
   </ItemGroup>
 

@@ -13,6 +13,7 @@
     <ProjectReference Include="..\error\error.csproj" />
     <ProjectReference Include="..\func-router\func-router.csproj" />
     <ProjectReference Include="..\public-model\public-model.csproj" />
+    <ProjectReference Include="..\argument\argument.csproj" />
   </ItemGroup>
 
 </Project>
