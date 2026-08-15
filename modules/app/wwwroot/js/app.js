@@ -31,7 +31,7 @@ const App = {
         Tabs.addTab({
             title: 'Start',
             contentType: 'Document',
-            icon: null
+            icon: '🏠'
         });
     },
 
@@ -287,7 +287,7 @@ const App = {
                         Tabs.addTab({
                             title: 'Start',
                             contentType: 'Document',
-                            icon: null
+                            icon: '🏠'
                         });
                         break;
                     case 'newLog':
@@ -515,11 +515,11 @@ const StartConfig = {
 
 /**
  * MessageBar - Non-blocking toast notification system.
- * Displays temporary messages at the bottom-right of the window.
+ * Displays temporary messages at the top-center of the window.
  */
 const MessageBar = {
     /** Duration in ms before a toast auto-dismisses. */
-    DISPLAY_DURATION: 4000,
+    DISPLAY_DURATION: 10000,
 
     /**
      * Show a toast notification.
