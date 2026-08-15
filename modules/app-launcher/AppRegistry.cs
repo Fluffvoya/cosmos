@@ -89,4 +89,32 @@ public class AppRegistry
 
         return apps.Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
     }
+
+    /// <summary>
+    /// Reorder registered applications by moving an app from one index to another.
+    /// Throws if the indices are out of range.
+    /// </summary>
+    public static void Reorder(int fromIndex, int toIndex, string? folder = null)
+    {
+        var apps = Load(folder);
+        if (fromIndex < 0 || fromIndex >= apps.Count)
+        {
+            throw new LauncherException(
+                ErrorCode.AppNotFound,
+                $"Source index {fromIndex} is out of range.");
+        }
+        if (toIndex < 0 || toIndex > apps.Count)
+        {
+            throw new LauncherException(
+                ErrorCode.AppNotFound,
+                $"Target index {toIndex} is out of range.");
+        }
+
+        var app = apps[fromIndex];
+        apps.RemoveAt(fromIndex);
+        // Adjust insertion index after removal
+        if (toIndex > fromIndex) toIndex--;
+        apps.Insert(toIndex, app);
+        Save(apps, folder);
+    }
 }

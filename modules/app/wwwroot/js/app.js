@@ -27,6 +27,9 @@ const App = {
         // Initialize splitter module
         Splitter.init();
 
+        // Initialize launcher drag-and-drop
+        Launcher.init();
+
         // Add default start tab
         Tabs.addTab({
             title: 'Start',
@@ -159,6 +162,9 @@ const App = {
                 break;
             case 'launcherIconLoaded':
                 Launcher.handleIconLoaded(data);
+                break;
+            case 'launcherReorderResult':
+                Launcher.handleReorderResult(data);
                 break;
             default:
                 console.warn('Unknown backend message type:', data.type);

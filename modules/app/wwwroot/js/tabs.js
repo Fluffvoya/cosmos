@@ -532,9 +532,14 @@ const Tabs = {
                 ds.ghostElement.style.zIndex = '10000';
                 document.body.appendChild(ds.ghostElement);
 
-                // Create drop indicator
+                // Determine tab orientation: vertical bar for top tabs, horizontal bar for side tabs
+                const tabStrip = ds.sourceElement.closest('.tab-strip');
+                const isSide = tabStrip && (tabStrip.classList.contains('left') || tabStrip.classList.contains('right'));
+
+                // Create drop indicator with the correct orientation class
                 ds.dropIndicator = document.createElement('div');
-                ds.dropIndicator.className = 'tab-drop-indicator';
+                ds.dropIndicator.className = 'drop-indicator ' +
+                    (isSide ? 'drop-indicator-horizontal' : 'drop-indicator-vertical');
                 ds.dropIndicator.style.position = 'fixed';
                 ds.dropIndicator.style.pointerEvents = 'none';
                 ds.dropIndicator.style.zIndex = '10001';
@@ -625,7 +630,7 @@ const Tabs = {
             ds.insertIndex = insertIndex;
             ds.dropIndicator.style.display = 'block';
             ds.dropIndicator.style.left = stripRect.left + 'px';
-            ds.dropIndicator.style.top = (indicatorY - 1.5) + 'px';
+            ds.dropIndicator.style.top = (indicatorY - 2) + 'px';
             ds.dropIndicator.style.width = stripRect.width + 'px';
             ds.dropIndicator.style.height = '';
         } else {
@@ -659,7 +664,7 @@ const Tabs = {
             // Show and position the vertical blue indicator bar
             ds.insertIndex = insertIndex;
             ds.dropIndicator.style.display = 'block';
-            ds.dropIndicator.style.left = (indicatorX - 1.5) + 'px';
+            ds.dropIndicator.style.left = (indicatorX - 2) + 'px';
             ds.dropIndicator.style.top = stripRect.top + 'px';
             ds.dropIndicator.style.width = '';
             ds.dropIndicator.style.height = stripRect.height + 'px';

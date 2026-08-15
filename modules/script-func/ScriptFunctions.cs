@@ -108,6 +108,29 @@ public static class ScriptFunctions
     );
 
     /// <summary>
+    /// Launches a registered application by name.
+    /// Args: [String appName] — the name of the registered app to launch.
+    /// Throws ScriptFuncException if the app is not found or the path is invalid.
+    /// </summary>
+    public static Function OpenRegisteredApp => new(
+        (IServer server, List<object> args) =>
+        {
+            var appName = (string)args[0];
+            var request = Client.CreateRequest(Client.OpenRegisteredApp(appName));
+            var result = server.Execute(request);
+            var message = Client.GetResponseMessage(result);
+            if (message != null && message.StartsWith("error:"))
+            {
+                var detail = message["error:".Length..];
+                throw new ScriptFuncException(
+                    ErrorCode.AppNotFound,
+                    $"Failed to open '{appName}': {detail}");
+            }
+        },
+        ArgumentType.String
+    );
+
+    /// <summary>
     /// Plays a ringtone audio file in the Ringtone tab.
     /// Args: [String audioPath] — path to the audio file to play.
     /// Throws ScriptFuncException if the file does not exist.

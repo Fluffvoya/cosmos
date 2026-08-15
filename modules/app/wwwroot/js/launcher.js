@@ -17,6 +17,31 @@ const Launcher = {
     /** Icon cache: Map<appName, base64DataUrl> */
     iconCache: new Map(),
 
+    /** Drag-and-drop state for card reordering */
+    dragState: {
+        isDragging: false,
+        dragIndex: -1,
+        startX: 0,
+        startY: 0,
+        ghostElement: null,
+        dropIndicator: null,
+        insertIndex: -1,
+        sourceElement: null,
+        ghostOffsetX: 0,
+        ghostOffsetY: 0
+    },
+
+    /** Minimum pixel distance before drag starts */
+    dragThreshold: 5,
+
+    /**
+     * Initialize the Launcher module — set up global drag listeners once.
+     */
+    init() {
+        document.addEventListener('mousemove', (e) => this.onDragMouseMove(e));
+        document.addEventListener('mouseup', (e) => this.onDragMouseUp(e));
+    },
+
     /**
      * Open (or focus) the Launch App tab.
      */
@@ -93,6 +118,19 @@ const Launcher = {
         if (data.success) {
             this.registeredApps = data.apps || [];
             this.updateGrid();
+        }
+    },
+
+    /**
+     * Handle the reorder result response from the backend.
+     * @param {object} data - The message data with success, message, and apps.
+     */
+    handleReorderResult(data) {
+        if (data.success) {
+            this.registeredApps = data.apps || [];
+            this.updateGrid();
+        } else {
+            console.warn('Failed to reorder apps:', data.message);
         }
     },
 
@@ -220,20 +258,22 @@ const Launcher = {
             return;
         }
 
-        filtered.forEach(app => {
-            grid.appendChild(this.createAppCard(app));
+        filtered.forEach((app, index) => {
+            grid.appendChild(this.createAppCard(app, index));
         });
     },
 
     /**
      * Create a card element for a registered application.
      * @param {object} app - The app object { name, path, arguments }.
+     * @param {number} index - The index of the app in the filtered list.
      * @returns {HTMLElement} The card element.
      */
-    createAppCard(app) {
+    createAppCard(app, index) {
         const card = document.createElement('div');
         card.className = 'launcher-card';
         card.dataset.appName = app.name;
+        card.dataset.appIndex = index;
         card.title = app.path;
 
         // Delete button (top-right corner)
@@ -275,9 +315,18 @@ const Launcher = {
         name.textContent = app.name;
         card.appendChild(name);
 
-        // Click to launch
-        card.addEventListener('click', () => {
+        // Click to launch (only fires if drag did not occur)
+        card.addEventListener('click', (e) => {
+            if (this.dragState.isDragging || this.dragState.dragIndex >= 0) return;
             this.launchApp(app.name);
+        });
+
+        // Mousedown to initiate drag
+        card.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            // Don't start drag from delete button
+            if (e.target.classList.contains('launcher-card-delete')) return;
+            this.onDragMouseDown(e, index, card);
         });
 
         return card;
@@ -517,6 +566,258 @@ const Launcher = {
 
         window.chrome.webview.postMessage(JSON.stringify({
             type: 'launcherBrowseExecutable'
+        }));
+    },
+
+    // ── Drag-and-drop reordering ──────────────────────────────────
+
+    /**
+     * Handle mousedown on a launcher card — begin tracking potential drag.
+     * @param {MouseEvent} e - The mouse event.
+     * @param {number} index - The card index in the filtered list.
+     * @param {HTMLElement} cardElement - The card DOM element.
+     */
+    onDragMouseDown(e, index, cardElement) {
+        const ds = this.dragState;
+        ds.dragIndex = index;
+        ds.sourceElement = cardElement;
+        ds.startX = e.clientX;
+        ds.startY = e.clientY;
+    },
+
+    /**
+     * Handle mousemove — start drag once threshold is exceeded, then update ghost.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    onDragMouseMove(e) {
+        const ds = this.dragState;
+        if (ds.dragIndex === -1) return;
+
+        if (!ds.isDragging) {
+            // Check if the pointer has moved past the drag threshold
+            const dx = e.clientX - ds.startX;
+            const dy = e.clientY - ds.startY;
+            if (Math.abs(dx) < this.dragThreshold && Math.abs(dy) < this.dragThreshold) {
+                return;
+            }
+
+            // Start dragging
+            ds.isDragging = true;
+
+            // Dim the source card
+            if (ds.sourceElement) {
+                ds.sourceElement.classList.add('launcher-card-dragging');
+
+                const rect = ds.sourceElement.getBoundingClientRect();
+                ds.ghostOffsetX = ds.startX - rect.left;
+                ds.ghostOffsetY = ds.startY - rect.top;
+
+                // Create a floating ghost clone
+                ds.ghostElement = ds.sourceElement.cloneNode(true);
+                ds.ghostElement.className = 'launcher-card-ghost';
+                ds.ghostElement.style.position = 'fixed';
+                ds.ghostElement.style.left = rect.left + 'px';
+                ds.ghostElement.style.top = rect.top + 'px';
+                ds.ghostElement.style.width = rect.width + 'px';
+                ds.ghostElement.style.height = rect.height + 'px';
+                ds.ghostElement.style.pointerEvents = 'none';
+                ds.ghostElement.style.zIndex = '10000';
+                document.body.appendChild(ds.ghostElement);
+
+                // Create drop indicator (vertical bar)
+                ds.dropIndicator = document.createElement('div');
+                ds.dropIndicator.className = 'launcher-drop-indicator';
+                ds.dropIndicator.style.position = 'fixed';
+                ds.dropIndicator.style.pointerEvents = 'none';
+                ds.dropIndicator.style.zIndex = '10001';
+                ds.dropIndicator.style.display = 'none';
+                document.body.appendChild(ds.dropIndicator);
+            }
+        }
+
+        if (ds.isDragging) {
+            // Move the ghost to follow the cursor
+            if (ds.ghostElement) {
+                ds.ghostElement.style.left = (e.clientX - ds.ghostOffsetX) + 'px';
+                ds.ghostElement.style.top = (e.clientY - ds.ghostOffsetY) + 'px';
+            }
+            this.updateDropIndicator(e.clientX, e.clientY);
+        }
+    },
+
+    /**
+     * Update the drop indicator position based on cursor location over the grid.
+     * @param {number} clientX - Cursor X in viewport.
+     * @param {number} clientY - Cursor Y in viewport.
+     */
+    updateDropIndicator(clientX, clientY) {
+        const ds = this.dragState;
+        const grid = document.getElementById('launcherGrid');
+        if (!grid || !ds.dropIndicator) return;
+
+        const gridRect = grid.getBoundingClientRect();
+
+        // Hide indicator if cursor is outside the grid
+        if (clientX < gridRect.left || clientX > gridRect.right ||
+            clientY < gridRect.top || clientY > gridRect.bottom) {
+            ds.dropIndicator.style.display = 'none';
+            ds.insertIndex = -1;
+            return;
+        }
+
+        // Get all visible card elements
+        const cards = Array.from(grid.querySelectorAll('.launcher-card'));
+        if (cards.length === 0) {
+            ds.dropIndicator.style.display = 'none';
+            ds.insertIndex = -1;
+            return;
+        }
+
+        // Find the card the cursor is closest to and determine left/right insertion
+        let insertIndex = cards.length;
+        let indicatorX = 0;
+        let indicatorY = 0;
+        let indicatorHeight = 0;
+
+        for (let i = 0; i < cards.length; i++) {
+            const rect = cards[i].getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            // Check if cursor is within the row's vertical range
+            if (clientY >= rect.top && clientY <= rect.bottom) {
+                if (clientX < centerX) {
+                    insertIndex = i;
+                    indicatorX = rect.left;
+                    indicatorY = rect.top;
+                    indicatorHeight = rect.height;
+                    break;
+                } else if (i === cards.length - 1 ||
+                    !(clientY >= cards[i + 1]?.getBoundingClientRect().top &&
+                      clientY <= cards[i + 1]?.getBoundingClientRect().bottom)) {
+                    // Cursor is in the right half of the last card in this row
+                    insertIndex = i + 1;
+                    indicatorX = rect.right;
+                    indicatorY = rect.top;
+                    indicatorHeight = rect.height;
+                    break;
+                }
+            }
+        }
+
+        // If cursor is below all cards, insert at end
+        if (insertIndex === cards.length) {
+            const lastRect = cards[cards.length - 1].getBoundingClientRect();
+            indicatorX = lastRect.right;
+            indicatorY = lastRect.top;
+            indicatorHeight = lastRect.height;
+        }
+
+        // Don't show indicator when dropping next to the source card
+        if (insertIndex === ds.dragIndex || insertIndex === ds.dragIndex + 1) {
+            ds.dropIndicator.style.display = 'none';
+            ds.insertIndex = -1;
+            return;
+        }
+
+        // Show and position the vertical drop indicator bar
+        ds.insertIndex = insertIndex;
+        ds.dropIndicator.style.display = 'block';
+        ds.dropIndicator.style.left = (indicatorX - 2) + 'px';
+        ds.dropIndicator.style.top = indicatorY + 'px';
+        ds.dropIndicator.style.height = indicatorHeight + 'px';
+    },
+
+    /**
+     * Handle mouseup — complete or cancel the drag operation.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    onDragMouseUp(e) {
+        const ds = this.dragState;
+
+        if (!ds.isDragging) {
+            // Reset pending state even if drag never started
+            ds.dragIndex = -1;
+            ds.sourceElement = null;
+            return;
+        }
+
+        // Perform the reorder if we have a valid insertion point
+        if (ds.insertIndex >= 0) {
+            this.sendReorder(ds.dragIndex, ds.insertIndex);
+        }
+
+        this.cleanupDrag();
+    },
+
+    /**
+     * Clean up all drag-related DOM elements and reset state.
+     */
+    cleanupDrag() {
+        const ds = this.dragState;
+
+        // Remove ghost element
+        if (ds.ghostElement) {
+            ds.ghostElement.remove();
+            ds.ghostElement = null;
+        }
+
+        // Remove drop indicator
+        if (ds.dropIndicator) {
+            ds.dropIndicator.remove();
+            ds.dropIndicator = null;
+        }
+
+        // Restore source card opacity
+        if (ds.sourceElement) {
+            ds.sourceElement.classList.remove('launcher-card-dragging');
+            ds.sourceElement = null;
+        }
+
+        // Reset all drag state
+        ds.isDragging = false;
+        ds.dragIndex = -1;
+        ds.insertIndex = -1;
+        ds.startX = 0;
+        ds.startY = 0;
+        ds.ghostOffsetX = 0;
+        ds.ghostOffsetY = 0;
+    },
+
+    /**
+     * Send a reorder request to the C# backend.
+     * @param {number} fromIndex - Source index in the filtered list.
+     * @param {number} toIndex - Target insertion index.
+     */
+    sendReorder(fromIndex, toIndex) {
+        if (!App.isWebViewReady) return;
+
+        // Map filtered indices to the actual indices in registeredApps
+        const filtered = this.filterApps(this.searchQuery);
+        if (fromIndex < 0 || fromIndex >= filtered.length || toIndex < 0 || toIndex > filtered.length) return;
+
+        const fromApp = filtered[fromIndex];
+        const realFromIndex = this.registeredApps.indexOf(fromApp);
+
+        // Compute the real target index based on the app that would be at the insertion point
+        let realToIndex;
+        if (toIndex >= filtered.length) {
+            // Inserting at the end — find the real index of the last filtered app and add 1
+            const lastApp = filtered[filtered.length - 1];
+            realToIndex = this.registeredApps.indexOf(lastApp) + 1;
+        } else {
+            const toApp = filtered[toIndex];
+            realToIndex = this.registeredApps.indexOf(toApp);
+        }
+
+        if (realFromIndex < 0 || realToIndex < 0) return;
+        // Skip no-op moves
+        if (realFromIndex === realToIndex || realFromIndex + 1 === realToIndex) return;
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherReorderApps',
+            fromIndex: realFromIndex,
+            toIndex: realToIndex
         }));
     }
 };

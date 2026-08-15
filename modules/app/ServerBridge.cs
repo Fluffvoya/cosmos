@@ -225,6 +225,10 @@ public class ServerBridge
                         HandleLauncherGetIcon(root);
                         break;
 
+                    case "launcherReorderApps":
+                        HandleLauncherReorderApps(root);
+                        break;
+
                     default:
                         // Unknown message type -- ignore.
                         break;
@@ -1253,14 +1257,40 @@ public class ServerBridge
 
     private string? ShowExecutableFileDialog()
     {
-        using var dialog = new OpenFileDialog
-        {
-            Title = "Select Application",
-            Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
-            CheckFileExists = true
-        };
+        // Run the file dialog on a dedicated STA thread to avoid COM/Shell
+        // conflicts with the WebView2 control on the UI thread. When browsing
+        // .exe files, Windows Shell loads icons and metadata which can trigger
+        // shell extensions that clash with WebView2's COM state and crash the
+        // host process (STATUS_BREAKPOINT 0x80000003).
+        string? selectedPath = null;
 
-        return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var dialog = new OpenFileDialog
+                {
+                    Title = "Select Application",
+                    Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
+                    CheckFileExists = true
+                };
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    selectedPath = dialog.FileName;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logToUI("Error", $"Executable file dialog failed: {ex.Message}", "program");
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        return selectedPath;
     }
 
     /// <summary>
@@ -1313,6 +1343,55 @@ public class ServerBridge
                 _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
         }
         catch { }
+    }
+
+    /// <summary>
+    /// Handle request to reorder registered apps from the frontend drag-and-drop.
+    /// </summary>
+    private void HandleLauncherReorderApps(JsonElement root)
+    {
+        if (!root.TryGetProperty("fromIndex", out var fromProp) ||
+            !root.TryGetProperty("toIndex", out var toProp))
+            return;
+
+        var fromIndex = fromProp.GetInt32();
+        var toIndex = toProp.GetInt32();
+
+        try
+        {
+            AppRegistry.Reorder(fromIndex, toIndex);
+            var apps = AppRegistry.GetAll();
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherReorderResult",
+                success = true,
+                apps = apps
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to reorder apps: {ex.Message}", "program");
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherReorderResult",
+                success = false,
+                message = ex.Message
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
     }
 
     private void SendLauncherAddResult(bool success, string? message)

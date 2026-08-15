@@ -437,6 +437,8 @@ body {
 .start-card:nth-child(3) { animation-delay: 0.2s; }
 .start-card:nth-child(4) { animation-delay: 0.25s; }
 .start-card:nth-child(5) { animation-delay: 0.3s; }
+.start-card:nth-child(6) { animation-delay: 0.35s; }
+.start-card:nth-child(7) { animation-delay: 0.4s; }
 
 .start-card:hover {
     transform: translateY(-4px);
@@ -746,17 +748,18 @@ body {
     background-color: var(--accent-color);
     z-index: 9998;
     pointer-events: none;
-    border-radius: 1px;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
 }
 
-/* Vertical indicator for top tabs */
+/* Vertical bar for top-position tabs */
 .drop-indicator.drop-indicator-vertical {
-    width: 3px;
+    width: 4px;
 }
 
-/* Horizontal indicator for side tabs */
+/* Horizontal bar for left/right-position tabs */
 .drop-indicator.drop-indicator-horizontal {
-    height: 3px;
+    height: 4px;
 }
 
 /* ── Scrollbar Styling ─────────────────────────────────────────── */
@@ -2370,4 +2373,36 @@ body.tab-right .splitter.right-splitter {
 
 .launcher-dialog-overlay {
     z-index: 2000;
+}
+
+/* ── Launcher Card Drag & Drop ──────────────────────────────────── */
+.launcher-card-dragging {
+    opacity: 0.3;
+}
+
+.launcher-card-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0.85;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-primary);
+    border: 2px solid var(--accent-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 16px;
+    cursor: grabbing;
+}
+
+.launcher-drop-indicator {
+    position: fixed;
+    width: 4px;
+    background-color: var(--accent-color);
+    border-radius: 2px;
+    z-index: 10001;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
 }
