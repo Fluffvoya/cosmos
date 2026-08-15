@@ -25,12 +25,29 @@ internal static class JsonOptions
 public class AppPasswordManager
 {
     // Storage paths
-    private static readonly string SettingsFolder = Path.Combine(
+    private static readonly string DefaultSettingsFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".cosmos");
 
-    private static readonly string HashFile = Path.Combine(SettingsFolder, "password_hash.dat");
-    private static readonly string DataFile = Path.Combine(SettingsFolder, "password_data.enc");
+    private readonly string _settingsFolder;
+    private readonly string _hashFile;
+    private readonly string _dataFile;
+
+    /// <summary>
+    /// Initializes a new <see cref="AppPasswordManager"/> with default storage paths (~/.cosmos/).
+    /// </summary>
+    public AppPasswordManager() : this(DefaultSettingsFolder) { }
+
+    /// <summary>
+    /// Initializes a new <see cref="AppPasswordManager"/> with a custom settings folder.
+    /// </summary>
+    /// <param name="settingsFolder">The directory to store password files in.</param>
+    public AppPasswordManager(string settingsFolder)
+    {
+        _settingsFolder = settingsFolder;
+        _hashFile = Path.Combine(settingsFolder, "password_hash.dat");
+        _dataFile = Path.Combine(settingsFolder, "password_data.enc");
+    }
 
     // Hash configuration
     private const int SaltSize = 32;
@@ -42,7 +59,7 @@ public class AppPasswordManager
     /// <returns>True if hash file exists.</returns>
     public bool IsSetup()
     {
-        return File.Exists(HashFile);
+        return File.Exists(_hashFile);
     }
 
     /// <summary>
@@ -55,7 +72,7 @@ public class AppPasswordManager
     {
         try
         {
-            Directory.CreateDirectory(SettingsFolder);
+            Directory.CreateDirectory(_settingsFolder);
 
             // Generate random salt
             byte[] salt = new byte[SaltSize];
@@ -72,7 +89,7 @@ public class AppPasswordManager
             Buffer.BlockCopy(salt, 0, storedData, 0, SaltSize);
             Buffer.BlockCopy(hash, 0, storedData, SaltSize, HashSize);
 
-            File.WriteAllBytes(HashFile, storedData);
+            File.WriteAllBytes(_hashFile, storedData);
 
             // Initialize empty data file
             SaveData(password, Array.Empty<PlatformData>());
@@ -95,10 +112,10 @@ public class AppPasswordManager
     {
         try
         {
-            if (!File.Exists(HashFile))
+            if (!File.Exists(_hashFile))
                 return false;
 
-            byte[] storedData = File.ReadAllBytes(HashFile);
+            byte[] storedData = File.ReadAllBytes(_hashFile);
             if (storedData.Length != SaltSize + HashSize)
                 return false;
 
@@ -153,7 +170,7 @@ public class AppPasswordManager
             Buffer.BlockCopy(newSalt, 0, storedData, 0, SaltSize);
             Buffer.BlockCopy(newHash, 0, storedData, SaltSize, HashSize);
 
-            File.WriteAllBytes(HashFile, storedData);
+            File.WriteAllBytes(_hashFile, storedData);
 
             // Re-encrypt data with new password
             SaveData(newPassword, platforms);
@@ -176,10 +193,10 @@ public class AppPasswordManager
     {
         try
         {
-            if (!File.Exists(DataFile))
+            if (!File.Exists(_dataFile))
                 return Array.Empty<PlatformData>();
 
-            byte[] encryptedData = File.ReadAllBytes(DataFile);
+            byte[] encryptedData = File.ReadAllBytes(_dataFile);
             if (encryptedData.Length < 16) // Minimum: IV
                 return Array.Empty<PlatformData>();
 
@@ -218,7 +235,7 @@ public class AppPasswordManager
     {
         try
         {
-            Directory.CreateDirectory(SettingsFolder);
+            Directory.CreateDirectory(_settingsFolder);
 
             // Serialize to JSON using camelCase to match frontend conventions
             string json = JsonSerializer.Serialize(platforms, JsonOptions.CamelCase);
@@ -242,7 +259,7 @@ public class AppPasswordManager
             Buffer.BlockCopy(iv, 0, encryptedData, 0, 16);
             Buffer.BlockCopy(ciphertext, 0, encryptedData, 16, ciphertext.Length);
 
-            File.WriteAllBytes(DataFile, encryptedData);
+            File.WriteAllBytes(_dataFile, encryptedData);
 
             return true;
         }

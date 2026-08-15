@@ -272,7 +272,6 @@ const Tabs = {
         const now = new Date();
         let hours = now.getHours();
         const minutes = now.getMinutes();
-        const seconds = now.getSeconds();
         let ampm = '';
 
         if (use12h) {
@@ -282,7 +281,6 @@ const Tabs = {
 
         const hh = String(hours).padStart(2, '0');
         const mm = String(minutes).padStart(2, '0');
-        const ss = String(seconds).padStart(2, '0');
 
         // Date string
         const dateStr = now.toLocaleDateString('en-US', {
@@ -309,8 +307,8 @@ const Tabs = {
             '</div>'
         ).join('');
 
-        // Build time secondary line (date + seconds)
-        const timeSecondary = dateStr + ' · ' + ss;
+        // Build time secondary line (date only)
+        const timeSecondary = dateStr;
 
         // Toggle label shows current format number
         const toggleLabel = timeFormat + 'h';
