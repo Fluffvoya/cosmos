@@ -2222,22 +2222,30 @@ body.tab-right .splitter.right-splitter {
     padding: 0;
 }
 
-.launcher-search-bar {
+.launcher-toolbar {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.launcher-toolbar-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
     flex-shrink: 0;
 }
 
 .launcher-search {
-    width: 100%;
-    max-width: 400px;
-    padding: 8px 12px;
+    flex: 1;
+    max-width: 320px;
+    padding: 6px 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 13px;
     font-family: inherit;
     background-color: var(--bg-primary);
     color: var(--text-primary);
@@ -2253,6 +2261,12 @@ body.tab-right .splitter.right-splitter {
     color: var(--text-muted);
 }
 
+.launcher-add-btn {
+    font-size: 13px;
+    padding: 5px 14px;
+    flex-shrink: 0;
+}
+
 .launcher-grid {
     flex: 1;
     overflow-y: auto;
@@ -2264,6 +2278,7 @@ body.tab-right .splitter.right-splitter {
 }
 
 .launcher-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2285,6 +2300,35 @@ body.tab-right .splitter.right-splitter {
 
 .launcher-card:active {
     transform: translateY(0);
+}
+
+.launcher-card-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+    line-height: 1;
+}
+
+.launcher-card:hover .launcher-card-delete {
+    opacity: 1;
+}
+
+.launcher-card-delete:hover {
+    color: var(--danger-color);
+    background-color: rgba(232, 17, 35, 0.1);
 }
 
 .launcher-card-icon {
@@ -2321,4 +2365,8 @@ body.tab-right .splitter.right-splitter {
     font-size: 14px;
     font-style: italic;
     grid-column: 1 / -1;
+}
+
+.launcher-dialog-overlay {
+    z-index: 2000;
 }

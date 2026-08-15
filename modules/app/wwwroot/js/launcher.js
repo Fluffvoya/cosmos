@@ -69,6 +69,42 @@ const Launcher = {
     },
 
     /**
+     * Handle the add app result response from the backend.
+     * @param {object} data - The message data with success, message, and apps.
+     */
+    handleAddResult(data) {
+        if (data.success) {
+            this.registeredApps = data.apps || [];
+            this.closeAddDialog();
+            this.refreshPanel();
+        } else {
+            this.showAddError(data.message || 'Failed to add application.');
+        }
+    },
+
+    /**
+     * Handle the remove app result response from the backend.
+     * @param {object} data - The message data with success, message, and apps.
+     */
+    handleRemoveResult(data) {
+        if (data.success) {
+            this.registeredApps = data.apps || [];
+            this.refreshPanel();
+        }
+    },
+
+    /**
+     * Handle the browse result from the backend for selecting an executable.
+     * @param {object} data - The message data with selectedPath.
+     */
+    handleBrowseResult(data) {
+        const pathInput = document.getElementById('launcherAddPath');
+        if (pathInput && data.selectedPath) {
+            pathInput.value = data.selectedPath;
+        }
+    },
+
+    /**
      * Render the Launch App tab panel.
      * @param {HTMLElement} container - The container element to render into.
      */
@@ -76,10 +112,16 @@ const Launcher = {
         container.innerHTML = '';
         container.className = 'tab-panel active launcher-panel';
 
-        // Search bar
-        const searchBar = document.createElement('div');
-        searchBar.className = 'launcher-search-bar';
+        // Toolbar
+        const toolbar = document.createElement('div');
+        toolbar.className = 'launcher-toolbar';
 
+        const title = document.createElement('span');
+        title.className = 'launcher-toolbar-title';
+        title.textContent = 'Registered Applications';
+        toolbar.appendChild(title);
+
+        // Search input
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'launcher-search';
@@ -89,9 +131,18 @@ const Launcher = {
             this.searchQuery = e.target.value;
             this.renderAppGrid(grid);
         });
-        searchBar.appendChild(searchInput);
+        toolbar.appendChild(searchInput);
 
-        container.appendChild(searchBar);
+        // Add button
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn-primary launcher-add-btn';
+        addBtn.textContent = '+ Add App';
+        addBtn.addEventListener('click', () => {
+            this.showAddDialog();
+        });
+        toolbar.appendChild(addBtn);
+
+        container.appendChild(toolbar);
 
         // App grid
         const grid = document.createElement('div');
@@ -116,7 +167,7 @@ const Launcher = {
             empty.className = 'launcher-empty';
             empty.textContent = this.searchQuery
                 ? 'No applications match your search.'
-                : 'No registered applications. Add apps to ~/.cosmos/launch-apps.json.';
+                : 'No registered applications. Click "+ Add App" to register one.';
             grid.appendChild(empty);
             return;
         }
@@ -135,6 +186,17 @@ const Launcher = {
         const card = document.createElement('div');
         card.className = 'launcher-card';
         card.title = app.path;
+
+        // Delete button (top-right corner)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'launcher-card-delete';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.title = 'Remove application';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeApp(app.name);
+        });
+        card.appendChild(deleteBtn);
 
         // Icon
         const icon = document.createElement('div');
@@ -180,7 +242,6 @@ const Launcher = {
 
     /**
      * Launch a registered application by name.
-     * Sends a message to the C# backend to start the process.
      * @param {string} appName - The name of the app to launch.
      */
     launchApp(appName) {
@@ -189,6 +250,196 @@ const Launcher = {
         window.chrome.webview.postMessage(JSON.stringify({
             type: 'launcherLaunchApp',
             appName: appName
+        }));
+    },
+
+    /**
+     * Send a remove request to the backend.
+     * @param {string} appName - The name of the app to remove.
+     */
+    removeApp(appName) {
+        if (!App.isWebViewReady) return;
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherRemoveApp',
+            appName: appName
+        }));
+    },
+
+    /**
+     * Show the Add Application dialog.
+     */
+    showAddDialog() {
+        // Remove existing dialog if any
+        this.closeAddDialog();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'password-dialog-overlay launcher-dialog-overlay';
+        overlay.id = 'launcherAddDialog';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'password-dialog password-dialog-wide';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'password-dialog-header';
+
+        const title = document.createElement('span');
+        title.className = 'password-dialog-title';
+        title.textContent = 'Add Application';
+        header.appendChild(title);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'password-dialog-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => this.closeAddDialog());
+        header.appendChild(closeBtn);
+
+        dialog.appendChild(header);
+
+        // Name input
+        const nameGroup = document.createElement('div');
+        nameGroup.className = 'password-input-group';
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Application Name';
+        nameGroup.appendChild(nameLabel);
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.id = 'launcherAddName';
+        nameInput.placeholder = 'e.g. Notepad';
+        nameGroup.appendChild(nameInput);
+        dialog.appendChild(nameGroup);
+
+        // Path input with browse button
+        const pathGroup = document.createElement('div');
+        pathGroup.className = 'password-input-group';
+        const pathLabel = document.createElement('label');
+        pathLabel.textContent = 'Executable Path';
+        pathGroup.appendChild(pathLabel);
+        const pathRow = document.createElement('div');
+        pathRow.className = 'password-input-row';
+        const pathInput = document.createElement('input');
+        pathInput.type = 'text';
+        pathInput.id = 'launcherAddPath';
+        pathInput.placeholder = 'e.g. C:\\Windows\\notepad.exe';
+        pathRow.appendChild(pathInput);
+        const browseBtn = document.createElement('button');
+        browseBtn.className = 'btn btn-secondary';
+        browseBtn.textContent = 'Browse...';
+        browseBtn.addEventListener('click', () => this.browseExecutable());
+        pathRow.appendChild(browseBtn);
+        pathGroup.appendChild(pathRow);
+        dialog.appendChild(pathGroup);
+
+        // Arguments input
+        const argsGroup = document.createElement('div');
+        argsGroup.className = 'password-input-group';
+        const argsLabel = document.createElement('label');
+        argsLabel.textContent = 'Arguments (optional)';
+        argsGroup.appendChild(argsLabel);
+        const argsInput = document.createElement('input');
+        argsInput.type = 'text';
+        argsInput.id = 'launcherAddArgs';
+        argsInput.placeholder = 'e.g. --flag value';
+        argsGroup.appendChild(argsInput);
+        dialog.appendChild(argsGroup);
+
+        // Error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'password-error';
+        errorDiv.id = 'launcherAddError';
+        errorDiv.style.display = 'none';
+        dialog.appendChild(errorDiv);
+
+        // Buttons
+        const buttons = document.createElement('div');
+        buttons.className = 'password-dialog-buttons';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', () => this.closeAddDialog());
+        buttons.appendChild(cancelBtn);
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.textContent = 'Add';
+        saveBtn.addEventListener('click', () => this.submitAddDialog());
+        buttons.appendChild(saveBtn);
+
+        dialog.appendChild(buttons);
+        overlay.appendChild(dialog);
+
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) this.closeAddDialog();
+        });
+
+        document.body.appendChild(overlay);
+
+        // Focus the name input
+        nameInput.focus();
+    },
+
+    /**
+     * Close the Add Application dialog.
+     */
+    closeAddDialog() {
+        const dialog = document.getElementById('launcherAddDialog');
+        if (dialog) dialog.remove();
+    },
+
+    /**
+     * Show an error message in the Add dialog.
+     * @param {string} message - The error message.
+     */
+    showAddError(message) {
+        const errorDiv = document.getElementById('launcherAddError');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    },
+
+    /**
+     * Submit the Add Application dialog.
+     */
+    submitAddDialog() {
+        const nameInput = document.getElementById('launcherAddName');
+        const pathInput = document.getElementById('launcherAddPath');
+        const argsInput = document.getElementById('launcherAddArgs');
+
+        const name = nameInput ? nameInput.value.trim() : '';
+        const path = pathInput ? pathInput.value.trim() : '';
+        const args = argsInput ? argsInput.value.trim() : '';
+
+        if (!name) {
+            this.showAddError('Application name is required.');
+            return;
+        }
+        if (!path) {
+            this.showAddError('Executable path is required.');
+            return;
+        }
+
+        if (!App.isWebViewReady) return;
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherAddApp',
+            name: name,
+            path: path,
+            arguments: args || null
+        }));
+    },
+
+    /**
+     * Request the backend to open a file browser for selecting an executable.
+     */
+    browseExecutable() {
+        if (!App.isWebViewReady) return;
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherBrowseExecutable'
         }));
     },
 

@@ -148,6 +148,15 @@ const App = {
             case 'launcherLaunchResult':
                 Launcher.handleLaunchResult(data);
                 break;
+            case 'launcherAddResult':
+                Launcher.handleAddResult(data);
+                break;
+            case 'launcherRemoveResult':
+                Launcher.handleRemoveResult(data);
+                break;
+            case 'launcherBrowseResult':
+                Launcher.handleBrowseResult(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }

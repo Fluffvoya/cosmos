@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
 using app_launcher;
 using app_password;
+using cosmos_error;
 using app_scheduler;
 using app_script;
 using app_settings;
@@ -204,6 +205,18 @@ public class ServerBridge
 
                     case "launcherLaunchApp":
                         HandleLauncherLaunchApp(root);
+                        break;
+
+                    case "launcherAddApp":
+                        HandleLauncherAddApp(root);
+                        break;
+
+                    case "launcherRemoveApp":
+                        HandleLauncherRemoveApp(root);
+                        break;
+
+                    case "launcherBrowseExecutable":
+                        HandleLauncherBrowseExecutable();
                         break;
 
                     default:
@@ -1118,6 +1131,162 @@ public class ServerBridge
             appName = appName,
             success = success,
             message = success ? "" : result
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle request to add a new registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherAddApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("name", out var nameProp) ||
+            !root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var name = nameProp.GetString();
+        var path = pathProp.GetString();
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(path))
+        {
+            SendLauncherAddResult(false, "Name and path are required.");
+            return;
+        }
+
+        string? arguments = null;
+        if (root.TryGetProperty("arguments", out var argsProp) && argsProp.ValueKind == JsonValueKind.String)
+        {
+            arguments = argsProp.GetString();
+        }
+
+        try
+        {
+            var app = RegisteredApp.Create(name, path, arguments);
+            AppRegistry.Add(app);
+            SendLauncherAddResult(true, null);
+        }
+        catch (LauncherException ex)
+        {
+            SendLauncherAddResult(false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            SendLauncherAddResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handle request to remove a registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherRemoveApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp))
+            return;
+
+        var appName = appNameProp.GetString();
+        if (string.IsNullOrWhiteSpace(appName))
+            return;
+
+        try
+        {
+            AppRegistry.Remove(appName);
+            SendLauncherRemoveResult(true, null);
+        }
+        catch (LauncherException ex)
+        {
+            SendLauncherRemoveResult(false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            SendLauncherRemoveResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Open a native file dialog for browsing executables.
+    /// Sends the selected path back to the Launcher tab.
+    /// </summary>
+    private void HandleLauncherBrowseExecutable()
+    {
+        string? selectedPath = null;
+
+        if (_webView.InvokeRequired)
+        {
+            _webView.Invoke(() => { selectedPath = ShowExecutableFileDialog(); });
+        }
+        else
+        {
+            selectedPath = ShowExecutableFileDialog();
+        }
+
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherBrowseResult",
+                selectedPath = selectedPath
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            try
+            {
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch { }
+        }
+    }
+
+    private string? ShowExecutableFileDialog()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Select Application",
+            Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
+            CheckFileExists = true
+        };
+
+        return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
+    }
+
+    private void SendLauncherAddResult(bool success, string? message)
+    {
+        var apps = AppRegistry.GetAll();
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherAddResult",
+            success = success,
+            message = message ?? "",
+            apps = apps
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    private void SendLauncherRemoveResult(bool success, string? message)
+    {
+        var apps = AppRegistry.GetAll();
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherRemoveResult",
+            success = success,
+            message = message ?? "",
+            apps = apps
         }, ServerBridgeJsonOptions.CamelCase);
 
         try
