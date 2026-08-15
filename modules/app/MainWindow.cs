@@ -74,6 +74,9 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     private const int WM_NCLBUTTONDOWN = 0x00A1;
     private const int WM_LBUTTONDBLCLK = 0x00A3;
 
+    // Thickness of the invisible resize border around the window.
+    // Must match the form's Padding so the resize area is outside the WebView2
+    // and the form receives WM_NCHITTEST directly (bypassing Chromium's HWND).
     private const int ResizeBorderThickness = 8;
 
     /// <summary>
@@ -125,12 +128,20 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     {
         Text = "Cosmos";
         FormBorderStyle = FormBorderStyle.None;
-        Width = 900;
-        Height = 600;
+        Width = 1100;
+        Height = 750;
+        MinimumSize = new Size(800, 500);
         StartPosition = FormStartPosition.CenterScreen;
 
-        // Create WebView2 control
-        _webView = new WebView2
+        // Padding creates a gap between the form edges and the WebView2 control.
+        // The form receives WM_NCHITTEST directly in this gap (the Chromium HWND
+        // inside WebView2 doesn't cover it), enabling edge resize without relying
+        // on HTTRANSPARENT forwarding. BackColor blends with the page background.
+        Padding = new Padding(ResizeBorderThickness);
+        BackColor = Color.FromArgb(236, 238, 241);
+
+        // Create WebView2 control (Dock=Fill respects the form's Padding)
+        _webView = new ResizeAwareWebView
         {
             Dock = DockStyle.Fill
         };
@@ -146,12 +157,16 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     /// maximize/minimize animations are native and smooth.
     /// Using cyTopHeight = -1 is the Chromium trick: it tells DWM
     /// to use the legacy rendering path while still extending the
-    /// frame, giving us invisible non-client area with animations.
+    /// frame, giving us rounded corners and smooth animations.
     /// </summary>
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
 
+        // cyTopHeight = -1 is the Chromium trick for DWM frame extension.
+        // It provides rounded corners and native window animations.
+        // Edge resize is handled by the form's Padding (not DWM margins),
+        // so the DWM doesn't interfere with resize borders.
         var margins = new MARGINS
         {
             cxLeftWidth = 0,
@@ -237,13 +252,20 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         // Wire up web message handler
         _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
-        // Send settings to frontend
+        // Send settings, tasks, script output, and start config to frontend
         _webView.CoreWebView2.NavigationCompleted += (_, _) =>
         {
+            var tasks = DataStore.Load<List<ScheduledTask>>("tasks.json") ?? new List<ScheduledTask>();
+            var scriptOutput = DataStore.Load<List<ScriptOutputEntry>>("script-output.json");
+            var startConfig = DataStore.Load<StartConfig>("start-config.json") ?? new StartConfig();
+
             var settingsJson = System.Text.Json.JsonSerializer.Serialize(new
             {
                 type = "settingsLoaded",
-                settings = _settingsManager.Current
+                settings = _settingsManager.Current,
+                scheduledTasks = tasks,
+                scriptOutput = scriptOutput,
+                startConfig = startConfig
             });
             _webView.CoreWebView2.PostWebMessageAsJson(settingsJson);
         };
@@ -413,6 +435,42 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
             throw new InvalidOperationException("Script engine not initialized");
 
         await _script.Run(source);
+    }
+}
+
+/// <summary>
+/// WebView2 subclass that is transparent to mouse input at window edges,
+/// allowing the parent form's WM_NCHITTEST to handle resize borders.
+/// This acts as a secondary defense — the primary resize mechanism is the
+/// form's Padding, which keeps the WebView2 inset so the form receives
+/// WM_NCHITTEST directly at the edges without needing HTTRANSPARENT.
+/// </summary>
+internal sealed class ResizeAwareWebView : WebView2
+{
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTTRANSPARENT = -1;
+
+    private const int ResizeBorder = 8;
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_NCHITTEST && Parent is Control parent)
+        {
+            // Get cursor position in screen coordinates
+            var screenPos = Cursor.Position;
+            var localPos = parent.PointToClient(screenPos);
+
+            // If cursor is within the resize border of the parent's edges,
+            // return HTTRANSPARENT so the parent form handles the hit-test.
+            if (localPos.X < ResizeBorder || localPos.X > parent.Width - ResizeBorder ||
+                localPos.Y < ResizeBorder || localPos.Y > parent.Height - ResizeBorder)
+            {
+                m.Result = (IntPtr)HTTRANSPARENT;
+                return;
+            }
+        }
+
+        base.WndProc(ref m);
     }
 }
 

@@ -27,9 +27,9 @@ const App = {
         // Initialize splitter module
         Splitter.init();
 
-        // Add default welcome tab
+        // Add default start tab
         Tabs.addTab({
-            title: 'Welcome',
+            title: 'Start',
             contentType: 'Document',
             icon: null
         });
@@ -81,11 +81,14 @@ const App = {
                 break;
             case 'settingsLoaded':
                 Settings.loadSettings(data.settings);
-                if (data.settings && Array.isArray(data.settings.scheduledTasks)) {
-                    Scheduler.loadTasks(data.settings.scheduledTasks);
+                if (Array.isArray(data.scheduledTasks)) {
+                    Scheduler.loadTasks(data.scheduledTasks);
                 }
-                if (data.settings && Array.isArray(data.settings.scriptOutput)) {
-                    ScriptPlayground.loadFromSettings(data.settings.scriptOutput);
+                if (Array.isArray(data.scriptOutput)) {
+                    ScriptPlayground.loadFromSettings(data.scriptOutput);
+                }
+                if (data.startConfig) {
+                    StartConfig.load(data.startConfig);
                 }
                 break;
             case 'pythonPathValidation':
@@ -257,6 +260,21 @@ const App = {
     },
 
     /**
+     * Send start config changed notification to the C# backend.
+     * @param {object} config - The new start config.
+     */
+    sendStartConfigChanged(config) {
+        if (!this.isWebViewReady) return;
+
+        const message = {
+            type: 'startConfigChanged',
+            config: config
+        };
+
+        window.chrome.webview.postMessage(JSON.stringify(message));
+    },
+
+    /**
      * Set up menu handlers.
      */
     setupMenuHandlers() {
@@ -265,9 +283,9 @@ const App = {
             item.addEventListener('click', () => {
                 const action = item.dataset.action;
                 switch (action) {
-                    case 'newWelcome':
+                    case 'newStart':
                         Tabs.addTab({
-                            title: 'Welcome',
+                            title: 'Start',
                             contentType: 'Document',
                             icon: null
                         });
@@ -466,6 +484,33 @@ const App = {
         // No requestId needed for About dialog (not from script)
         overlay.dataset.requestId = '';
     }
+};
+
+/**
+ * StartConfig - Start page configuration (time format, etc.).
+ * Persisted separately from main settings in start-config.json.
+ */
+const StartConfig = {
+    config: {
+        timeFormat: '24',
+    },
+
+    /**
+     * Load start config from the backend.
+     * @param {object} config - The config to load.
+     */
+    load(config) {
+        if (config) {
+            this.config = { ...this.config, ...config };
+        }
+    },
+
+    /**
+     * Save start config to the backend.
+     */
+    save() {
+        App.sendStartConfigChanged(this.config);
+    },
 };
 
 /**

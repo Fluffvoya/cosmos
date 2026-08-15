@@ -4,6 +4,8 @@ namespace app_settings;
 
 /// <summary>
 /// Application settings model.
+/// Only stores user preferences — runtime data (tasks, script output)
+/// is stored separately via DataStore.
 /// </summary>
 public class AppSettings
 {
@@ -13,17 +15,14 @@ public class AppSettings
     [JsonPropertyName("tabStripWidth")]
     public int TabStripWidth { get; set; } = 140;
 
+    [JsonPropertyName("username")]
+    public string Username { get; set; } = "";
+
     [JsonPropertyName("pythonPath")]
     public string PythonPath { get; set; } = "";
 
     [JsonPropertyName("startupScriptPath")]
     public string StartupScriptPath { get; set; } = "";
-
-    [JsonPropertyName("scheduledTasks")]
-    public List<ScheduledTask> ScheduledTasks { get; set; } = new();
-
-    [JsonPropertyName("scriptOutput")]
-    public List<ScriptOutputEntry>? ScriptOutput { get; set; }
 }
 
 /// <summary>
