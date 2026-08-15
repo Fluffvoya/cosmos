@@ -37,4 +37,7 @@ public class Client
 
     public static Request MessageBar(string message, string level)
         => new Request("MessageBar", message, level);
+
+    public static Request PlayRingtone(string audioPath)
+        => new Request("PlayRingtone", audioPath);
 }
