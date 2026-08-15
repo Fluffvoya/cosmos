@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -217,6 +219,10 @@ public class ServerBridge
 
                     case "launcherBrowseExecutable":
                         HandleLauncherBrowseExecutable();
+                        break;
+
+                    case "launcherGetIcon":
+                        HandleLauncherGetIcon(root);
                         break;
 
                     default:
@@ -1255,6 +1261,58 @@ public class ServerBridge
         };
 
         return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
+    }
+
+    /// <summary>
+    /// Extract the icon from an executable file and send it to the frontend as base64.
+    /// </summary>
+    private void HandleLauncherGetIcon(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp) ||
+            !root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var appName = appNameProp.GetString() ?? "";
+        var appPath = pathProp.GetString() ?? "";
+
+        string? iconBase64 = null;
+
+        try
+        {
+            var expandedPath = Environment.ExpandEnvironmentVariables(appPath);
+            if (File.Exists(expandedPath))
+            {
+                using var icon = Icon.ExtractAssociatedIcon(expandedPath);
+                if (icon != null)
+                {
+                    using var bitmap = icon.ToBitmap();
+                    using var ms = new MemoryStream();
+                    bitmap.Save(ms, ImageFormat.Png);
+                    iconBase64 = Convert.ToBase64String(ms.ToArray());
+                }
+            }
+        }
+        catch
+        {
+            // Icon extraction can fail for various reasons (non-PE files, etc.)
+            // Silently fall back to no icon.
+        }
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherIconLoaded",
+            appName = appName,
+            iconData = iconBase64
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
     }
 
     private void SendLauncherAddResult(bool success, string? message)

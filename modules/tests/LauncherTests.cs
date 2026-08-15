@@ -5,6 +5,7 @@ namespace tests;
 
 /// <summary>
 /// Unit tests for the app-launcher module: RegisteredApp model and AppRegistry.
+/// Each test uses an isolated temp folder to avoid polluting the real user data.
 /// </summary>
 public class LauncherTests : IDisposable
 {
@@ -75,7 +76,7 @@ public class LauncherTests : IDisposable
     [Fact]
     public void Load_EmptyFile_ReturnsEmptyList()
     {
-        var apps = AppRegistry.Load();
+        var apps = AppRegistry.Load(_testFolder);
         Assert.NotNull(apps);
         Assert.Empty(apps);
     }
@@ -84,28 +85,22 @@ public class LauncherTests : IDisposable
     public void Add_And_GetByName()
     {
         var app = RegisteredApp.Create("TestApp", @"C:\test.exe");
-        AppRegistry.Add(app);
+        AppRegistry.Add(app, _testFolder);
 
-        var found = AppRegistry.GetByName("TestApp");
+        var found = AppRegistry.GetByName("TestApp", _testFolder);
         Assert.NotNull(found);
         Assert.Equal("TestApp", found.Name);
         Assert.Equal(@"C:\test.exe", found.Path);
-
-        // Cleanup
-        AppRegistry.Remove("TestApp");
     }
 
     [Fact]
     public void Add_DuplicateName_ThrowsLauncherException()
     {
         var app = RegisteredApp.Create("DupApp", @"C:\test.exe");
-        AppRegistry.Add(app);
+        AppRegistry.Add(app, _testFolder);
 
-        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Add(app));
+        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Add(app, _testFolder));
         Assert.Equal(ErrorCode.DuplicateAppName, ex.ErrorCode);
-
-        // Cleanup
-        AppRegistry.Remove("DupApp");
     }
 
     [Fact]
@@ -113,37 +108,34 @@ public class LauncherTests : IDisposable
     {
         var app1 = RegisteredApp.Create("MyApp", @"C:\test1.exe");
         var app2 = RegisteredApp.Create("myapp", @"C:\test2.exe");
-        AppRegistry.Add(app1);
+        AppRegistry.Add(app1, _testFolder);
 
-        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Add(app2));
+        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Add(app2, _testFolder));
         Assert.Equal(ErrorCode.DuplicateAppName, ex.ErrorCode);
-
-        // Cleanup
-        AppRegistry.Remove("MyApp");
     }
 
     [Fact]
     public void Remove_ExistingApp_Succeeds()
     {
         var app = RegisteredApp.Create("ToRemove", @"C:\test.exe");
-        AppRegistry.Add(app);
-        AppRegistry.Remove("ToRemove");
+        AppRegistry.Add(app, _testFolder);
+        AppRegistry.Remove("ToRemove", _testFolder);
 
-        var found = AppRegistry.GetByName("ToRemove");
+        var found = AppRegistry.GetByName("ToRemove", _testFolder);
         Assert.Null(found);
     }
 
     [Fact]
     public void Remove_NonExistentApp_ThrowsLauncherException()
     {
-        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Remove("NonExistent"));
+        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Remove("NonExistent", _testFolder));
         Assert.Equal(ErrorCode.AppNotFound, ex.ErrorCode);
     }
 
     [Fact]
     public void GetByName_NonExistent_ReturnsNull()
     {
-        var found = AppRegistry.GetByName("DoesNotExist");
+        var found = AppRegistry.GetByName("DoesNotExist", _testFolder);
         Assert.Null(found);
     }
 
@@ -152,15 +144,11 @@ public class LauncherTests : IDisposable
     {
         var app1 = RegisteredApp.Create("App1", @"C:\app1.exe");
         var app2 = RegisteredApp.Create("App2", @"C:\app2.exe");
-        AppRegistry.Add(app1);
-        AppRegistry.Add(app2);
+        AppRegistry.Add(app1, _testFolder);
+        AppRegistry.Add(app2, _testFolder);
 
-        var all = AppRegistry.GetAll();
-        Assert.True(all.Count >= 2);
-
-        // Cleanup
-        AppRegistry.Remove("App1");
-        AppRegistry.Remove("App2");
+        var all = AppRegistry.GetAll(_testFolder);
+        Assert.Equal(2, all.Count);
     }
 
     // ── AppRegistry.Search ────────────────────────────────────────
@@ -169,40 +157,31 @@ public class LauncherTests : IDisposable
     public void Search_EmptyQuery_ReturnsAll()
     {
         var app = RegisteredApp.Create("SearchTest", @"C:\test.exe");
-        AppRegistry.Add(app);
+        AppRegistry.Add(app, _testFolder);
 
-        var results = AppRegistry.Search("");
-        Assert.NotEmpty(results);
-
-        // Cleanup
-        AppRegistry.Remove("SearchTest");
+        var results = AppRegistry.Search("", _testFolder);
+        Assert.Single(results);
     }
 
     [Fact]
     public void Search_MatchingQuery_ReturnsMatches()
     {
         var app = RegisteredApp.Create("NotePad", @"C:\Windows\notepad.exe");
-        AppRegistry.Add(app);
+        AppRegistry.Add(app, _testFolder);
 
-        var results = AppRegistry.Search("note");
+        var results = AppRegistry.Search("note", _testFolder);
         Assert.Single(results);
         Assert.Equal("NotePad", results[0].Name);
-
-        // Cleanup
-        AppRegistry.Remove("NotePad");
     }
 
     [Fact]
     public void Search_NonMatchingQuery_ReturnsEmpty()
     {
         var app = RegisteredApp.Create("UniqueApp", @"C:\test.exe");
-        AppRegistry.Add(app);
+        AppRegistry.Add(app, _testFolder);
 
-        var results = AppRegistry.Search("zzzznonexistent");
+        var results = AppRegistry.Search("zzzznonexistent", _testFolder);
         Assert.Empty(results);
-
-        // Cleanup
-        AppRegistry.Remove("UniqueApp");
     }
 
     // ── LauncherException ─────────────────────────────────────────

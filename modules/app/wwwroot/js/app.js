@@ -157,6 +157,9 @@ const App = {
             case 'launcherBrowseResult':
                 Launcher.handleBrowseResult(data);
                 break;
+            case 'launcherIconLoaded':
+                Launcher.handleIconLoaded(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }

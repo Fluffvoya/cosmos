@@ -2334,6 +2334,17 @@ body.tab-right .splitter.right-splitter {
 .launcher-card-icon {
     font-size: 36px;
     line-height: 1;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.launcher-card-icon-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
 }
 
 .launcher-card-name {

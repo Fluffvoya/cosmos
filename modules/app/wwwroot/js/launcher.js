@@ -14,6 +14,9 @@ const Launcher = {
     /** Current search filter text */
     searchQuery: '',
 
+    /** Icon cache: Map<appName, base64DataUrl> */
+    iconCache: new Map(),
+
     /**
      * Open (or focus) the Launch App tab.
      */
@@ -55,7 +58,7 @@ const Launcher = {
      */
     handleAppsLoaded(data) {
         this.registeredApps = data.apps || [];
-        this.refreshPanel();
+        this.updateGrid();
     },
 
     /**
@@ -76,7 +79,7 @@ const Launcher = {
         if (data.success) {
             this.registeredApps = data.apps || [];
             this.closeAddDialog();
-            this.refreshPanel();
+            this.updateGrid();
         } else {
             this.showAddError(data.message || 'Failed to add application.');
         }
@@ -89,7 +92,7 @@ const Launcher = {
     handleRemoveResult(data) {
         if (data.success) {
             this.registeredApps = data.apps || [];
-            this.refreshPanel();
+            this.updateGrid();
         }
     },
 
@@ -101,6 +104,39 @@ const Launcher = {
         const pathInput = document.getElementById('launcherAddPath');
         if (pathInput && data.selectedPath) {
             pathInput.value = data.selectedPath;
+        }
+    },
+
+    /**
+     * Handle the icon data response from the backend.
+     * @param {object} data - The message data with appName and iconData (base64).
+     */
+    handleIconLoaded(data) {
+        const appName = data.appName;
+        const iconData = data.iconData;
+
+        if (iconData) {
+            this.iconCache.set(appName, 'data:image/png;base64,' + iconData);
+        } else {
+            this.iconCache.set(appName, null);
+        }
+
+        // Update the specific card's icon in the DOM
+        const card = document.querySelector('.launcher-card[data-app-name="' + CSS.escape(appName) + '"]');
+        if (card) {
+            const iconEl = card.querySelector('.launcher-card-icon');
+            if (iconEl) {
+                if (iconData) {
+                    iconEl.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = 'data:image/png;base64,' + iconData;
+                    img.className = 'launcher-card-icon-img';
+                    img.draggable = false;
+                    iconEl.appendChild(img);
+                } else {
+                    iconEl.textContent = '💻';
+                }
+            }
         }
     },
 
@@ -154,6 +190,18 @@ const Launcher = {
     },
 
     /**
+     * Update the grid in the currently visible Launcher panel.
+     * Uses querySelector to reliably find the panel even if other
+     * cached panels (e.g. Script) exist in the content area.
+     */
+    updateGrid() {
+        const grid = document.getElementById('launcherGrid');
+        if (grid) {
+            this.renderAppGrid(grid);
+        }
+    },
+
+    /**
      * Render the app grid content based on the current search query.
      * @param {HTMLElement} grid - The grid container element.
      */
@@ -185,6 +233,7 @@ const Launcher = {
     createAppCard(app) {
         const card = document.createElement('div');
         card.className = 'launcher-card';
+        card.dataset.appName = app.name;
         card.title = app.path;
 
         // Delete button (top-right corner)
@@ -201,7 +250,23 @@ const Launcher = {
         // Icon
         const icon = document.createElement('div');
         icon.className = 'launcher-card-icon';
-        icon.textContent = '💻';
+
+        const cachedIcon = this.iconCache.get(app.name);
+        if (cachedIcon === undefined) {
+            // Not yet requested — show placeholder and request icon
+            icon.textContent = '💻';
+            this.requestIcon(app.name, app.path);
+        } else if (cachedIcon === null) {
+            // Requested but no icon available
+            icon.textContent = '💻';
+        } else {
+            // Cached icon
+            const img = document.createElement('img');
+            img.src = cachedIcon;
+            img.className = 'launcher-card-icon-img';
+            img.draggable = false;
+            icon.appendChild(img);
+        }
         card.appendChild(icon);
 
         // Name
@@ -222,6 +287,24 @@ const Launcher = {
         });
 
         return card;
+    },
+
+    /**
+     * Request the exe icon for an app from the backend.
+     * @param {string} appName - The application name.
+     * @param {string} appPath - The executable path.
+     */
+    requestIcon(appName, appPath) {
+        if (!App.isWebViewReady) return;
+
+        // Mark as requested so we don't request again
+        this.iconCache.set(appName, null);
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherGetIcon',
+            appName: appName,
+            path: appPath
+        }));
     },
 
     /**
@@ -441,17 +524,5 @@ const Launcher = {
         window.chrome.webview.postMessage(JSON.stringify({
             type: 'launcherBrowseExecutable'
         }));
-    },
-
-    /**
-     * Refresh the Launcher panel if the tab is currently visible.
-     */
-    refreshPanel() {
-        if (this.launcherTabId && Tabs.activeTabId === this.launcherTabId) {
-            const contentArea = document.getElementById('tabContent');
-            if (contentArea && contentArea.firstChild) {
-                this.renderLauncherPanel(contentArea.firstChild);
-            }
-        }
     }
 };
