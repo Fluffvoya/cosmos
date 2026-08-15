@@ -37,4 +37,10 @@ public enum ErrorCode
     PythonRuntimeError = 6004,
     ProcessCommunicationError = 6005,
 
+    // Launcher module (7xxx)
+    AppNotFound = 7001,
+    AppPathInvalid = 7002,
+    DuplicateAppName = 7003,
+    AppRegistryLoadFailed = 7004,
+
 }

@@ -22,6 +22,7 @@ Numeric error codes grouped by module. Used as the first argument to every excep
 | 4xxx | cm-script | `SyntaxError` (4001), `MissingFunctionName` (4002) |
 | 5xxx | script-func | `EmptyArgumentValue` (5001) |
 | 6xxx | process | `PythonNotFound` (6001), `ScriptNotFound` (6002), `PythonProcessCrashed` (6003), `PythonRuntimeError` (6004), `ProcessCommunicationError` (6005) |
+| 7xxx | launcher | `AppNotFound` (7001), `AppPathInvalid` (7002), `DuplicateAppName` (7003), `AppRegistryLoadFailed` (7004) |
 
 ### `CosmosException`
 
@@ -50,6 +51,7 @@ Each subclass inherits `CosmosException` with no additional members unless noted
 | `ScriptFuncException` | Built-in script function argument errors |
 | `ProcessException` | External process failures (exe not found, communication error) |
 | `PythonRuntimeException` | Python script runtime errors. **Additional property:** `int ExitCode` (defaults to -1) |
+| `LauncherException` | Launcher module errors (app not found, duplicate name, invalid path) |
 
 ## Dependencies
 

@@ -142,6 +142,12 @@ const App = {
             case 'ringtonePlay':
                 Ringtone.handlePlayRingtone(data);
                 break;
+            case 'launcherAppsLoaded':
+                Launcher.handleAppsLoaded(data);
+                break;
+            case 'launcherLaunchResult':
+                Launcher.handleLaunchResult(data);
+                break;
             default:
                 console.warn('Unknown backend message type:', data.type);
         }
@@ -307,6 +313,9 @@ const App = {
                         break;
                     case 'newRingtone':
                         Ringtone.openRingtoneTab();
+                        break;
+                    case 'newLauncher':
+                        Launcher.openLauncherTab();
                         break;
                     case 'about':
                         this.showAbout();

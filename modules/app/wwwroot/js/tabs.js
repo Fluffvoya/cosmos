@@ -296,6 +296,7 @@ const Tabs = {
             { icon: '\u{1F4BB}', title: 'Script',     desc: 'Open script playground',   action: 'newScript' },
             { icon: '\u{1F511}', title: 'Passwords',  desc: 'Password manager',         action: 'newPasswordManager' },
             { icon: '🔔',   title: 'Ringtone',  desc: 'Active ringtones',        action: 'newRingtone' },
+            { icon: '🚀',   title: 'Launch App', desc: 'Launch applications',    action: 'newLauncher' },
             { icon: '⚙️', title: 'Settings', desc: 'Configure application',   action: 'openSettings' },
         ];
 
@@ -401,6 +402,14 @@ const Tabs = {
             const panel = document.createElement('div');
             panel.className = 'tab-panel active ringtone-panel';
             Ringtone.renderRingtonePanel(panel);
+            contentArea.appendChild(panel);
+            return;
+        }
+
+        if (activeTab.contentType === 'Launcher') {
+            const panel = document.createElement('div');
+            panel.className = 'tab-panel active launcher-panel';
+            Launcher.renderLauncherPanel(panel);
             contentArea.appendChild(panel);
             return;
         }

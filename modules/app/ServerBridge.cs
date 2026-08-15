@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
+using app_launcher;
 using app_password;
 using app_scheduler;
 using app_script;
@@ -194,6 +196,14 @@ public class ServerBridge
 
                     case "passwordManagerSaveData":
                         HandlePasswordManagerSaveData(root);
+                        break;
+
+                    case "launcherLoadApps":
+                        HandleLauncherLoadApps();
+                        break;
+
+                    case "launcherLaunchApp":
+                        HandleLauncherLaunchApp(root);
                         break;
 
                     default:
@@ -780,6 +790,15 @@ public class ServerBridge
             return Server.CreateResponse(ringtoneResponse);
         }
 
+        // Intercept OpenRegisteredApp — look up a registered app by name and launch it.
+        if (request.request == "OpenRegisteredApp" && request.args.Count >= 1)
+        {
+            var appName = request.args[0];
+            var launchResult = HandleOpenRegisteredApp(appName);
+            var launchResponse = new Response(request.request, launchResult);
+            return Server.CreateResponse(launchResponse);
+        }
+
         // Generate a unique request ID for correlation.
         var requestId = Interlocked.Increment(ref _requestIdCounter).ToString();
 
@@ -1050,6 +1069,108 @@ public class ServerBridge
             ".webm" => "audio/webm",
             _ => "audio/mpeg" // fallback
         };
+    }
+
+    /// <summary>
+    /// Handle request to load the list of registered apps.
+    /// Sends the full list back to the frontend.
+    /// </summary>
+    private void HandleLauncherLoadApps()
+    {
+        try
+        {
+            var apps = AppRegistry.GetAll();
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherAppsLoaded",
+                apps = apps
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to load registered apps: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
+    /// Handle request to launch a registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherLaunchApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("appName", out var appNameProp))
+            return;
+
+        var appName = appNameProp.GetString();
+        if (string.IsNullOrEmpty(appName))
+            return;
+
+        var result = HandleOpenRegisteredApp(appName);
+        var success = result == "ok";
+
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherLaunchResult",
+            appName = appName,
+            success = success,
+            message = success ? "" : result
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle an OpenRegisteredApp request by looking up the app and launching it.
+    /// Returns "ok" on success, or an error message on failure.
+    /// </summary>
+    private string HandleOpenRegisteredApp(string appName)
+    {
+        try
+        {
+            var app = AppRegistry.GetByName(appName);
+            if (app == null)
+            {
+                _logToUI("Warning", $"OpenRegisteredApp: '{appName}' not found", "program");
+                return "error:not_found";
+            }
+
+            var expandedPath = Environment.ExpandEnvironmentVariables(app.Path);
+            if (!File.Exists(expandedPath))
+            {
+                _logToUI("Error", $"OpenRegisteredApp: path does not exist: {expandedPath}", "program");
+                return "error:path_invalid";
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = expandedPath,
+                UseShellExecute = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(app.Arguments))
+            {
+                startInfo.Arguments = app.Arguments;
+            }
+
+            Process.Start(startInfo);
+            return "ok";
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"OpenRegisteredApp failed: {ex.Message}", "program");
+            return $"error:{ex.Message}";
+        }
     }
 }
 
