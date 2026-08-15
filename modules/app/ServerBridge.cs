@@ -136,6 +136,10 @@ public class ServerBridge
                         HandleSettingsChanged(root);
                         break;
 
+                    case "startConfigChanged":
+                        HandleStartConfigChanged(root);
+                        break;
+
                     case "validatePythonPath":
                         HandleValidatePythonPath(root);
                         break;
@@ -243,6 +247,25 @@ public class ServerBridge
         catch (Exception ex)
         {
             _logToUI("Error", $"Failed to save settings: {ex.Message}", "program");
+        }
+    }
+
+    private void HandleStartConfigChanged(JsonElement root)
+    {
+        if (!root.TryGetProperty("config", out var configProp))
+            return;
+
+        try
+        {
+            var config = JsonSerializer.Deserialize<StartConfig>(configProp.GetRawText(), ServerBridgeJsonOptions.CamelCase);
+            if (config != null)
+            {
+                DataStore.Save("start-config.json", config);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to save start config: {ex.Message}", "program");
         }
     }
 

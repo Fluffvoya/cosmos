@@ -304,21 +304,83 @@ body {
     align-items: center;
     justify-content: center;
     height: 100%;
-    padding: 48px 24px;
-    overflow-y: auto;
+    padding: 36px 24px 24px;
+    overflow: hidden;
     background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 25%, #f0f4f8 50%, #e3e8ed 75%, #f5f7fa 100%);
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
 }
 
+/* ── Time Block ───────────────────────────────────────────────── */
+.start-time-block {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fade-in-up 0.5s ease-out;
+}
+
+.start-time-main {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+}
+
+.start-time-hhmm {
+    font-size: 96px;
+    font-weight: 200;
+    letter-spacing: -2px;
+    line-height: 1;
+    background: linear-gradient(135deg, #1a1a1a 0%, #444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-variant-numeric: tabular-nums;
+}
+
+.start-time-ampm {
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    align-self: flex-start;
+    margin-top: 18px;
+}
+
+.start-time-toggle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    align-self: flex-start;
+    margin-top: 24px;
+    transition: background-color 0.15s, color 0.15s;
+    user-select: none;
+}
+
+.start-time-toggle:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--text-primary);
+}
+
+.start-time-secondary {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Greeting ────────────────────────────────────────────────── */
 .start-greeting {
     text-align: center;
-    margin-bottom: 48px;
+    margin-bottom: 24px;
     animation: fade-in-up 0.6s ease-out;
 }
 
 .start-greeting-title {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
     margin-bottom: 8px;
     background: linear-gradient(135deg, #0078d4, #6b5ce7, #0078d4);
@@ -334,33 +396,36 @@ body {
     color: var(--text-secondary);
 }
 
-.start-time {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 6px;
-    font-variant-numeric: tabular-nums;
+/* Scrollable wrapper for cards — allows future expansion without overflow */
+.start-cards-scroll {
+    width: 100%;
+    max-width: 800px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 24px;
+    padding: 4px 0;
 }
 
 .start-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    max-width: 700px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
     width: 100%;
-    margin-bottom: 48px;
 }
 
 .start-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 28px 16px;
+    gap: 12px;
+    padding: 36px 20px;
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
     text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -384,19 +449,19 @@ body {
 }
 
 .start-card-icon {
-    font-size: 36px;
+    font-size: 44px;
     line-height: 1;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .start-card-title {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .start-card-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.4;
 }
@@ -409,12 +474,6 @@ body {
     padding: 2px 6px;
     border-radius: 3px;
     margin-top: 2px;
-}
-
-.start-footer {
-    font-size: 12px;
-    color: var(--text-muted);
-    animation: fade-in-up 0.6s ease-out 0.4s both;
 }
 
 /* ── Modal Dialog ──────────────────────────────────────────────── */

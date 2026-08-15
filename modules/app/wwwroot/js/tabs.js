@@ -252,7 +252,7 @@ const Tabs = {
     },
 
     /**
-     * Render the Start page panel with greeting, time, and quick-action cards.
+     * Render the Start page panel with time, greeting, and quick-action cards.
      * @param {HTMLElement} panel - The container element to render into.
      */
     renderStartPanel(panel) {
@@ -264,10 +264,30 @@ const Tabs = {
             ? 'Welcome back, ' + this.escapeHtml(username)
             : 'Welcome to Cosmos';
 
+        // Time format from StartConfig
+        const timeFormat = StartConfig.config.timeFormat || '24';
+        const use12h = timeFormat === '12';
+
         // Current time and date
         const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        let ampm = '';
+
+        if (use12h) {
+            ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+        }
+
+        const hh = String(hours).padStart(2, '0');
+        const mm = String(minutes).padStart(2, '0');
+        const ss = String(seconds).padStart(2, '0');
+
+        // Date string
+        const dateStr = now.toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
 
         // Quick-action card definitions
         const cards = [
@@ -287,17 +307,42 @@ const Tabs = {
             '</div>'
         ).join('');
 
+        // Build time secondary line (date + seconds)
+        const timeSecondary = dateStr + ' · ' + ss;
+
+        // Toggle label shows current format number
+        const toggleLabel = timeFormat + 'h';
+
         // Assemble the full Start page
         panel.innerHTML =
             '<div class="start-page">' +
+                '<div class="start-time-block">' +
+                    '<div class="start-time-main">' +
+                        '<span class="start-time-hhmm">' + hh + ':' + mm + '</span>' +
+                        (use12h ? '<span class="start-time-ampm">' + ampm + '</span>' : '') +
+                        '<span class="start-time-toggle" title="Switch format">' + toggleLabel + '</span>' +
+                    '</div>' +
+                    '<div class="start-time-secondary">' + timeSecondary + '</div>' +
+                '</div>' +
                 '<div class="start-greeting">' +
                     '<div class="start-greeting-title">' + greetingText + '</div>' +
                     '<div class="start-greeting-sub">What would you like to do?</div>' +
-                    '<div class="start-time">' + dateStr + ' · ' + timeStr + '</div>' +
                 '</div>' +
-                '<div class="start-cards">' + cardsHtml + '</div>' +
-                '<div class="start-footer">Cosmos v1.0</div>' +
+                '<div class="start-cards-scroll">' +
+                    '<div class="start-cards">' + cardsHtml + '</div>' +
+                '</div>' +
             '</div>';
+
+        // Time format toggle click handler
+        const toggleBtn = panel.querySelector('.start-time-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const newFormat = use12h ? '24' : '12';
+                StartConfig.config.timeFormat = newFormat;
+                StartConfig.save();
+                this.renderTabContent();
+            });
+        }
 
         // Attach click handlers to cards
         panel.querySelectorAll('.start-card').forEach(card => {
