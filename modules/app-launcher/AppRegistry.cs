@@ -91,6 +91,63 @@ public class AppRegistry
     }
 
     /// <summary>
+    /// Get all distinct category names from registered applications.
+    /// Returns categories sorted alphabetically.
+    /// </summary>
+    public static List<string> GetAllCategories(string? folder = null)
+    {
+        var apps = Load(folder);
+        return apps.Select(a => a.Category)
+                   .Distinct(StringComparer.OrdinalIgnoreCase)
+                   .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                   .ToList();
+    }
+
+    /// <summary>
+    /// Get registered applications filtered by category.
+    /// Returns all apps if the category is null, empty, or "All".
+    /// </summary>
+    public static List<RegisteredApp> GetByCategory(string? category, string? folder = null)
+    {
+        var apps = Load(folder);
+        if (string.IsNullOrWhiteSpace(category) || category.Equals("All", StringComparison.OrdinalIgnoreCase))
+            return apps;
+
+        return apps.Where(a => a.Category.Equals(category, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    /// <summary>
+    /// Update an existing registered application by its original name.
+    /// If the name changes, throws if the new name already conflicts with another app.
+    /// Throws if the original app is not found.
+    /// </summary>
+    public static void Update(string originalName, RegisteredApp updatedApp, string? folder = null)
+    {
+        var apps = Load(folder);
+        var index = apps.FindIndex(a => a.Name.Equals(originalName, StringComparison.OrdinalIgnoreCase));
+        if (index == -1)
+        {
+            throw new LauncherException(
+                ErrorCode.AppNotFound,
+                $"No application registered with the name '{originalName}'.");
+        }
+
+        // If the name is changing, check for conflicts
+        if (!originalName.Equals(updatedApp.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            if (apps.Any(a => a.Name.Equals(updatedApp.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new LauncherException(
+                    ErrorCode.DuplicateAppName,
+                    $"An application with the name '{updatedApp.Name}' is already registered.");
+            }
+        }
+
+        apps[index] = updatedApp;
+        Save(apps, folder);
+    }
+
+    /// <summary>
     /// Reorder registered applications by moving an app from one index to another.
     /// Throws if the indices are out of range.
     /// </summary>

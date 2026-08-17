@@ -2242,6 +2242,25 @@ body.tab-right .splitter.right-splitter {
     flex-shrink: 0;
 }
 
+.launcher-category-select {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    min-width: 130px;
+}
+
+.launcher-category-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
 .launcher-search {
     flex: 1;
     max-width: 320px;
@@ -2360,6 +2379,19 @@ body.tab-right .splitter.right-splitter {
     max-width: 100%;
 }
 
+.launcher-card-category {
+    font-size: 11px;
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 2px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
 .launcher-empty {
     display: flex;
     align-items: center;
@@ -2373,6 +2405,54 @@ body.tab-right .splitter.right-splitter {
 
 .launcher-dialog-overlay {
     z-index: 2000;
+}
+
+/* ── Launcher Context Menu ──────────────────────────────────────── */
+.launcher-context-menu {
+    position: fixed;
+    z-index: 3000;
+    min-width: 160px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 4px 0;
+}
+
+.launcher-context-menu-item {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.1s;
+}
+
+.launcher-context-menu-item:hover {
+    background-color: var(--accent-color);
+    color: #fff;
+}
+
+.launcher-context-menu-danger:hover {
+    background-color: var(--danger-color);
+    color: #fff;
+}
+
+/* ── Launcher Category Group Header ─────────────────────────────── */
+.launcher-category-header {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 0 4px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
+}
+
+.launcher-category-header:not(:first-child) {
+    margin-top: 8px;
 }
 
 /* ── Launcher Card Drag & Drop ──────────────────────────────────── */

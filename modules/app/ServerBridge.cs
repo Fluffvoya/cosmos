@@ -210,6 +210,10 @@ public class ServerBridge
                         HandleLauncherAddApp(root);
                         break;
 
+                    case "launcherEditApp":
+                        HandleLauncherEditApp(root);
+                        break;
+
                     case "launcherRemoveApp":
                         HandleLauncherRemoveApp(root);
                         break;
@@ -224,6 +228,10 @@ public class ServerBridge
 
                     case "launcherReorderApps":
                         HandleLauncherReorderApps(root);
+                        break;
+
+                    case "launcherGetCategories":
+                        HandleLauncherGetCategories();
                         break;
 
                     default:
@@ -1181,9 +1189,15 @@ public class ServerBridge
             arguments = argsProp.GetString();
         }
 
+        string? category = null;
+        if (root.TryGetProperty("category", out var catProp) && catProp.ValueKind == JsonValueKind.String)
+        {
+            category = catProp.GetString();
+        }
+
         try
         {
-            var app = RegisteredApp.Create(name, path, arguments);
+            var app = RegisteredApp.Create(name, path, arguments, category);
             AppRegistry.Add(app);
             SendLauncherAddResult(true, null);
         }
@@ -1194,6 +1208,53 @@ public class ServerBridge
         catch (Exception ex)
         {
             SendLauncherAddResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handle request to edit an existing registered app from the frontend.
+    /// </summary>
+    private void HandleLauncherEditApp(JsonElement root)
+    {
+        if (!root.TryGetProperty("originalName", out var origNameProp) ||
+            !root.TryGetProperty("name", out var nameProp) ||
+            !root.TryGetProperty("path", out var pathProp))
+            return;
+
+        var originalName = origNameProp.GetString();
+        var name = nameProp.GetString();
+        var path = pathProp.GetString();
+        if (string.IsNullOrWhiteSpace(originalName) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(path))
+        {
+            SendLauncherEditResult(false, "Name and path are required.");
+            return;
+        }
+
+        string? arguments = null;
+        if (root.TryGetProperty("arguments", out var argsProp) && argsProp.ValueKind == JsonValueKind.String)
+        {
+            arguments = argsProp.GetString();
+        }
+
+        string? category = null;
+        if (root.TryGetProperty("category", out var catProp) && catProp.ValueKind == JsonValueKind.String)
+        {
+            category = catProp.GetString();
+        }
+
+        try
+        {
+            var updatedApp = RegisteredApp.Create(name, path, arguments, category);
+            AppRegistry.Update(originalName, updatedApp);
+            SendLauncherEditResult(true, null);
+        }
+        catch (LauncherException ex)
+        {
+            SendLauncherEditResult(false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            SendLauncherEditResult(false, ex.Message);
         }
     }
 
@@ -1351,6 +1412,32 @@ public class ServerBridge
     }
 
     /// <summary>
+    /// Handle request to get all distinct category names.
+    /// Sends the sorted category list back to the frontend.
+    /// </summary>
+    private void HandleLauncherGetCategories()
+    {
+        try
+        {
+            var categories = AppRegistry.GetAllCategories();
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                type = "launcherCategoriesLoaded",
+                categories = categories
+            }, ServerBridgeJsonOptions.CamelCase);
+
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch (Exception ex)
+        {
+            _logToUI("Error", $"Failed to load categories: {ex.Message}", "program");
+        }
+    }
+
+    /// <summary>
     /// Handle request to reorder registered apps from the frontend drag-and-drop.
     /// </summary>
     private void HandleLauncherReorderApps(JsonElement root)
@@ -1426,6 +1513,27 @@ public class ServerBridge
         var responseJson = JsonSerializer.Serialize(new
         {
             type = "launcherRemoveResult",
+            success = success,
+            message = message ?? "",
+            apps = apps
+        }, ServerBridgeJsonOptions.CamelCase);
+
+        try
+        {
+            if (_webView.InvokeRequired)
+                _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
+            else
+                _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    private void SendLauncherEditResult(bool success, string? message)
+    {
+        var apps = AppRegistry.GetAll();
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            type = "launcherEditResult",
             success = success,
             message = message ?? "",
             apps = apps

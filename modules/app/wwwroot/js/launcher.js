@@ -14,6 +14,12 @@ const Launcher = {
     /** Current search filter text */
     searchQuery: '',
 
+    /** Currently selected category filter (null or 'All' shows all apps) */
+    selectedCategory: 'All',
+
+    /** Available categories extracted from registered apps */
+    categories: [],
+
     /** Icon cache: Map<appName, base64DataUrl> */
     iconCache: new Map(),
 
@@ -68,12 +74,17 @@ const Launcher = {
 
     /**
      * Request the registered apps list from the C# backend.
+     * Also requests the distinct category list.
      */
     loadApps() {
         if (!App.isWebViewReady) return;
 
         window.chrome.webview.postMessage(JSON.stringify({
             type: 'launcherLoadApps'
+        }));
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherGetCategories'
         }));
     },
 
@@ -83,7 +94,27 @@ const Launcher = {
      */
     handleAppsLoaded(data) {
         this.registeredApps = data.apps || [];
+        this.extractCategories();
+        this.updateCategorySelect();
         this.updateGrid();
+    },
+
+    /**
+     * Extract distinct categories from the registered apps list.
+     * Keeps the categories array sorted for the selector.
+     */
+    extractCategories() {
+        const cats = new Set(this.registeredApps.map(a => a.category || 'General'));
+        this.categories = [...cats].sort((a, b) => a.localeCompare(b));
+    },
+
+    /**
+     * Handle the categories loaded response from the backend.
+     * @param {object} data - The message data with a categories array.
+     */
+    handleCategoriesLoaded(data) {
+        this.categories = data.categories || [];
+        this.updateCategorySelector();
     },
 
     /**
@@ -103,7 +134,9 @@ const Launcher = {
     handleAddResult(data) {
         if (data.success) {
             this.registeredApps = data.apps || [];
+            this.extractCategories();
             this.closeAddDialog();
+            this.updateCategorySelect();
             this.updateGrid();
         } else {
             this.showAddError(data.message || 'Failed to add application.');
@@ -117,7 +150,25 @@ const Launcher = {
     handleRemoveResult(data) {
         if (data.success) {
             this.registeredApps = data.apps || [];
+            this.extractCategories();
+            this.updateCategorySelect();
             this.updateGrid();
+        }
+    },
+
+    /**
+     * Handle the edit app result response from the backend.
+     * @param {object} data - The message data with success, message, and apps.
+     */
+    handleEditResult(data) {
+        if (data.success) {
+            this.registeredApps = data.apps || [];
+            this.extractCategories();
+            this.closeEditDialog();
+            this.updateCategorySelect();
+            this.updateGrid();
+        } else {
+            this.showEditError(data.message || 'Failed to edit application.');
         }
     },
 
@@ -136,13 +187,23 @@ const Launcher = {
 
     /**
      * Handle the browse result from the backend for selecting an executable.
+     * Routes to the correct input field based on which dialog initiated the browse.
      * @param {object} data - The message data with selectedPath.
      */
     handleBrowseResult(data) {
-        const pathInput = document.getElementById('launcherAddPath');
-        if (pathInput && data.selectedPath) {
-            pathInput.value = data.selectedPath;
+        if (!data.selectedPath) return;
+
+        // Check which dialog is active
+        const editPathInput = document.getElementById('launcherEditPath');
+        const addPathInput = document.getElementById('launcherAddPath');
+
+        if (this._browseTarget === 'edit' && editPathInput) {
+            editPathInput.value = data.selectedPath;
+        } else if (addPathInput) {
+            addPathInput.value = data.selectedPath;
         }
+
+        this._browseTarget = null;
     },
 
     /**
@@ -195,6 +256,17 @@ const Launcher = {
         title.textContent = 'Registered Applications';
         toolbar.appendChild(title);
 
+        // Category selector dropdown
+        const categorySelect = document.createElement('select');
+        categorySelect.className = 'launcher-category-select';
+        categorySelect.id = 'launcherCategorySelect';
+        this.populateCategorySelect(categorySelect);
+        categorySelect.addEventListener('change', (e) => {
+            this.selectedCategory = e.target.value;
+            this.renderAppGrid(grid);
+        });
+        toolbar.appendChild(categorySelect);
+
         // Search input
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
@@ -228,6 +300,41 @@ const Launcher = {
     },
 
     /**
+     * Populate a select element with category options.
+     * @param {HTMLSelectElement} select - The select element to populate.
+     */
+    populateCategorySelect(select) {
+        select.innerHTML = '';
+
+        // "All" option always first
+        const allOption = document.createElement('option');
+        allOption.value = 'All';
+        allOption.textContent = 'All Categories';
+        select.appendChild(allOption);
+
+        // Add each category from the list
+        this.categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            select.appendChild(option);
+        });
+
+        // Restore the current selection
+        select.value = this.selectedCategory || 'All';
+    },
+
+    /**
+     * Update the category selector dropdown in the toolbar (without re-rendering the whole panel).
+     */
+    updateCategorySelect() {
+        const select = document.getElementById('launcherCategorySelect');
+        if (select) {
+            this.populateCategorySelect(select);
+        }
+    },
+
+    /**
      * Update the grid in the currently visible Launcher panel.
      * Uses querySelector to reliably find the panel even if other
      * cached panels (e.g. Script) exist in the content area.
@@ -241,6 +348,7 @@ const Launcher = {
 
     /**
      * Render the app grid content based on the current search query.
+     * When viewing "All" categories with no search, apps are grouped by category.
      * @param {HTMLElement} grid - The grid container element.
      */
     renderAppGrid(grid) {
@@ -258,14 +366,48 @@ const Launcher = {
             return;
         }
 
-        filtered.forEach((app, index) => {
-            grid.appendChild(this.createAppCard(app, index));
+        // Group by category when viewing "All" with no search query
+        const shouldGroup = this.selectedCategory === 'All' && !this.searchQuery?.trim();
+
+        if (shouldGroup) {
+            const grouped = this.groupByCategory(filtered);
+            let globalIndex = 0;
+            grouped.forEach(({ category, apps }) => {
+                // Category header spanning the full grid width
+                const header = document.createElement('div');
+                header.className = 'launcher-category-header';
+                header.textContent = category;
+                grid.appendChild(header);
+
+                apps.forEach((app) => {
+                    grid.appendChild(this.createAppCard(app, globalIndex++));
+                });
+            });
+        } else {
+            filtered.forEach((app, index) => {
+                grid.appendChild(this.createAppCard(app, index));
+            });
+        }
+    },
+
+    /**
+     * Group an array of apps by their category, preserving insertion order.
+     * @param {Array} apps - The apps to group.
+     * @returns {Array<{category: string, apps: Array}>} Grouped result.
+     */
+    groupByCategory(apps) {
+        const map = new Map();
+        apps.forEach(app => {
+            const cat = app.category || 'General';
+            if (!map.has(cat)) map.set(cat, []);
+            map.get(cat).push(app);
         });
+        return [...map.entries()].map(([category, apps]) => ({ category, apps }));
     },
 
     /**
      * Create a card element for a registered application.
-     * @param {object} app - The app object { name, path, arguments }.
+     * @param {object} app - The app object { name, path, arguments, category }.
      * @param {number} index - The index of the app in the filtered list.
      * @returns {HTMLElement} The card element.
      */
@@ -315,10 +457,23 @@ const Launcher = {
         name.textContent = app.name;
         card.appendChild(name);
 
+        // Category tag
+        const category = app.category || 'General';
+        const catTag = document.createElement('span');
+        catTag.className = 'launcher-card-category';
+        catTag.textContent = category;
+        card.appendChild(catTag);
+
         // Click to launch (only fires if drag did not occur)
         card.addEventListener('click', (e) => {
             if (this.dragState.isDragging || this.dragState.dragIndex >= 0) return;
             this.launchApp(app.name);
+        });
+
+        // Right-click context menu
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showContextMenu(e.clientX, e.clientY, app);
         });
 
         // Mousedown to initiate drag
@@ -351,19 +506,29 @@ const Launcher = {
     },
 
     /**
-     * Filter registered apps by name (case-insensitive substring match).
+     * Filter registered apps by name and category.
      * @param {string} query - The search query.
      * @returns {Array} Filtered apps.
      */
     filterApps(query) {
-        if (!query || !query.trim()) {
-            return this.registeredApps;
+        let apps = this.registeredApps;
+
+        // Filter by category (skip if "All" or not set)
+        if (this.selectedCategory && this.selectedCategory !== 'All') {
+            apps = apps.filter(app =>
+                (app.category || 'General') === this.selectedCategory
+            );
         }
 
-        const lowerQuery = query.toLowerCase();
-        return this.registeredApps.filter(app =>
-            app.name.toLowerCase().includes(lowerQuery)
-        );
+        // Filter by search query
+        if (query && query.trim()) {
+            const lowerQuery = query.toLowerCase();
+            apps = apps.filter(app =>
+                app.name.toLowerCase().includes(lowerQuery)
+            );
+        }
+
+        return apps;
     },
 
     /**
@@ -470,6 +635,33 @@ const Launcher = {
         argsGroup.appendChild(argsInput);
         dialog.appendChild(argsGroup);
 
+        // Category input with datalist for suggestions
+        const catGroup = document.createElement('div');
+        catGroup.className = 'password-input-group';
+        const catLabel = document.createElement('label');
+        catLabel.textContent = 'Category';
+        catGroup.appendChild(catLabel);
+        const catInput = document.createElement('input');
+        catInput.type = 'text';
+        catInput.id = 'launcherAddCategory';
+        catInput.placeholder = 'e.g. Development, Games, Utilities';
+        catInput.value = this.selectedCategory && this.selectedCategory !== 'All'
+            ? this.selectedCategory
+            : 'General';
+        catInput.setAttribute('list', 'launcherCategorySuggestions');
+        catGroup.appendChild(catInput);
+
+        // Datalist with existing category suggestions
+        const datalist = document.createElement('datalist');
+        datalist.id = 'launcherCategorySuggestions';
+        this.categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            datalist.appendChild(opt);
+        });
+        catGroup.appendChild(datalist);
+        dialog.appendChild(catGroup);
+
         // Error message
         const errorDiv = document.createElement('div');
         errorDiv.className = 'password-error';
@@ -534,10 +726,12 @@ const Launcher = {
         const nameInput = document.getElementById('launcherAddName');
         const pathInput = document.getElementById('launcherAddPath');
         const argsInput = document.getElementById('launcherAddArgs');
+        const catInput = document.getElementById('launcherAddCategory');
 
         const name = nameInput ? nameInput.value.trim() : '';
         const path = pathInput ? pathInput.value.trim() : '';
         const args = argsInput ? argsInput.value.trim() : '';
+        const category = catInput ? catInput.value.trim() : '';
 
         if (!name) {
             this.showAddError('Application name is required.');
@@ -554,7 +748,8 @@ const Launcher = {
             type: 'launcherAddApp',
             name: name,
             path: path,
-            arguments: args || null
+            arguments: args || null,
+            category: category || 'General'
         }));
     },
 
@@ -564,6 +759,291 @@ const Launcher = {
     browseExecutable() {
         if (!App.isWebViewReady) return;
 
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherBrowseExecutable'
+        }));
+    },
+
+    // ── Context menu ──────────────────────────────────────────────
+
+    /**
+     * Show a context menu at the given position for an app card.
+     * @param {number} x - Client X coordinate.
+     * @param {number} y - Client Y coordinate.
+     * @param {object} app - The app object.
+     */
+    showContextMenu(x, y, app) {
+        this.closeContextMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'launcher-context-menu';
+        menu.id = 'launcherContextMenu';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+
+        // Edit option
+        const editItem = document.createElement('div');
+        editItem.className = 'launcher-context-menu-item';
+        editItem.textContent = '✏️  Edit';
+        editItem.addEventListener('click', () => {
+            this.closeContextMenu();
+            this.showEditDialog(app);
+        });
+        menu.appendChild(editItem);
+
+        // Delete option
+        const deleteItem = document.createElement('div');
+        deleteItem.className = 'launcher-context-menu-item launcher-context-menu-danger';
+        deleteItem.textContent = '🗑️  Delete';
+        deleteItem.addEventListener('click', () => {
+            this.closeContextMenu();
+            this.removeApp(app.name);
+        });
+        menu.appendChild(deleteItem);
+
+        document.body.appendChild(menu);
+
+        // Ensure menu stays within viewport bounds
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            menu.style.left = (x - rect.width) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            menu.style.top = (y - rect.height) + 'px';
+        }
+
+        // Close on click elsewhere (defer to avoid immediate close)
+        setTimeout(() => {
+            document.addEventListener('click', this._closeContextMenuHandler = () => this.closeContextMenu());
+            document.addEventListener('contextmenu', this._closeContextMenuHandler2 = () => this.closeContextMenu());
+        }, 0);
+    },
+
+    /**
+     * Close the context menu if open.
+     */
+    closeContextMenu() {
+        const menu = document.getElementById('launcherContextMenu');
+        if (menu) menu.remove();
+        if (this._closeContextMenuHandler) {
+            document.removeEventListener('click', this._closeContextMenuHandler);
+            this._closeContextMenuHandler = null;
+        }
+        if (this._closeContextMenuHandler2) {
+            document.removeEventListener('contextmenu', this._closeContextMenuHandler2);
+            this._closeContextMenuHandler2 = null;
+        }
+    },
+
+    // ── Edit dialog ───────────────────────────────────────────────
+
+    /**
+     * Show the Edit Application dialog, pre-filled with existing app data.
+     * @param {object} app - The app to edit { name, path, arguments, category }.
+     */
+    showEditDialog(app) {
+        this.closeEditDialog();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'password-dialog-overlay launcher-dialog-overlay';
+        overlay.id = 'launcherEditDialog';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'password-dialog password-dialog-wide';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'password-dialog-header';
+
+        const title = document.createElement('span');
+        title.className = 'password-dialog-title';
+        title.textContent = 'Edit Application';
+        header.appendChild(title);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'password-dialog-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => this.closeEditDialog());
+        header.appendChild(closeBtn);
+
+        dialog.appendChild(header);
+
+        // Name input
+        const nameGroup = document.createElement('div');
+        nameGroup.className = 'password-input-group';
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Application Name';
+        nameGroup.appendChild(nameLabel);
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.id = 'launcherEditName';
+        nameInput.placeholder = 'e.g. Notepad';
+        nameInput.value = app.name;
+        nameGroup.appendChild(nameInput);
+        dialog.appendChild(nameGroup);
+
+        // Path input with browse button
+        const pathGroup = document.createElement('div');
+        pathGroup.className = 'password-input-group';
+        const pathLabel = document.createElement('label');
+        pathLabel.textContent = 'Executable Path';
+        pathGroup.appendChild(pathLabel);
+        const pathRow = document.createElement('div');
+        pathRow.className = 'password-input-row';
+        const pathInput = document.createElement('input');
+        pathInput.type = 'text';
+        pathInput.id = 'launcherEditPath';
+        pathInput.placeholder = 'e.g. C:\\Windows\\notepad.exe';
+        pathInput.value = app.path;
+        pathRow.appendChild(pathInput);
+        const browseBtn = document.createElement('button');
+        browseBtn.className = 'btn btn-secondary';
+        browseBtn.textContent = 'Browse...';
+        browseBtn.addEventListener('click', () => this.browseExecutableForEdit());
+        pathRow.appendChild(browseBtn);
+        pathGroup.appendChild(pathRow);
+        dialog.appendChild(pathGroup);
+
+        // Arguments input
+        const argsGroup = document.createElement('div');
+        argsGroup.className = 'password-input-group';
+        const argsLabel = document.createElement('label');
+        argsLabel.textContent = 'Arguments (optional)';
+        argsGroup.appendChild(argsLabel);
+        const argsInput = document.createElement('input');
+        argsInput.type = 'text';
+        argsInput.id = 'launcherEditArgs';
+        argsInput.placeholder = 'e.g. --flag value';
+        argsInput.value = app.arguments || '';
+        argsGroup.appendChild(argsInput);
+        dialog.appendChild(argsGroup);
+
+        // Category input with datalist
+        const catGroup = document.createElement('div');
+        catGroup.className = 'password-input-group';
+        const catLabel = document.createElement('label');
+        catLabel.textContent = 'Category';
+        catGroup.appendChild(catLabel);
+        const catInput = document.createElement('input');
+        catInput.type = 'text';
+        catInput.id = 'launcherEditCategory';
+        catInput.placeholder = 'e.g. Development, Games, Utilities';
+        catInput.value = app.category || 'General';
+        catInput.setAttribute('list', 'launcherEditCategorySuggestions');
+        catGroup.appendChild(catInput);
+
+        const datalist = document.createElement('datalist');
+        datalist.id = 'launcherEditCategorySuggestions';
+        this.categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            datalist.appendChild(opt);
+        });
+        catGroup.appendChild(datalist);
+        dialog.appendChild(catGroup);
+
+        // Error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'password-error';
+        errorDiv.id = 'launcherEditError';
+        errorDiv.style.display = 'none';
+        dialog.appendChild(errorDiv);
+
+        // Buttons
+        const buttons = document.createElement('div');
+        buttons.className = 'password-dialog-buttons';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', () => this.closeEditDialog());
+        buttons.appendChild(cancelBtn);
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', () => this.submitEditDialog(app.name));
+        buttons.appendChild(saveBtn);
+
+        dialog.appendChild(buttons);
+        overlay.appendChild(dialog);
+
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) this.closeEditDialog();
+        });
+
+        document.body.appendChild(overlay);
+
+        // Focus the name input
+        nameInput.focus();
+    },
+
+    /**
+     * Close the Edit Application dialog.
+     */
+    closeEditDialog() {
+        const dialog = document.getElementById('launcherEditDialog');
+        if (dialog) dialog.remove();
+    },
+
+    /**
+     * Show an error message in the Edit dialog.
+     * @param {string} message - The error message.
+     */
+    showEditError(message) {
+        const errorDiv = document.getElementById('launcherEditError');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    },
+
+    /**
+     * Submit the Edit Application dialog.
+     * @param {string} originalName - The original name of the app being edited.
+     */
+    submitEditDialog(originalName) {
+        const nameInput = document.getElementById('launcherEditName');
+        const pathInput = document.getElementById('launcherEditPath');
+        const argsInput = document.getElementById('launcherEditArgs');
+        const catInput = document.getElementById('launcherEditCategory');
+
+        const name = nameInput ? nameInput.value.trim() : '';
+        const path = pathInput ? pathInput.value.trim() : '';
+        const args = argsInput ? argsInput.value.trim() : '';
+        const category = catInput ? catInput.value.trim() : '';
+
+        if (!name) {
+            this.showEditError('Application name is required.');
+            return;
+        }
+        if (!path) {
+            this.showEditError('Executable path is required.');
+            return;
+        }
+
+        if (!App.isWebViewReady) return;
+
+        window.chrome.webview.postMessage(JSON.stringify({
+            type: 'launcherEditApp',
+            originalName: originalName,
+            name: name,
+            path: path,
+            arguments: args || null,
+            category: category || 'General'
+        }));
+    },
+
+    /**
+     * Request the backend to open a file browser for the edit dialog.
+     */
+    browseExecutableForEdit() {
+        if (!App.isWebViewReady) return;
+
+        // Reuse the same browse handler — it sets launcherAddPath by default,
+        // but for edit we need launcherEditPath. We'll update handleBrowseResult.
+        this._browseTarget = 'edit';
         window.chrome.webview.postMessage(JSON.stringify({
             type: 'launcherBrowseExecutable'
         }));

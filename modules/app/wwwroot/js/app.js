@@ -154,6 +154,9 @@ const App = {
             case 'launcherAddResult':
                 Launcher.handleAddResult(data);
                 break;
+            case 'launcherEditResult':
+                Launcher.handleEditResult(data);
+                break;
             case 'launcherRemoveResult':
                 Launcher.handleRemoveResult(data);
                 break;
@@ -165,6 +168,9 @@ const App = {
                 break;
             case 'launcherReorderResult':
                 Launcher.handleReorderResult(data);
+                break;
+            case 'launcherCategoriesLoaded':
+                Launcher.handleCategoriesLoaded(data);
                 break;
             default:
                 console.warn('Unknown backend message type:', data.type);

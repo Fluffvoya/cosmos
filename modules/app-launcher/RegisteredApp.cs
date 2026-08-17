@@ -26,15 +26,23 @@ public class RegisteredApp
     public string? Arguments { get; set; }
 
     /// <summary>
+    /// Category for organizing applications (e.g., "Development", "Games", "Utilities").
+    /// Defaults to "General" if not specified.
+    /// </summary>
+    [JsonPropertyName("category")]
+    public string Category { get; set; } = "General";
+
+    /// <summary>
     /// Creates a RegisteredApp from a name and executable path.
     /// </summary>
-    public static RegisteredApp Create(string name, string path, string? arguments = null)
+    public static RegisteredApp Create(string name, string path, string? arguments = null, string? category = null)
     {
         return new RegisteredApp
         {
             Name = name,
             Path = path,
-            Arguments = arguments
+            Arguments = arguments,
+            Category = category ?? "General"
         };
     }
 }

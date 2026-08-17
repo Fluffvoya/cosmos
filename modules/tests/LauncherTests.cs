@@ -71,6 +71,27 @@ public class LauncherTests : IDisposable
         Assert.Equal("test.txt", app.Arguments);
     }
 
+    [Fact]
+    public void Create_DefaultCategory_IsGeneral()
+    {
+        var app = RegisteredApp.Create("Notepad", @"C:\Windows\notepad.exe");
+        Assert.Equal("General", app.Category);
+    }
+
+    [Fact]
+    public void Create_WithCategory_SetsCategory()
+    {
+        var app = RegisteredApp.Create("VSCode", @"C:\vscode.exe", null, "Development");
+        Assert.Equal("Development", app.Category);
+    }
+
+    [Fact]
+    public void RegisteredApp_DefaultConstructor_CategoryIsGeneral()
+    {
+        var app = new RegisteredApp();
+        Assert.Equal("General", app.Category);
+    }
+
     // ── AppRegistry CRUD ──────────────────────────────────────────
 
     [Fact]
@@ -182,6 +203,152 @@ public class LauncherTests : IDisposable
 
         var results = AppRegistry.Search("zzzznonexistent", _testFolder);
         Assert.Empty(results);
+    }
+
+    // ── AppRegistry.GetAllCategories ─────────────────────────────
+
+    [Fact]
+    public void GetAllCategories_EmptyRegistry_ReturnsEmptyList()
+    {
+        var categories = AppRegistry.GetAllCategories(_testFolder);
+        Assert.NotNull(categories);
+        Assert.Empty(categories);
+    }
+
+    [Fact]
+    public void GetAllCategories_ReturnsDistinctSortedCategories()
+    {
+        var app1 = RegisteredApp.Create("App1", @"C:\a.exe", null, "Development");
+        var app2 = RegisteredApp.Create("App2", @"C:\b.exe", null, "Games");
+        var app3 = RegisteredApp.Create("App3", @"C:\c.exe", null, "Development");
+        var app4 = RegisteredApp.Create("App4", @"C:\d.exe"); // defaults to "General"
+        AppRegistry.Add(app1, _testFolder);
+        AppRegistry.Add(app2, _testFolder);
+        AppRegistry.Add(app3, _testFolder);
+        AppRegistry.Add(app4, _testFolder);
+
+        var categories = AppRegistry.GetAllCategories(_testFolder);
+        Assert.Equal(3, categories.Count);
+        Assert.Equal("Development", categories[0]);
+        Assert.Equal("Games", categories[1]);
+        Assert.Equal("General", categories[2]);
+    }
+
+    // ── AppRegistry.GetByCategory ────────────────────────────────
+
+    [Fact]
+    public void GetByCategory_ReturnsMatchingApps()
+    {
+        var app1 = RegisteredApp.Create("VSCode", @"C:\vscode.exe", null, "Development");
+        var app2 = RegisteredApp.Create("Notepad", @"C:\notepad.exe", null, "Utilities");
+        var app3 = RegisteredApp.Create("PyCharm", @"C:\pycharm.exe", null, "Development");
+        AppRegistry.Add(app1, _testFolder);
+        AppRegistry.Add(app2, _testFolder);
+        AppRegistry.Add(app3, _testFolder);
+
+        var devApps = AppRegistry.GetByCategory("Development", _testFolder);
+        Assert.Equal(2, devApps.Count);
+        Assert.All(devApps, a => Assert.Equal("Development", a.Category));
+    }
+
+    [Fact]
+    public void GetByCategory_All_ReturnsAllApps()
+    {
+        var app1 = RegisteredApp.Create("App1", @"C:\a.exe", null, "Development");
+        var app2 = RegisteredApp.Create("App2", @"C:\b.exe", null, "Games");
+        AppRegistry.Add(app1, _testFolder);
+        AppRegistry.Add(app2, _testFolder);
+
+        var allApps = AppRegistry.GetByCategory("All", _testFolder);
+        Assert.Equal(2, allApps.Count);
+    }
+
+    [Fact]
+    public void GetByCategory_Null_ReturnsAllApps()
+    {
+        var app1 = RegisteredApp.Create("App1", @"C:\a.exe", null, "Development");
+        AppRegistry.Add(app1, _testFolder);
+
+        var allApps = AppRegistry.GetByCategory(null, _testFolder);
+        Assert.Single(allApps);
+    }
+
+    [Fact]
+    public void GetByCategory_CaseInsensitive()
+    {
+        var app = RegisteredApp.Create("App1", @"C:\a.exe", null, "Development");
+        AppRegistry.Add(app, _testFolder);
+
+        var result = AppRegistry.GetByCategory("development", _testFolder);
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public void GetByCategory_NoMatch_ReturnsEmpty()
+    {
+        var app = RegisteredApp.Create("App1", @"C:\a.exe", null, "Development");
+        AppRegistry.Add(app, _testFolder);
+
+        var result = AppRegistry.GetByCategory("Games", _testFolder);
+        Assert.Empty(result);
+    }
+
+    // ── AppRegistry.Update ────────────────────────────────────────
+
+    [Fact]
+    public void Update_ExistingApp_Succeeds()
+    {
+        var app = RegisteredApp.Create("OldName", @"C:\old.exe", "arg1", "General");
+        AppRegistry.Add(app, _testFolder);
+
+        var updated = RegisteredApp.Create("NewName", @"C:\new.exe", "arg2", "Development");
+        AppRegistry.Update("OldName", updated, _testFolder);
+
+        var found = AppRegistry.GetByName("NewName", _testFolder);
+        Assert.NotNull(found);
+        Assert.Equal("NewName", found.Name);
+        Assert.Equal(@"C:\new.exe", found.Path);
+        Assert.Equal("arg2", found.Arguments);
+        Assert.Equal("Development", found.Category);
+
+        // Old name should be gone
+        Assert.Null(AppRegistry.GetByName("OldName", _testFolder));
+    }
+
+    [Fact]
+    public void Update_SameName_Succeeds()
+    {
+        var app = RegisteredApp.Create("MyApp", @"C:\old.exe", null, "General");
+        AppRegistry.Add(app, _testFolder);
+
+        var updated = RegisteredApp.Create("MyApp", @"C:\new.exe", null, "Games");
+        AppRegistry.Update("MyApp", updated, _testFolder);
+
+        var found = AppRegistry.GetByName("MyApp", _testFolder);
+        Assert.NotNull(found);
+        Assert.Equal(@"C:\new.exe", found.Path);
+        Assert.Equal("Games", found.Category);
+    }
+
+    [Fact]
+    public void Update_NameConflict_ThrowsLauncherException()
+    {
+        var app1 = RegisteredApp.Create("App1", @"C:\a1.exe");
+        var app2 = RegisteredApp.Create("App2", @"C:\a2.exe");
+        AppRegistry.Add(app1, _testFolder);
+        AppRegistry.Add(app2, _testFolder);
+
+        var updated = RegisteredApp.Create("App2", @"C:\a1new.exe");
+        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Update("App1", updated, _testFolder));
+        Assert.Equal(ErrorCode.DuplicateAppName, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Update_NotFound_ThrowsLauncherException()
+    {
+        var updated = RegisteredApp.Create("Ghost", @"C:\ghost.exe");
+        var ex = Assert.Throws<LauncherException>(() => AppRegistry.Update("Ghost", updated, _testFolder));
+        Assert.Equal(ErrorCode.AppNotFound, ex.ErrorCode);
     }
 
     // ── LauncherException ─────────────────────────────────────────
