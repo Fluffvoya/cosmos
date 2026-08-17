@@ -35,6 +35,7 @@ print(response.message)
 | `Client.MessageBox(name, message)` | Create a MessageBox request |
 | `Client.MessageBar(message, level)` | Create a MessageBar request |
 | `Client.PlayRingtone(audio_path)` | Create a PlayRingtone request |
+| `Client.PlayRingtoneOnce(audio_path)` | Create a PlayRingtoneOnce request (plays once, no loop) |
 | `Client.OpenRegisteredApp(app_name)` | Create an OpenRegisteredApp request |
 
 ### Serialization Helpers (static methods)

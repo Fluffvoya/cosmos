@@ -41,6 +41,9 @@ public class Client
     public static Request PlayRingtone(string audioPath)
         => new Request("PlayRingtone", audioPath);
 
+    public static Request PlayRingtoneOnce(string audioPath)
+        => new Request("PlayRingtoneOnce", audioPath);
+
     public static Request OpenRegisteredApp(string appName)
         => new Request("OpenRegisteredApp", appName);
 }

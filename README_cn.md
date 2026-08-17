@@ -310,6 +310,19 @@ $ PlayRingtone "notification.wav"
 
 音频会循环播放，直到用户在铃声标签页中关闭它。
 
+#### `PlayRingtoneOnce` — 播放音频文件（单次）
+
+```
+COSMOS PlayRingtoneOnce "C:/Music/alert.mp3"
+$ PlayRingtoneOnce "notification.wav"
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `audioPath` | 字符串 | 音频文件路径 |
+
+音频播放一次后自动从铃声标签页中移除。
+
 #### `OpenRegisteredApp` — 启动已注册的应用
 
 ```
@@ -429,6 +442,9 @@ response = Client.Send(Client.MessageBar("任务完成", "info"))
 
 # 播放铃声
 response = Client.Send(Client.PlayRingtone("/path/to/audio.mp3"))
+
+# 播放铃声（单次播放）
+response = Client.Send(Client.PlayRingtoneOnce("/path/to/audio.mp3"))
 
 # 打开已注册的应用
 response = Client.Send(Client.OpenRegisteredApp("VS Code"))

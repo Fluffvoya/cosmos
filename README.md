@@ -310,6 +310,19 @@ $ PlayRingtone "notification.wav"
 
 The audio loops until the user closes it from the Ringtone tab.
 
+#### `PlayRingtoneOnce` — Play an audio file once
+
+```
+COSMOS PlayRingtoneOnce "C:/Music/alert.mp3"
+$ PlayRingtoneOnce "notification.wav"
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `audioPath` | String | Path to the audio file |
+
+The audio plays once and is automatically removed from the Ringtone tab after playback ends.
+
 #### `OpenRegisteredApp` — Launch a registered application
 
 ```
@@ -429,6 +442,9 @@ response = Client.Send(Client.MessageBar("Task done", "info"))
 
 # Play a ringtone
 response = Client.Send(Client.PlayRingtone("/path/to/audio.mp3"))
+
+# Play a ringtone once (no loop)
+response = Client.Send(Client.PlayRingtoneOnce("/path/to/audio.mp3"))
 
 # Open a registered app
 response = Client.Send(Client.OpenRegisteredApp("VS Code"))

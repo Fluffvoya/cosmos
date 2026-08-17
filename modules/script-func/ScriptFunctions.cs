@@ -149,5 +149,26 @@ public static class ScriptFunctions
         },
         ArgumentType.String
     );
+
+    /// <summary>
+    /// Plays a ringtone audio file once (no loop) in the Ringtone tab.
+    /// Auto-removes after playback ends.
+    /// Args: [String audioPath] — path to the audio file to play.
+    /// Throws ScriptFuncException if the file does not exist.
+    /// </summary>
+    public static Function PlayRingtoneOnce => new(
+        (IServer server, List<object> args) =>
+        {
+            var audioPath = (string)args[0];
+            var expandedPath = Environment.ExpandEnvironmentVariables(audioPath);
+            if (!File.Exists(expandedPath))
+                throw new ScriptFuncException(
+                    ErrorCode.InvalidArgumentValue,
+                    $"Ringtone file not found: '{audioPath}'");
+            var request = Client.CreateRequest(Client.PlayRingtoneOnce(audioPath));
+            server.Execute(request);
+        },
+        ArgumentType.String
+    );
 }
 
