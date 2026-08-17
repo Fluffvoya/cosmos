@@ -42,7 +42,7 @@ const Scheduler = {
         container.innerHTML = '';
         container.className = 'tab-panel active scheduler-panel';
 
-        // ©¤©¤ Toolbar ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const toolbar = document.createElement('div');
         toolbar.className = 'scheduler-toolbar';
 
@@ -59,7 +59,7 @@ const Scheduler = {
 
         container.appendChild(toolbar);
 
-        // ©¤©¤ Table ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tableWrapper = document.createElement('div');
         tableWrapper.className = 'scheduler-table-wrapper';
 
@@ -104,7 +104,7 @@ const Scheduler = {
         tr.className = 'scheduler-row' + (task.enabled ? '' : ' scheduler-row-disabled');
         tr.dataset.index = index;
 
-        // ©¤©¤ Enabled checkbox ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Enabled checkbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdEnabled = document.createElement('td');
         tdEnabled.className = 'scheduler-col-enabled';
         const checkbox = document.createElement('input');
@@ -118,7 +118,7 @@ const Scheduler = {
         tdEnabled.appendChild(checkbox);
         tr.appendChild(tdEnabled);
 
-        // ©¤©¤ Time input ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Time input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdTime = document.createElement('td');
         tdTime.className = 'scheduler-col-time';
         const timeInput = document.createElement('input');
@@ -132,7 +132,7 @@ const Scheduler = {
         tdTime.appendChild(timeInput);
         tr.appendChild(tdTime);
 
-        // ©¤©¤ Recurrence ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Recurrence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdRecurrence = document.createElement('td');
         tdRecurrence.className = 'scheduler-col-recurrence';
 
@@ -205,7 +205,7 @@ const Scheduler = {
         tdRecurrence.appendChild(recurrenceGroup);
         tr.appendChild(tdRecurrence);
 
-        // ©¤©¤ Script path ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Script path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdScript = document.createElement('td');
         tdScript.className = 'scheduler-col-script';
         const scriptGroup = document.createElement('div');
@@ -234,13 +234,13 @@ const Scheduler = {
         tdScript.appendChild(scriptGroup);
         tr.appendChild(tdScript);
 
-        // ©¤©¤ Last status ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Last status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdStatus = document.createElement('td');
         tdStatus.className = 'scheduler-col-status';
         tdStatus.textContent = task.lastStatus || '\u2014'; // em dash
         tr.appendChild(tdStatus);
 
-        // ©¤©¤ Actions ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const tdActions = document.createElement('td');
         tdActions.className = 'scheduler-col-actions';
 

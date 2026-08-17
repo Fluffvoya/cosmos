@@ -29,12 +29,12 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     private readonly SettingsManager _settingsManager = new();
     private readonly AppPasswordManager _passwordManager = new();
 
-    // ���� Window styles ����������������������������������������������������������������������������������������
+    // ── Window styles ──────────────────────────────────────────────────────────────────────────────────────
     private const int WS_THICKFRAME  = 0x00040000;
     private const int WS_CAPTION     = 0x00C00000;
     private const int WS_MAXIMIZEBOX = 0x00010000;
 
-    // ���� WndProc messages ����������������������������������������������������������������������������������
+    // ── WndProc messages ───────────────────────────────────────────────────────────────────────────────────
     private const int WM_NCCALCSIZE = 0x0083;
     private const int WM_NCHITTEST  = 0x0084;
     private const int HTCLIENT = 1;
@@ -48,7 +48,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     private const int HTBOTTOMLEFT = 16;
     private const int HTBOTTOMRIGHT = 17;
 
-    // ���� DWM ������������������������������������������������������������������������������������������������������������
+    // ── DWM ────────────────────────────────────────────────────────────────────────────────────────────────
     [DllImport("dwmapi.dll")]
     private static extern int DwmExtendFrameIntoClientArea(
         IntPtr hwnd, ref MARGINS pMarInset);
@@ -62,7 +62,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         public int cyBottomHeight;
     }
 
-    // ���� For JS-initiated drag ������������������������������������������������������������������������
+    // ── For JS-initiated drag ──────────────────────────────────────────────────────────────────────────────
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
 
