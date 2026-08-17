@@ -149,6 +149,52 @@ const Ringtone = {
     },
 
     /**
+     * Play a ringtone once (no loop) from a URL.
+     * Auto-removes the ringtone entry after playback ends.
+     * @param {string} filePath - Original file path (for display label).
+     * @param {string} audioUrl - URL to the audio file (virtual host URL).
+     */
+    playRingtoneOnce(filePath, audioUrl) {
+        const id = 'ring_' + (++this._idCounter) + '_' + Date.now();
+        const label = filePath.split(/[/\\]/).pop() || filePath;
+
+        // Create audio element with looping disabled
+        let audioElement;
+        try {
+            audioElement = new Audio(audioUrl);
+            audioElement.loop = false;
+            audioElement.play().catch(err => {
+                console.warn('Failed to play ringtone (once):', err);
+            });
+        } catch (err) {
+            console.warn('Failed to create audio element:', err);
+            audioElement = null;
+        }
+
+        const ringtone = {
+            id: id,
+            filePath: filePath,
+            label: label,
+            audioElement: audioElement
+        };
+
+        this.activeRingtones.push(ringtone);
+
+        // Auto-remove when playback ends
+        if (audioElement) {
+            audioElement.addEventListener('ended', () => {
+                this.stopRingtone(id);
+            });
+        }
+
+        // Auto-open the Ringtone tab
+        this.openRingtoneTab();
+
+        // If the tab is currently visible, refresh the panel
+        this.refreshPanel();
+    },
+
+    /**
      * Stop and remove a ringtone by ID.
      * @param {string} id - The ringtone ID to stop.
      */
@@ -193,6 +239,22 @@ const Ringtone = {
             return;
         }
         this.playRingtone(filePath, audioUrl);
+    },
+
+    /**
+     * Handle a ringtonePlayOnce message from the C# backend.
+     * Plays the audio once without looping, then auto-removes.
+     * @param {object} data - The message data with filePath and audioUrl properties.
+     */
+    handlePlayRingtoneOnce(data) {
+        const filePath = data.filePath || '';
+        const audioUrl = data.audioUrl || '';
+        console.log('Ringtone: received play-once request', { filePath, audioUrl });
+        if (!audioUrl) {
+            console.warn('Ringtone: received play-once request with no audioUrl');
+            return;
+        }
+        this.playRingtoneOnce(filePath, audioUrl);
     },
 
     /**

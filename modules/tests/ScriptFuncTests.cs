@@ -244,6 +244,30 @@ public class ScriptFuncTests
         Assert.Equal("warning", request.args[1]);
     }
 
+    // ── PlayRingtoneOnce ──────────────────────────────────────────────
+
+    [Fact]
+    public void PlayRingtoneOnce_Function_WrongArgCount_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.PlayRingtoneOnce;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object>()));
+        Assert.Equal(ErrorCode.ArgumentCountMismatch, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void PlayRingtoneOnce_Function_WrongArgType_Throws()
+    {
+        var server = new CapturingServer();
+        var fn = ScriptFunctions.PlayRingtoneOnce;
+
+        var ex = Assert.Throws<RouterException>(() =>
+            fn.Call(server, new List<object> { 42L }));
+        Assert.Equal(ErrorCode.ArgumentTypeCheckFailed, ex.ErrorCode);
+    }
+
     // ── Router integration ─────────────────────────────────────────
 
     [Fact]

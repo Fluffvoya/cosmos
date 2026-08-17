@@ -145,6 +145,9 @@ const App = {
             case 'ringtonePlay':
                 Ringtone.handlePlayRingtone(data);
                 break;
+            case 'ringtonePlayOnce':
+                Ringtone.handlePlayRingtoneOnce(data);
+                break;
             case 'launcherAppsLoaded':
                 Launcher.handleAppsLoaded(data);
                 break;

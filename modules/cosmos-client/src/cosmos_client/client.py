@@ -105,6 +105,20 @@ class Client:
         return Request(request="PlayRingtone", args=[audio_path])
 
     @staticmethod
+    def PlayRingtoneOnce(audio_path: str) -> Request:
+        """Create a PlayRingtoneOnce request.
+
+        Plays the audio once without looping, then auto-closes.
+
+        Args:
+            audio_path: Path to the audio file to play.
+
+        Returns:
+            A Request to play a ringtone once.
+        """
+        return Request(request="PlayRingtoneOnce", args=[audio_path])
+
+    @staticmethod
     def OpenRegisteredApp(app_name: str) -> Request:
         """Create an OpenRegisteredApp request.
 

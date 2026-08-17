@@ -818,6 +818,39 @@ public class ServerBridge
             return Server.CreateResponse(ringtoneResponse);
         }
 
+        // Intercept PlayRingtoneOnce — same as PlayRingtone but signals single-play (no loop) to frontend.
+        if (request.request == "PlayRingtoneOnce" && request.args.Count >= 1)
+        {
+            var audioPath = Environment.ExpandEnvironmentVariables(request.args[0]);
+
+            try
+            {
+                var audioBytes = File.ReadAllBytes(audioPath);
+                var mimeType = GetMimeType(audioPath);
+                var base64 = Convert.ToBase64String(audioBytes);
+                var audioUri = $"data:{mimeType};base64,{base64}";
+
+                var ringtoneJson = JsonSerializer.Serialize(new
+                {
+                    type = "ringtonePlayOnce",
+                    filePath = audioPath,
+                    audioUrl = audioUri
+                }, ServerBridgeJsonOptions.CamelCase);
+
+                if (_webView.InvokeRequired)
+                    _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(ringtoneJson));
+                else
+                    _webView.CoreWebView2.PostWebMessageAsJson(ringtoneJson);
+            }
+            catch (Exception ex)
+            {
+                _logToUI("Error", $"PlayRingtoneOnce failed: {ex.Message}", "program");
+            }
+
+            var ringtoneOnceResponse = new Response(request.request, "");
+            return Server.CreateResponse(ringtoneOnceResponse);
+        }
+
         // Intercept OpenRegisteredApp — look up a registered app by name and launch it.
         if (request.request == "OpenRegisteredApp" && request.args.Count >= 1)
         {
