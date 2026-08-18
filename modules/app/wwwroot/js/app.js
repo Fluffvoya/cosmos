@@ -520,7 +520,7 @@ const App = {
         const body = document.getElementById('modalMessage');
 
         title.textContent = 'About';
-        body.textContent = 'Cosmos Application\nVersion 1.0';
+        body.textContent = 'Cosmos Application\nVersion 1.1';
         overlay.style.display = 'flex';
 
         // No requestId needed for About dialog (not from script)
