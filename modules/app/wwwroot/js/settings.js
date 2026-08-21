@@ -11,6 +11,7 @@ const Settings = {
         pythonPath: '',
         startupScriptPath: '',
         username: '',
+        darkMode: false,
     },
 
     // Original settings (for change tracking)
@@ -60,6 +61,16 @@ const Settings = {
         if (tabPositionSelect) {
             tabPositionSelect.addEventListener('change', () => {
                 this.settings.tabPosition = tabPositionSelect.value;
+                this.updateChangeTracking();
+            });
+        }
+
+        // Dark mode toggle
+        const darkModeCheckbox = document.getElementById('settingDarkMode');
+        if (darkModeCheckbox) {
+            darkModeCheckbox.addEventListener('change', () => {
+                this.settings.darkMode = darkModeCheckbox.checked;
+                this.applyDarkMode();
                 this.updateChangeTracking();
             });
         }
@@ -171,6 +182,8 @@ const Settings = {
             this.settings = { ...this.settings, ...settings };
         }
         this.updateUI();
+        this.applyDarkMode();
+        this.applyTabPosition();
     },
 
     /**
@@ -199,6 +212,12 @@ const Settings = {
         const pythonPathInput = document.getElementById("settingPythonPath");
         if (pythonPathInput) {
             pythonPathInput.value = this.settings.pythonPath;
+        }
+
+        // Dark mode
+        const darkModeCheckbox = document.getElementById('settingDarkMode');
+        if (darkModeCheckbox) {
+            darkModeCheckbox.checked = !!this.settings.darkMode;
         }
     },
 
@@ -422,7 +441,8 @@ const Settings = {
             this.settings.tabPosition !== this.originalSettings.tabPosition ||
             this.settings.pythonPath !== this.originalSettings.pythonPath ||
             this.settings.startupScriptPath !== this.originalSettings.startupScriptPath ||
-            this.settings.username !== this.originalSettings.username
+            this.settings.username !== this.originalSettings.username ||
+            this.settings.darkMode !== this.originalSettings.darkMode
         );
 
         const applyBtn = document.getElementById('settingsApply');
@@ -514,6 +534,27 @@ const Settings = {
         // Apply and close
         if (this.apply()) {
             this.hide();
+        }
+    },
+
+    /**
+     * Apply the dark mode setting to the UI.
+     */
+    applyDarkMode() {
+        if (this.settings.darkMode) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        } else {
+            document.documentElement.classList.remove('dark-mode');
+            document.body.classList.remove('dark-mode');
+        }
+
+        // Notify the backend so the form's BackColor matches
+        if (App.isWebViewReady) {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 'themeChanged',
+                darkMode: !!this.settings.darkMode
+            }));
         }
     },
 

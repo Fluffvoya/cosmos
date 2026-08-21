@@ -234,6 +234,10 @@ public class ServerBridge
                         HandleLauncherGetCategories();
                         break;
 
+                    case "themeChanged":
+                        HandleThemeChanged(root);
+                        break;
+
                     default:
                         // Unknown message type -- ignore.
                         break;
@@ -1440,6 +1444,31 @@ public class ServerBridge
                 _webView.Invoke(() => _webView.CoreWebView2.PostWebMessageAsJson(responseJson));
             else
                 _webView.CoreWebView2.PostWebMessageAsJson(responseJson);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Handle theme changed from the frontend.
+    /// Updates the form's BackColor to match the dark/light mode.
+    /// </summary>
+    private void HandleThemeChanged(JsonElement root)
+    {
+        if (!root.TryGetProperty("darkMode", out var darkModeProp))
+            return;
+
+        var isDark = darkModeProp.GetBoolean();
+
+        try
+        {
+            if (_webView.InvokeRequired)
+            {
+                _webView.Invoke(() => _mainWindow.UpdateThemeColor(isDark));
+            }
+            else
+            {
+                _mainWindow.UpdateThemeColor(isDark);
+            }
         }
         catch { }
     }

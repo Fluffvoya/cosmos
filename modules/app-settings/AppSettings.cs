@@ -23,6 +23,9 @@ public class AppSettings
 
     [JsonPropertyName("startupScriptPath")]
     public string StartupScriptPath { get; set; } = "";
+
+    [JsonPropertyName("darkMode")]
+    public bool DarkMode { get; set; } = false;
 }
 
 /// <summary>

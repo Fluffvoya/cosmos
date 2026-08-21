@@ -113,8 +113,8 @@ const Launcher = {
      * @param {object} data - The message data with a categories array.
      */
     handleCategoriesLoaded(data) {
-        this.categories = data.categories || [];
-        this.updateCategorySelector();
+        this.categories = (data.categories || []).sort((a, b) => a.localeCompare(b));
+        this.updateCategorySelect();
     },
 
     /**
@@ -402,7 +402,9 @@ const Launcher = {
             if (!map.has(cat)) map.set(cat, []);
             map.get(cat).push(app);
         });
-        return [...map.entries()].map(([category, apps]) => ({ category, apps }));
+        return [...map.entries()]
+            .map(([category, apps]) => ({ category, apps }))
+            .sort((a, b) => a.category.localeCompare(b.category));
     },
 
     /**

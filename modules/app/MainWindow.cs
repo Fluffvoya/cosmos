@@ -33,6 +33,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     private const int WS_THICKFRAME  = 0x00040000;
     private const int WS_CAPTION     = 0x00C00000;
     private const int WS_MAXIMIZEBOX = 0x00010000;
+    private const int WS_MINIMIZEBOX = 0x00020000;
 
     // ── WndProc messages ───────────────────────────────────────────────────────────────────────────────────
     private const int WM_NCCALCSIZE = 0x0083;
@@ -52,6 +53,12 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     [DllImport("dwmapi.dll")]
     private static extern int DwmExtendFrameIntoClientArea(
         IntPtr hwnd, ref MARGINS pMarInset);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MARGINS
@@ -103,6 +110,12 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         Instance = this;
         InitializeComponent();
         _settingsManager.Load();
+
+        // Apply dark mode BackColor from saved settings
+        if (_settingsManager.Current.DarkMode)
+        {
+            BackColor = Color.FromArgb(30, 30, 30);
+        }
     }
 
     /// <summary>
@@ -118,7 +131,7 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
         get
         {
             var cp = base.CreateParams;
-            cp.Style |= WS_THICKFRAME | WS_CAPTION | WS_MAXIMIZEBOX;
+            cp.Style |= WS_THICKFRAME | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
             return cp;
         }
     }
@@ -183,6 +196,27 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
             cyBottomHeight = 0
         };
         DwmExtendFrameIntoClientArea(Handle, ref margins);
+
+        // Apply immersive dark mode to the DWM frame so the extended
+        // frame area matches the current theme (prevents white border in dark mode).
+        ApplyDwmDarkMode(_settingsManager.Current.DarkMode);
+    }
+
+    /// <summary>
+    /// Set or clear the DWM immersive dark mode attribute on the window frame.
+    /// This controls the color of the DWM-extended frame area so it matches the theme.
+    /// </summary>
+    private void ApplyDwmDarkMode(bool isDark)
+    {
+        try
+        {
+            int value = isDark ? 1 : 0;
+            DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
+        }
+        catch
+        {
+            // DwmSetWindowAttribute may not be available on older Windows versions
+        }
     }
 
     /// <summary>
@@ -242,6 +276,11 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
             additionalBrowserArguments: "--allow-file-access-from-files");
         var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
         await _webView.EnsureCoreWebView2Async(env);
+
+        // Set WebView2 background to match the current theme
+        _webView.DefaultBackgroundColor = _settingsManager.Current.DarkMode
+            ? Color.FromArgb(30, 30, 30)
+            : Color.White;
 
         // Register bridge for the virtual host
         _webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
@@ -426,6 +465,31 @@ public class MainWindow : Form, IServer, IWebViewBridge, IScriptRunner
     {
         _taskRunner?.Dispose();
         _webView?.Dispose();
+    }
+
+    /// <summary>
+    /// Update the form's BackColor to match the current theme.
+    /// Called by the frontend when the dark mode setting changes.
+    /// </summary>
+    public void UpdateThemeColor(bool isDark)
+    {
+        BackColor = isDark
+            ? Color.FromArgb(30, 30, 30)
+            : Color.FromArgb(236, 238, 241);
+
+        // Update the DWM frame color to match the theme
+        ApplyDwmDarkMode(isDark);
+
+        try
+        {
+            _webView.DefaultBackgroundColor = isDark
+                ? Color.FromArgb(30, 30, 30)
+                : Color.White;
+        }
+        catch
+        {
+            // WebView2 not initialized yet — will be set on InitializeAsync
+        }
     }
 
     /// <summary>

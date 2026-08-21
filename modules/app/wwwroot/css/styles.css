@@ -25,6 +25,29 @@
     --radius-md: 8px;
 }
 
+/* ── Dark Mode ──────────────────────────────────────────────── */
+:root.dark-mode {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-tertiary: #333333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    --text-muted: #777777;
+    --border-color: #444444;
+    --accent-color: #3b9cdb;
+    --accent-hover: #2a8bc4;
+    --danger-color: #f14c4c;
+    --tab-active-bg: #2d2d2d;
+    --tab-inactive-bg: #1e1e1e;
+    --menu-hover-bg: #383838;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+html {
+    background-color: var(--bg-primary);
+}
+
 body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 14px;
@@ -1078,6 +1101,24 @@ body.tab-right .splitter.right-splitter {
     color: var(--text-secondary);
     margin-top: 4px;
     font-style: italic;
+}
+
+.setting-toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-toggle-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.setting-toggle-label {
+    font-size: 13px;
+    color: var(--text-secondary);
 }
 
 /* ── Log Copy Button ──────────────────────────────────────────── */
@@ -2485,4 +2526,153 @@ body.tab-right .splitter.right-splitter {
     z-index: 10001;
     pointer-events: none;
     box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
+}
+
+/* ── Dark Mode Overrides ─────────────────────────────────────── */
+body.dark-mode .window-control-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .window-control-btn:active {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .tab-item:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-mode .tab-strip.left .tab-item:hover,
+body.dark-mode .tab-strip.right .tab-item:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-mode .log-row:hover,
+body.dark-mode .scheduler-row:hover,
+body.dark-mode .script-output-line:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Start page gradient */
+body.dark-mode .start-page {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #1a1a2e 50%, #0f3460 75%, #1a1a2e 100%);
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+}
+
+body.dark-mode .start-time-hhmm {
+    background: linear-gradient(135deg, #e0e0e0 0%, #aaaaaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.dark-mode .start-greeting-title {
+    background: linear-gradient(135deg, #3b9cdb, #9b72cf, #3b9cdb);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.dark-mode .start-time-toggle {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .start-time-toggle:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+body.dark-mode .start-card {
+    background: rgba(45, 45, 45, 0.6);
+    border-color: rgba(68, 68, 68, 0.8);
+}
+
+body.dark-mode .start-card:hover {
+    box-shadow: 0 8px 30px rgba(59, 156, 219, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .start-card-shortcut {
+    background: var(--bg-tertiary);
+}
+
+/* Log level badges */
+body.dark-mode .log-level-badge.log-level-error {
+    background-color: rgba(241, 76, 76, 0.2);
+    color: #f14c4c;
+}
+
+body.dark-mode .log-level-badge.log-level-warning {
+    background-color: rgba(255, 200, 50, 0.15);
+    color: #cca000;
+}
+
+body.dark-mode .log-level-badge.log-level-info {
+    background-color: rgba(59, 156, 219, 0.2);
+    color: #3b9cdb;
+}
+
+/* Script output colors */
+body.dark-mode .script-output-line.script-output-info .script-output-text {
+    color: #3b9cdb;
+}
+
+body.dark-mode .script-output-line.script-output-success .script-output-text {
+    color: #4ec94e;
+}
+
+body.dark-mode .script-output-line.script-output-error .script-output-text {
+    color: #f14c4c;
+}
+
+body.dark-mode .script-output-line.script-output-warning .script-output-text {
+    color: #cca000;
+}
+
+/* Password manager */
+body.dark-mode .password-success-msg {
+    color: #4ec94e;
+}
+
+body.dark-mode .password-copy-btn.copied {
+    background-color: #4ec94e;
+    border-color: #4ec94e;
+}
+
+body.dark-mode .password-copy-feedback {
+    color: #4ec94e;
+}
+
+/* Scheduler day button hover */
+body.dark-mode .scheduler-day-btn:hover {
+    background-color: var(--menu-hover-bg);
+}
+
+/* Toast messages — keep colored backgrounds on dark mode */
+body.dark-mode .message-bar-info {
+    background-color: #0078d4;
+}
+
+body.dark-mode .message-bar-warning {
+    background-color: #b89000;
+}
+
+body.dark-mode .message-bar-error {
+    background-color: #c50f1f;
+}
+
+/* Modal overlay */
+body.dark-mode .modal-overlay,
+body.dark-mode .settings-overlay,
+body.dark-mode .password-dialog-overlay,
+body.dark-mode .password-confirm-overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Scrollbar */
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background-color: #555;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background-color: #777;
 }
